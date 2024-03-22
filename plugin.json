@@ -1,21 +1,23 @@
 {
-  "name": "siyuan-css-hide-doc-tree-icon",
+  "name": "siyuan-js-open-snippets-dialog",
   "author": "TCOTC",
-  "url": "https://github.com/TCOTC/siyuan-css-hide-doc-tree-icon",
-  "version": "0.1.0",
+  "url": "https://github.com/TCOTC/siyuan-js-open-snippets-dialog",
+  "version": "0.0.1",
   "backends": [
-    "all"
+    "windows",
+    "linux",
+    "darwin"
   ],
   "frontends": [
     "all"
   ],
   "displayName": {
-    "default": "Doc Tree hide icon",
-    "zh_CN": "文档树隐藏图标"
+    "default": "Open Snippets Dialog",
+    "zh_CN": "查看代码片段"
   },
   "description": {
-    "default": "Hide the icon in front of the document in the document tree",
-    "zh_CN": "在文档树中隐藏文档前的图标"
+    "default": "Add a button to the top bar to quickly open the snippet dialog",
+    "zh_CN": "在顶栏添加按钮，快捷打开代码片段界面"
   },
   "readme": {
     "default": "README.md",
@@ -30,14 +32,14 @@
     ]
   },
   "keywords": [
-    "文档",
-    "文档树",
-    "隐藏",
-    "图标",
+    "顶栏",
+    "按钮",
+    "代码",
+    "代码片段",
     "隐藏图标",
-    "doc",
-    "document",
-    "hide",
-    "icon"
+    "bar",
+    "snippet",
+    "button",
+    "open"
   ]
 }
