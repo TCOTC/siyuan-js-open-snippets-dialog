@@ -2,45 +2,32 @@
   "name": "siyuan-js-open-snippets-dialog",
   "author": "TCOTC",
   "url": "https://github.com/TCOTC/siyuan-js-open-snippets-dialog",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "backends": [
-    "windows",
-    "linux",
-    "darwin"
+    "all"
   ],
   "frontends": [
     "all"
   ],
   "displayName": {
-    "default": "Open Snippets Dialog",
-    "zh_CN": "查看代码片段"
+    "default": "Snippets Panel",
+    "zh_CN": "代码片段快捷面板"
   },
   "description": {
-    "default": "Add a button to the top bar to quickly open the snippet dialog",
-    "zh_CN": "在顶栏添加按钮，快捷打开代码片段界面"
+    "default": "Add a button to the top bar to quickly edit snippets",
+    "zh_CN": "在顶栏添加按钮，快捷编辑代码片段"
   },
   "readme": {
     "default": "README.md",
     "zh_CN": "README_zh_CN.md"
   },
   "funding": {
-    "openCollective": "",
-    "patreon": "",
-    "github": "",
     "custom": [
-      "https://afdian.com/a/JeffreyChen"
+      "https://bento.me/jeffff"
     ]
   },
   "keywords": [
-    "顶栏",
-    "按钮",
-    "代码",
-    "代码片段",
-    "隐藏图标",
-    "bar",
-    "snippet",
-    "button",
-    "open",
-    "TCOTC"
+    "Open Snippets Dialog",
+    "查看代码片段"
   ]
 }
