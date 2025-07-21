@@ -26,7 +26,8 @@ import {
     platformUtils,
     openSetting,
     openAttributePanel,
-    saveLayout
+    saveLayout,
+    fetchSyncPost
 } from "siyuan";
 import "./index.scss";
 import {IMenuItem} from "siyuan/types";
@@ -34,10 +35,11 @@ import {IMenuItem} from "siyuan/types";
 const STORAGE_NAME = "snippets-dialog-config.json";
 const TAB_TYPE = "custom-tab";
 
-export default class PluginSample extends Plugin {
+export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
 
     private custom: () => Custom;
     private isMobile: boolean;
+    private snippetType: string = "sjosd-radio-css";
 
     // 启用插件
     onload() {
@@ -81,7 +83,7 @@ export default class PluginSample extends Plugin {
         this.custom = this.addTab({
             type: TAB_TYPE,
             init() {
-                this.element.innerHTML = `<div class="siyuan-js-open-snippets-dialog__custom-tab">${this.data.text}</div>`;
+                this.element.innerHTML = `<div class="sjosd__custom-tab">${this.data.text}</div>`;
             },
             beforeDestroy() {
                 console.log("在销毁标签页之前:", TAB_TYPE);
@@ -95,7 +97,7 @@ export default class PluginSample extends Plugin {
 
 
         // 注册快捷键
-        // TODO: “重新加载界面”快捷键
+        // TODO: “重新加载界面”快捷键、“打开顶栏菜单”的快捷键（这些快捷键都默认置空）
         this.addCommand({
             langKey: "showDialog",
             hotkey: "⇧⌘O",
@@ -197,67 +199,190 @@ export default class PluginSample extends Plugin {
 
 
 
-    private addMenu(rect?: DOMRect) {
+    private async addMenu(rect?: DOMRect) {
+        console.log("this.snippetType:", this.snippetType);
         const menu = new Menu("siyuanJsOpenSnippetsDialog", () => {
             // 此处在关闭菜单时执行
         });
+        // 如果菜单已存在，再次点击按钮就会移除菜单，此时直接返回
+        if (menu.isOpen) return;
 
-        // 添加菜单选项
-        menu.addItem({
-            icon: "iconSettings",
-            label: "Open Setting",
-            click: () => {
-                openSetting(this.app);
-            }
-        });
-        menu.addItem({
-            icon: "iconInfo",
-            label: "Dialog(open doc first)",
-            accelerator: this.commands[0].customHotkey,
-            click: () => {
-                this.showDialog();
-            }
-        });
-        if (!this.isMobile) {
-            menu.addItem({
-                icon: "iconFace",
-                label: "Open Custom Tab",
-                click: () => {
-                    const tab = openTab({
-                        app: this.app,
-                        custom: {
-                            icon: "iconFace",
-                            title: "Custom Tab",
-                            data: {
-                                text: platformUtils.isHuawei() ? "Hello, Huawei!" : "This is my custom tab",
-                            },
-                            id: this.name + TAB_TYPE
-                        },
-                    });
-                    console.log(tab);
-                }
-            });
+
+        // 获取代码片段列表
+        const response = await fetchSyncPost("/api/snippet/getSnippet", { type: "all", enabled: 2 });
+        if (response.code !== 0) {
+            menu.close();
+            showMessage(this.i18n.pluginDisplayName + ": " + this.i18n.getSnippetsListFailed + " [" + response.msg + "]", 6000, "error");
+            return;
         }
-        menu.addItem({
-            icon: "iconDownload",
-            label: "Save Layout",
-            click: () => {
-                saveLayout(() => {
-                    showMessage("Layout saved");
+        const snippetsList = response.data.snippets;
+        console.log(snippetsList);
+        const cssList = snippetsList.filter((snippet: any) => snippet.type === "css");
+        const jsList = snippetsList.filter((snippet: any) => snippet.type === "js");
+        console.log(cssList);
+        console.log(jsList);
+
+
+        // 插入菜单顶部
+        const menuItems: HTMLElement = menu.element.querySelector(".b3-menu__items");
+        const menuTop = document.createElement("div");
+        menuTop.className = "sjosd-top-bar-menu fn__flex";
+        // 选项卡的实现参考：https://codepen.io/havardob/pen/ExVaELV
+        menuTop.innerHTML =
+        `<div class="sjosd-top-bar-menu__top-container">
+            <div class="sjosd-tabs">
+                <input type="radio" id="sjosd-radio-css" name="sjosd-tabs"/>
+                <label class="sjosd-tab" for="sjosd-radio-css">
+                    <span class="sjosd-tab-text">CSS</span>
+                    <span class="sjosd-tab-count">${cssList.length}</span>
+                </label>
+                <input type="radio" id="sjosd-radio-js" name="sjosd-tabs"/>
+                <label class="sjosd-tab" for="sjosd-radio-js">
+                    <span class="sjosd-tab-text" style="padding-left: .2em;">JS</span>
+                    <span class="sjosd-tab-count">${jsList.length}</span>
+                </label>
+                <span class="sjosd-glider"></span>
+            </div>
+        </div>`;
+        menuTop.querySelector("#" + this.snippetType).setAttribute("checked", "");
+        menuItems.append(menuTop);
+        menuTop.addEventListener("click", (e) => {
+            const target = e.target as Element;
+            // console.log(target);
+            if (target.tagName.toLowerCase() === "input") {
+                // TODO: 切换代码片段类型
+                const inputTarget = target as HTMLInputElement;
+                // console.log(inputTarget.id);
+                // console.log(inputTarget.checked);
+                this.snippetType = inputTarget.id;
+                // if (!window.siyuan.sjosd) window.siyuan.sjosd = {};
+                // window.siyuan.sjosd.topBarMenuInputType = inputTarget.id;
+                switchSnippet(menuItems);
+            }
+        });
+        // TODO: 监听按键操作，在选项上按回车时切换开关/特定交互、按 Delete 时删除代码片段、按 Tab 可以在各个可交互的元素上轮流切换
+
+        const switchSnippet = (menuItems: HTMLElement) => {
+            if (this.snippetType === "sjosd-radio-css") {
+                menuItems.querySelectorAll("[data-type='css']").forEach((item: any) => {
+                    item.classList.remove("fn__none");
+                });
+                menuItems.querySelectorAll("[data-type='js']").forEach((item: any) => {
+                    item.classList.add("fn__none");
+                });
+            } else if (this.snippetType === "sjosd-radio-js") {
+                menuItems.querySelectorAll("[data-type='js']").forEach((item: any) => {
+                    item.classList.remove("fn__none");
+                });
+                menuItems.querySelectorAll("[data-type='css']").forEach((item: any) => {
+                    item.classList.add("fn__none");
                 });
             }
+            
+        };
+
+
+        // 生成代码片段列表
+        snippetsList.forEach((snippet: any) => {
+            const snippetElement = document.createElement("button");
+            snippetElement.className = "b3-menu__item";
+            // if (this.snippetType === "sjosd-radio-css" && snippet.type !== "css") {
+            //     snippetElement.classList.add("fn__none");
+            // } else if (this.snippetType === "sjosd-radio-js" && snippet.type !== "js") {
+            //     snippetElement.classList.add("fn__none");
+            // }
+            snippetElement.setAttribute("data-type", snippet.type);
+            snippetElement.setAttribute("data-id", snippet.id);
+            snippetElement.innerHTML =
+                `<div class="fn__flex-1">
+                    <span class="fn__space"></span>
+                    ${snippet.name}
+                </div>
+                <span class="fn__space"></span>
+                <span aria-label="删除" class="b3-tooltips b3-tooltips__sw block__icon block__icon--show" data-custom-action="remove">
+                    <svg><use xlink:href="#iconTrashcan"></use></svg>
+                </span>
+                <span class="fn__space"></span>
+                <input style="box-sizing: border-box" class="b3-switch fn__flex-center" type="checkbox">`;
+            
+            menuItems.append(snippetElement);
+            switchSnippet(menuItems);
         });
-        menu.addSeparator();
-        menu.addItem({
-            icon: "iconSparkles",
-            label: this.data[STORAGE_NAME].readonlyText || "Readonly",
-            type: "readonly",
-        });
+
+
+        const updateSnippetCount = (menuItems: HTMLElement) => {
+            const cssCount = menuItems.querySelectorAll("[data-type='css']").length;
+            const jsCount = menuItems.querySelectorAll("[data-type='js']").length;
+            menuItems.querySelector("#sjosd-radio-css .sjosd-tab-count").textContent = cssCount.toString();
+            menuItems.querySelector("#sjosd-radio-js .sjosd-tab-count").textContent = jsCount.toString();
+        };
+
+
+        // const snippetsListElement = document.createElement("div");
+        // snippetsListElement.className = "sjosd-snippets-list";
+        // snippetsListElement.innerHTML = snippetsList.map(snippet => `<div class="sjosd-snippet">${snippet.name}</div>`).join("");
+        // menuItems.append(snippetsListElement);
+
+        // TODO: 插入代码片段列表
+
+        // 添加菜单选项
+        // menu.addItem({
+        //     icon: "iconSettings",
+        //     label: "Open Setting",
+        //     click: () => {
+        //         openSetting(this.app);
+        //     }
+        // });
+        // menu.addItem({
+        //     icon: "iconInfo",
+        //     label: "Dialog(open doc first)",
+        //     accelerator: this.commands[0].customHotkey,
+        //     click: () => {
+        //         this.showDialog();
+        //     }
+        // });
+        // if (!this.isMobile) {
+        //     menu.addItem({
+        //         icon: "iconFace",
+        //         label: "Open Custom Tab",
+        //         click: () => {
+        //             const tab = openTab({
+        //                 app: this.app,
+        //                 custom: {
+        //                     icon: "iconFace",
+        //                     title: "Custom Tab",
+        //                     data: {
+        //                         text: platformUtils.isHuawei() ? "Hello, Huawei!" : "This is my custom tab",
+        //                     },
+        //                     id: this.name + TAB_TYPE
+        //                 },
+        //             });
+        //             console.log(tab);
+        //         }
+        //     });
+        // }
+        // menu.addItem({
+        //     icon: "iconDownload",
+        //     label: "Save Layout",
+        //     click: () => {
+        //         saveLayout(() => {
+        //             showMessage("Layout saved");
+        //         });
+        //     }
+        // });
+        // menu.addSeparator();
+        // menu.addItem({
+        //     icon: "iconSparkles",
+        //     label: this.data[STORAGE_NAME].readonlyText || "Readonly",
+        //     type: "readonly",
+        // });
 
         // 弹出菜单
         if (this.isMobile) {
             menu.fullscreen();
         } else {
+            // TODO: 这里不要用鼠标位置（考虑用 top 和 vw），并且菜单要固定宽度，否则切换 CSS 和 JS 时，菜单会抖动或者超出窗口右边界
+            //  还要调整菜单的最大高度、添加 scrollbar-gutter: stable; 样式
             menu.open({
                 x: rect.right,
                 y: rect.bottom,
@@ -266,7 +391,7 @@ export default class PluginSample extends Plugin {
         }
     }
 
-    
+
 
     // 自定义插件设置窗口
 //     openSetting() {
