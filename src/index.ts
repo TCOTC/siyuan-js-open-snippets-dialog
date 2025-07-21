@@ -39,9 +39,38 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
 
     private custom: () => Custom;
     private isMobile: boolean;
-    private snippetType: string = "sjosd-radio-css"; // 顶栏菜单默认显示 CSS 代码片段
+    private _snippetType: string = window.siyuan.sjosd?.topBarMenuInputType || "sjosd-radio-css"; // 顶栏菜单默认显示 CSS 代码片段
+    private menuItems: HTMLElement;
 
-    // 启用插件
+    /**
+     * snippetType 属性的 getter
+     */
+    get snippetType(): string {
+        return this._snippetType;
+    }
+
+    /**
+     * snippetType 属性的 setter，改变时执行 onSnippetTypeChange
+     */
+    set snippetType(value: string) {
+        if (this._snippetType !== value) {
+            this._snippetType = value;
+            this.syncSnippetType(value);
+        }
+    }
+
+    /**
+     * 将 snippetType 同步到全局变量
+     * @param value 新的 snippetType
+     */
+    private syncSnippetType(value: string) {
+        if (!window.siyuan.sjosd) window.siyuan.sjosd = {};
+        window.siyuan.sjosd.topBarMenuInputType = value;
+    }
+
+    /**
+     * 启用插件
+     */
     onload() {
         this.data[STORAGE_NAME] = {readonlyText: "Readonly"};
 
@@ -151,23 +180,35 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
     }
 
-    // 布局加载完成
+    /**
+     * 布局加载完成
+     */
     onLayoutReady() {
         // 加载插件配置
         this.loadData(STORAGE_NAME);
     }
 
-    // 禁用插件
+    /**
+     * 禁用插件
+     */
     onunload() {
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnunload);
     }
 
-    // 卸载插件
+    /**
+     * 卸载插件
+     */
     uninstall() {
+        // 移除全局变量
+        delete window.siyuan.sjosd;
+
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginUninstall);
     }
 
 
+    /**
+     * 显示对话框
+     */
     private showDialog() {
         const dialog = new Dialog({
             title: `SiYuan ${Constants.SIYUAN_VERSION}`,
@@ -198,6 +239,10 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
     }
 
 
+    /**
+     * 添加顶栏菜单
+     * @param rect 菜单位置
+     */
     private async addMenu(rect?: DOMRect) {
         const menu = new Menu("siyuanJsOpenSnippetsDialog", () => {
             // 此处在关闭菜单时执行
@@ -219,7 +264,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         console.log(snippetsList);
 
         // 插入菜单顶部
-        const menuItems: HTMLElement = menu.element.querySelector(".b3-menu__items");
+        this.menuItems = menu.element.querySelector(".b3-menu__items");
         const menuTop = document.createElement("div");
         menuTop.className = "sjosd-top-bar-menu fn__flex";
         // 选项卡的实现参考：https://codepen.io/havardob/pen/ExVaELV
@@ -240,59 +285,13 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             </div>
         </div>`;
         menuTop.querySelector("#" + this.snippetType).setAttribute("checked", "");
-        menuItems.append(menuTop);
-        menuTop.addEventListener("click", (e) => {
-            const target = e.target as Element;
-            // console.log(target);
-            if (target.tagName.toLowerCase() === "input") {
-                // TODO: 切换代码片段类型
-                const inputTarget = target as HTMLInputElement;
-                // console.log(inputTarget.id);
-                // console.log(inputTarget.checked);
-                this.snippetType = inputTarget.id;
-                // if (!window.siyuan.sjosd) window.siyuan.sjosd = {};
-                // window.siyuan.sjosd.topBarMenuInputType = inputTarget.id;
-                switchSnippet(menuItems);
-            }
-
-            // 点击顶部可以取消选中代码片段
-            if (target.closest(".sjosd-top-bar-menu")) {
-                menuItems.querySelectorAll(".b3-menu__item--current").forEach((item: any) => {
-                    item.classList.remove("b3-menu__item--current");
-                });
-            }
-        });
-        // TODO: 监听按键操作，在选项上按回车时切换开关/特定交互、按 Delete 时删除代码片段、按 Tab 可以在各个可交互的元素上轮流切换
-
-        const switchSnippet = (menuItems: HTMLElement) => {
-            if (this.snippetType === "sjosd-radio-css") {
-                menuItems.querySelectorAll("[data-type='css']").forEach((item: any) => {
-                    item.classList.remove("fn__none");
-                });
-                menuItems.querySelectorAll("[data-type='js']").forEach((item: any) => {
-                    item.classList.add("fn__none");
-                });
-            } else if (this.snippetType === "sjosd-radio-js") {
-                menuItems.querySelectorAll("[data-type='js']").forEach((item: any) => {
-                    item.classList.remove("fn__none");
-                });
-                menuItems.querySelectorAll("[data-type='css']").forEach((item: any) => {
-                    item.classList.add("fn__none");
-                });
-            }
-            
-        };
+        this.menuItems.append(menuTop);
 
 
         // 生成代码片段列表
         snippetsList.forEach((snippet: any) => {
             const snippetElement = document.createElement("button");
-            snippetElement.className = "b3-menu__item";
-            // if (this.snippetType === "sjosd-radio-css" && snippet.type !== "css") {
-            //     snippetElement.classList.add("fn__none");
-            // } else if (this.snippetType === "sjosd-radio-js" && snippet.type !== "js") {
-            //     snippetElement.classList.add("fn__none");
-            // }
+            snippetElement.className = "b3-menu__item sjosd-snippet-item";
             snippetElement.setAttribute("data-type", snippet.type);
             snippetElement.setAttribute("data-id", snippet.id);
             snippetElement.innerHTML =
@@ -301,121 +300,199 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
                 <button class="block__icon block__icon--show fn__flex-center" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
                 <button class="block__icon block__icon--show fn__flex-center" data-type="remove"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
                 <span class="fn__space"></span>
-                <input style="box-sizing: border-box" class="b3-switch fn__flex-center" type="checkbox">`;
+                <input class="b3-switch fn__flex-center" type="checkbox">`;
             
-            menuItems.append(snippetElement);
-            switchSnippet(menuItems);
+            this.menuItems.append(snippetElement);
         });
 
+        this.switchSnippet();
+        this.updateSnippetCount();
 
-        const updateSnippetCount = (menuItems: HTMLElement) => {
-            const cssCount = menuItems.querySelectorAll("[data-type='css']").length;
-            const jsCount = menuItems.querySelectorAll("[data-type='js']").length;
-            menuItems.querySelector("#sjosd-radio-css + label .sjosd-tab-count").textContent = cssCount > 99 ? "99+" : cssCount.toString();
-            menuItems.querySelector("#sjosd-radio-js + label .sjosd-tab-count").textContent = jsCount > 99 ? "99+" : jsCount.toString();
-        };
-        updateSnippetCount(menuItems);
-
-
-        // const snippetsListElement = document.createElement("div");
-        // snippetsListElement.className = "sjosd-snippets-list";
-        // snippetsListElement.innerHTML = snippetsList.map(snippet => `<div class="sjosd-snippet">${snippet.name}</div>`).join("");
-        // menuItems.append(snippetsListElement);
-
-        // TODO: 插入代码片段列表
-
-        // 添加菜单选项
-        // menu.addItem({
-        //     icon: "iconSettings",
-        //     label: "Open Setting",
-        //     click: () => {
-        //         openSetting(this.app);
-        //     }
+        menu.element.addEventListener("click", (event: MouseEvent) => {
+            this.menuClickHandler(event);
+        });
+        // 监听按键操作，在选项上按回车时切换开关/特定交互、按 Delete 时删除代码片段、按 Tab 可以在各个可交互的元素上轮流切换
+        // 不做了，处理太麻烦
+        // menu.element.addEventListener("keydown", (event: KeyboardEvent) => {
+        //     this.menuKeyDownHandler(event);
         // });
-        // menu.addItem({
-        //     icon: "iconInfo",
-        //     label: "Dialog(open doc first)",
-        //     accelerator: this.commands[0].customHotkey,
-        //     click: () => {
-        //         this.showDialog();
-        //     }
-        // });
-        // if (!this.isMobile) {
-        //     menu.addItem({
-        //         icon: "iconFace",
-        //         label: "Open Custom Tab",
-        //         click: () => {
-        //             const tab = openTab({
-        //                 app: this.app,
-        //                 custom: {
-        //                     icon: "iconFace",
-        //                     title: "Custom Tab",
-        //                     data: {
-        //                         text: platformUtils.isHuawei() ? "Hello, Huawei!" : "This is my custom tab",
-        //                     },
-        //                     id: this.name + TAB_TYPE
-        //                 },
-        //             });
-        //             console.log(tab);
-        //         }
-        //     });
-        // }
-        // menu.addItem({
-        //     icon: "iconDownload",
-        //     label: "Save Layout",
-        //     click: () => {
-        //         saveLayout(() => {
-        //             showMessage("Layout saved");
-        //         });
-        //     }
-        // });
-        // menu.addSeparator();
-        // menu.addItem({
-        //     icon: "iconSparkles",
-        //     label: this.data[STORAGE_NAME].readonlyText || "Readonly",
-        //     type: "readonly",
-        // });
+
 
         // 弹出菜单
         if (this.isMobile) {
             menu.fullscreen();
         } else {
-            // TODO: 这里不要用鼠标位置（考虑用 top 和 vw），并且菜单要固定宽度，否则切换 CSS 和 JS 时，菜单会抖动或者超出窗口右边界
-            //  还要调整菜单的最大高度、添加 scrollbar-gutter: stable; 样式
             menu.open({
                 x: rect.right,
-                y: rect.bottom,
-                isLeft: true,
+                y: rect.bottom + 1,
+                isLeft: false,
             });
+            // 不要用鼠标位置、菜单要固定宽度，否则切换 CSS 和 JS 时，菜单可能会大幅抖动或者超出窗口边界
+            const dockRight = document.querySelector("#dockRight").getBoundingClientRect();
+            menu.element.style.minWidth = "370px";
+            menu.element.style.maxWidth = "450px";
+            menu.element.style.right = ((dockRight?.width || 0) + 1).toString() + "px";
+            menu.element.style.left = "";
         }
     }
 
 
+    /**
+     * 菜单顶部点击事件处理
+     * @param event 鼠标事件
+     */
+    menuClickHandler = (event: MouseEvent) => {
+        const target = event.target as HTMLElement;
+        console.log(target);
 
-    // 自定义插件设置窗口
-//     openSetting() {
-//         const dialog = new Dialog({
-//             title: this.name,
-//             content: `<div class="b3-dialog__content"><textarea class="b3-text-field fn__block" placeholder="readonly text in the menu"></textarea></div>
-// <div class="b3-dialog__action">
-//     <button class="b3-button b3-button--cancel">${this.i18n.cancel}</button><div class="fn__space"></div>
-//     <button class="b3-button b3-button--text">${this.i18n.save}</button>
-// </div>`,
-//             width: this.isMobile ? "92vw" : "520px",
-//         });
-//         const inputElement = dialog.element.querySelector("textarea");
-//         inputElement.value = this.data[STORAGE_NAME].readonlyText;
-//         const btnsElement = dialog.element.querySelectorAll(".b3-button");
-//         dialog.bindInput(inputElement, () => {
-//             (btnsElement[1] as HTMLButtonElement).click();
-//         });
-//         inputElement.focus();
-//         btnsElement[0].addEventListener("click", () => {
-//             dialog.destroy();
-//         });
-//         btnsElement[1].addEventListener("click", () => {
-//             this.saveData(STORAGE_NAME, {readonlyText: inputElement.value});
-//             dialog.destroy();
-//         });
-//     }
+        // 点击顶部
+        if (target.closest(".sjosd-top-bar-menu")) {
+            // 取消选中代码片段
+            this.menuItems.querySelectorAll(".b3-menu__item--current").forEach((item: any) => {
+                item.classList.remove("b3-menu__item--current");
+            });
+            
+            // 切换代码片段类型
+            if (target.tagName.toLowerCase() === "input") {
+                const inputTarget = target as HTMLInputElement;
+                this.snippetType = inputTarget.id;
+                this.switchSnippet();
+            }
+        }
+            
+        // 点击按钮
+        if (target.tagName.toLowerCase() === "button") {
+            const buttonTarget = target as HTMLButtonElement;
+            // console.log(buttonTarget);
+            if (buttonTarget.dataset.type === "edit") {
+                // TODO: 编辑代码片段
+            } else if (buttonTarget.dataset.type === "remove") {
+                // TODO: 删除代码片段
+            }
+            return;
+        }
+
+        // 点击代码片段
+        const snippetElement = target.closest(".b3-menu__item") as HTMLElement;
+        if (snippetElement && snippetElement.dataset.id) {
+            // 切换开关状态
+            const checkBox = snippetElement.querySelector("input") as HTMLInputElement;
+            if (target === checkBox) return;
+            checkBox.checked = !checkBox.checked;
+
+            // console.log("snippetElement:", snippetElement);
+            if (checkBox.checked) {
+                // TODO: 启用代码片段
+            } else {
+                // TODO: 禁用代码片段
+            }
+        }
+    };
+
+
+    /**
+     * 根据代码片段类型过滤列表
+     */
+    switchSnippet = () => {
+        const isCSS = this.snippetType === "sjosd-radio-css";
+        this.menuItems.querySelectorAll(isCSS ? "[data-type='css']" : "[data-type='js']").forEach((item: HTMLElement) => {
+            item.classList.remove("fn__none");
+        });
+        this.menuItems.querySelectorAll(isCSS ? "[data-type='js']" : "[data-type='css']").forEach((item: HTMLElement) => {
+            item.classList.add("fn__none");
+        });
+    };
+
+
+    /**
+     * 更新代码片段计数
+     */
+    updateSnippetCount = () => {
+        const cssCount = this.menuItems.querySelectorAll("[data-type='css']").length;
+        const jsCount = this.menuItems.querySelectorAll("[data-type='js']").length;
+        this.menuItems.querySelector("#sjosd-radio-css + label .sjosd-tab-count").textContent = cssCount > 99 ? "99+" : cssCount.toString();
+        this.menuItems.querySelector("#sjosd-radio-js + label .sjosd-tab-count").textContent = jsCount > 99 ? "99+" : jsCount.toString();
+    };
+
+
+    // // 自定义插件设置窗口
+    // openSetting() {
+    //     const dialog = new Dialog({
+    //         title: this.name,
+    //         content:
+    //             `<div class="b3-dialog__content"><textarea class="b3-text-field fn__block" placeholder="readonly text in the menu"></textarea></div>
+    //             <div class="b3-dialog__action">
+    //                 <button class="b3-button b3-button--cancel">${this.i18n.cancel}</button><div class="fn__space"></div>
+    //                 <button class="b3-button b3-button--text">${this.i18n.save}</button>
+    //             </div>`,
+    //         width: this.isMobile ? "92vw" : "520px",
+    //     });
+    //     const inputElement = dialog.element.querySelector("textarea");
+    //     inputElement.value = this.data[STORAGE_NAME].readonlyText;
+    //     const btnsElement = dialog.element.querySelectorAll(".b3-button");
+    //     dialog.bindInput(inputElement, () => {
+    //         (btnsElement[1] as HTMLButtonElement).click();
+    //     });
+    //     inputElement.focus();
+    //     btnsElement[0].addEventListener("click", () => {
+    //         dialog.destroy();
+    //     });
+    //     btnsElement[1].addEventListener("click", () => {
+    //         this.saveData(STORAGE_NAME, {readonlyText: inputElement.value});
+    //         dialog.destroy();
+    //     });
+    // }
+
+
+    // 添加菜单选项
+    // menu.addItem({
+    //     icon: "iconSettings",
+    //     label: "Open Setting",
+    //     click: () => {
+    //         openSetting(this.app);
+    //     }
+    // });
+    // menu.addItem({
+    //     icon: "iconInfo",
+    //     label: "Dialog(open doc first)",
+    //     accelerator: this.commands[0].customHotkey,
+    //     click: () => {
+    //         this.showDialog();
+    //     }
+    // });
+    // if (!this.isMobile) {
+    //     menu.addItem({
+    //         icon: "iconFace",
+    //         label: "Open Custom Tab",
+    //         click: () => {
+    //             const tab = openTab({
+    //                 app: this.app,
+    //                 custom: {
+    //                     icon: "iconFace",
+    //                     title: "Custom Tab",
+    //                     data: {
+    //                         text: platformUtils.isHuawei() ? "Hello, Huawei!" : "This is my custom tab",
+    //                     },
+    //                     id: this.name + TAB_TYPE
+    //                 },
+    //             });
+    //             console.log(tab);
+    //         }
+    //     });
+    // }
+    // menu.addItem({
+    //     icon: "iconDownload",
+    //     label: "Save Layout",
+    //     click: () => {
+    //         saveLayout(() => {
+    //             showMessage("Layout saved");
+    //         });
+    //     }
+    // });
+    // menu.addSeparator();
+    // menu.addItem({
+    //     icon: "iconSparkles",
+    //     label: this.data[STORAGE_NAME].readonlyText || "Readonly",
+    //     type: "readonly",
+    // });
 }
