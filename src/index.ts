@@ -39,6 +39,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
 
     private custom: () => Custom;
     private isMobile: boolean;
+    private snippetsList: any[];
     private _snippetType: string = window.siyuan.sjosd?.topBarMenuInputType || "sjosd-radio-css"; // 顶栏菜单默认显示 CSS 代码片段
     private menuItems: HTMLElement;
 
@@ -78,7 +79,6 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
 
 
-
         // 顶栏按钮
         this.addIcons(
             `<symbol id="iconSiyuanJsOpenSnippetsDialogTopBarIcon" viewBox="0 0 32 32">
@@ -91,22 +91,27 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             title: this.i18n.pluginDisplayName,
             position: "right",
             callback: () => {
-                if (this.isMobile) {
-                    this.addMenu();
-                } else {
-                    let rect = topBarElement.getBoundingClientRect();
-                    // 如果被隐藏，则使用更多按钮
-                    if (rect.width === 0) {
-                        rect = document.querySelector("#barMore").getBoundingClientRect();
-                    }
-                    if (rect.width === 0) {
-                        rect = document.querySelector("#barPlugins").getBoundingClientRect();
-                    }
-                    this.addMenu(rect);
-                }
+                openSnippetsPanel();
             }
         });
 
+
+        // 打开代码片段快捷面板
+        const openSnippetsPanel = () => {
+            if (this.isMobile) {
+                this.addMenu();
+            } else {
+                let rect = topBarElement.getBoundingClientRect();
+                // 如果被隐藏，则使用更多按钮
+                if (rect.width === 0) {
+                    rect = document.querySelector("#barMore").getBoundingClientRect();
+                }
+                if (rect.width === 0) {
+                    rect = document.querySelector("#barPlugins").getBoundingClientRect();
+                }
+                this.addMenu(rect);
+            }
+        };
 
 
         // 自定义标签页
@@ -125,22 +130,20 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         });
 
 
-
-        // 注册快捷键
-        // TODO: “重新加载界面”快捷键、“打开顶栏菜单”的快捷键（这些快捷键都默认置空）
+        // 注册快捷键（都默认置空）
+        // 打开代码片段快捷面板
         this.addCommand({
-            langKey: "showDialog",
-            hotkey: "⇧⌘O",
+            langKey: "openSnippetsPanel",
+            hotkey: "",
             callback: () => {
-                this.showDialog();
+                openSnippetsPanel();
             },
         });
-
+        // TODO: “重新加载界面”快捷键
 
 
         // 获取已打开的所有自定义页签
         // this.getOpenedTab();
-
 
 
         // 插件设置中的各个配置项
@@ -246,6 +249,8 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
     private async addMenu(rect?: DOMRect) {
         const menu = new Menu("siyuanJsOpenSnippetsDialog", () => {
             // 此处在关闭菜单时执行
+            menu.element.removeEventListener("click", this.menuClickHandler);
+            console.log("menu closed");
         });
         // 如果菜单已存在，再次点击按钮就会移除菜单，此时直接返回
         if (menu.isOpen) return;
@@ -260,75 +265,72 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             return;
         }
 
-        const snippetsList = response.data.snippets;
-        console.log(snippetsList);
+        this.snippetsList = response.data.snippets;
+        console.log(this.snippetsList);
 
         // 插入菜单顶部
         this.menuItems = menu.element.querySelector(".b3-menu__items");
         const menuTop = document.createElement("div");
         menuTop.className = "sjosd-top-bar-menu fn__flex";
         // 选项卡的实现参考：https://codepen.io/havardob/pen/ExVaELV
-        menuTop.innerHTML =
-        `<div class="sjosd-top-bar-menu__top-container">
-            <div class="sjosd-tabs">
-                <input type="radio" id="sjosd-radio-css" name="sjosd-tabs"/>
-                <label class="sjosd-tab" for="sjosd-radio-css">
-                    <span class="sjosd-tab-text">CSS</span>
-                    <span class="sjosd-tab-count"></span>
-                </label>
-                <input type="radio" id="sjosd-radio-js" name="sjosd-tabs"/>
-                <label class="sjosd-tab" for="sjosd-radio-js">
-                    <span class="sjosd-tab-text" style="padding-left: .2em;">JS</span>
-                    <span class="sjosd-tab-count"></span>
-                </label>
-                <span class="sjosd-glider"></span>
+        menuTop.innerHTML = `
+            <div class="sjosd-top-bar-menu__top-container">
+                <div class="sjosd-tabs">
+                    <input type="radio" id="sjosd-radio-css" name="sjosd-tabs"/>
+                    <label class="sjosd-tab" for="sjosd-radio-css">
+                        <span class="sjosd-tab-text">CSS</span>
+                        <span class="sjosd-tab-count"></span>
+                    </label>
+                    <input type="radio" id="sjosd-radio-js" name="sjosd-tabs"/>
+                    <label class="sjosd-tab" for="sjosd-radio-js">
+                        <span class="sjosd-tab-text" style="padding-left: .2em;">JS</span>
+                        <span class="sjosd-tab-count"></span>
+                    </label>
+                    <span class="sjosd-glider"></span>
+                </div>
             </div>
-        </div>`;
+        `;
         menuTop.querySelector("#" + this.snippetType).setAttribute("checked", "");
         this.menuItems.append(menuTop);
 
 
         // 生成代码片段列表
-        snippetsList.forEach((snippet: any) => {
-            const snippetElement = document.createElement("button");
-            snippetElement.className = "b3-menu__item sjosd-snippet-item";
-            snippetElement.setAttribute("data-type", snippet.type);
-            snippetElement.setAttribute("data-id", snippet.id);
-            snippetElement.innerHTML =
-                `<div class="fn__flex-1">${snippet.name}</div>
-                <span class="fn__space"></span>
-                <button class="block__icon block__icon--show fn__flex-center" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
-                <button class="block__icon block__icon--show fn__flex-center" data-type="remove"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
-                <span class="fn__space"></span>
-                <input class="b3-switch fn__flex-center" type="checkbox">`;
-            
-            this.menuItems.append(snippetElement);
+        let snippetsHtml = "";
+        this.snippetsList.forEach((snippet: any) => {
+            snippetsHtml += `
+                <div class="b3-menu__item sjosd-snippet-item" data-type="${snippet.type}" data-id="${snippet.id}">
+                    <div class="fn__flex-1">${snippet.name}</div>
+                    <span class="fn__space"></span>
+                    <button class="block__icon block__icon--show fn__flex-center" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center" data-type="remove"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
+                    <span class="fn__space"></span>
+                    <input class="b3-switch fn__flex-center" type="checkbox"${snippet.enabled ? " checked" : ""}>
+                </div>
+            `;
         });
+        this.menuItems.insertAdjacentHTML("beforeend", snippetsHtml);
 
         this.switchSnippet();
         this.updateSnippetCount();
 
-        menu.element.addEventListener("click", (event: MouseEvent) => {
-            this.menuClickHandler(event);
-        });
+        menu.element.removeEventListener("click", this.menuClickHandler);
+        menu.element.addEventListener("click", this.menuClickHandler);
         // 监听按键操作，在选项上按回车时切换开关/特定交互、按 Delete 时删除代码片段、按 Tab 可以在各个可交互的元素上轮流切换
-        // 不做了，处理太麻烦
-        // menu.element.addEventListener("keydown", (event: KeyboardEvent) => {
-        //     this.menuKeyDownHandler(event);
-        // });
+        // 处理太麻烦，先不做了，有其他人需要再说
+        // menu.element.addEventListener("keydown", this.menuKeyDownHandler);
 
 
         // 弹出菜单
         if (this.isMobile) {
             menu.fullscreen();
         } else {
+            const dockRight = document.querySelector("#dockRight").getBoundingClientRect();
             menu.open({
                 x: rect.right,
                 y: rect.bottom + 1,
                 isLeft: false,
             });
             // 不要用鼠标位置、菜单要固定宽度，否则切换 CSS 和 JS 时，菜单可能会大幅抖动或者超出窗口边界
-            const dockRight = document.querySelector("#dockRight").getBoundingClientRect();
             menu.element.style.minWidth = "370px";
             menu.element.style.maxWidth = "450px";
             menu.element.style.right = ((dockRight?.width || 0) + 1).toString() + "px";
@@ -343,6 +345,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      */
     menuClickHandler = (event: MouseEvent) => {
         const target = event.target as HTMLElement;
+        // console.log(event);
         console.log(target);
 
         // 点击顶部
@@ -354,19 +357,19 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             
             // 切换代码片段类型
             if (target.tagName.toLowerCase() === "input") {
-                const inputTarget = target as HTMLInputElement;
-                this.snippetType = inputTarget.id;
+                const input = target as HTMLInputElement;
+                this.snippetType = input.id;
                 this.switchSnippet();
             }
         }
             
         // 点击按钮
         if (target.tagName.toLowerCase() === "button") {
-            const buttonTarget = target as HTMLButtonElement;
+            const button = target as HTMLButtonElement;
             // console.log(buttonTarget);
-            if (buttonTarget.dataset.type === "edit") {
+            if (button.dataset.type === "edit") {
                 // TODO: 编辑代码片段
-            } else if (buttonTarget.dataset.type === "remove") {
+            } else if (button.dataset.type === "remove") {
                 // TODO: 删除代码片段
             }
             return;
@@ -375,18 +378,125 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         // 点击代码片段
         const snippetElement = target.closest(".b3-menu__item") as HTMLElement;
         if (snippetElement && snippetElement.dataset.id) {
-            // 切换开关状态
             const checkBox = snippetElement.querySelector("input") as HTMLInputElement;
-            if (target === checkBox) return;
-            checkBox.checked = !checkBox.checked;
-
-            // console.log("snippetElement:", snippetElement);
-            if (checkBox.checked) {
-                // TODO: 启用代码片段
-            } else {
-                // TODO: 禁用代码片段
+            if (target !== checkBox) {
+                // 如果点击的不是 checkBox 就手工切换开关状态
+                checkBox.checked = !checkBox.checked;
             }
+            // 切换代码片段启用状态
+            this.toggleSnippetEnabled(snippetElement.dataset.id, checkBox.checked);
         }
+    };
+
+    /**
+     * 切换代码片段启用状态
+     * @param id 代码片段 ID
+     * @param enabled 是否启用
+     */
+    toggleSnippetEnabled = (id: string, enabled: boolean) => {
+        // 过滤出目标代码片段
+        const filtered = this.snippetsList.filter((snippet: any) => snippet.id === id);
+        filtered.forEach((snippet: any) => {
+            snippet.enabled = enabled;
+        });
+        this.setSnippetPost(this.snippetsList);
+    };
+
+    // 插件不使用该函数，仅用来参考原生写法
+    setSnippet = (dialog: Dialog, oldSnippets: any[], removeIds: string[], confirm = false) => {
+        const snippets: any[] = [];
+        dialog.element.querySelectorAll("[data-id]").forEach((item) => {
+            snippets.push({
+                id: item.getAttribute("data-id"),
+                name: item.querySelector("input").value,
+                type: item.getAttribute("data-type"),
+                content: item.querySelector("textarea").value,
+                enabled: (item.querySelector(".b3-switch") as HTMLInputElement).checked
+            });
+        });
+        if ((oldSnippets === snippets) &&
+            window.siyuan.config.snippet.enabledCSS === (dialog.element.querySelector('.b3-switch[data-action="toggleCSS"]') as HTMLInputElement).checked &&
+            window.siyuan.config.snippet.enabledJS === (dialog.element.querySelector('.b3-switch[data-action="toggleJS"]') as HTMLInputElement).checked) {
+            dialog.destroy({cancel: "true"});
+        } else {
+            this.setSnippetPost(snippets);
+        }
+    };
+
+
+    /**
+     * 设置代码片段（代码参考思源本体 app/src/config/util/snippets.ts ）
+     * @param dialog 对话框
+     * @param snippets 代码片段
+     * @param removeIds 要移除的代码片段 ID
+     */
+    setSnippetPost = (snippets: any[], removeIds?: string[]) => {
+        fetchPost("/api/snippet/setSnippet", {snippets}, () => {
+            // removeIds.push("#snippet" + (itemElement.getAttribute("data-type") === "css" ? "CSS" : "JS") + itemElement.getAttribute("data-id"));
+            removeIds?.forEach(item => {
+                const rmElement = document.querySelector(item);
+                if (rmElement) {
+                    rmElement.remove();
+                }
+            });
+            this.renderSnippet();
+        });
+    };
+
+
+    /**
+     * 设置代码片段整体启用状态
+     */
+    setSnippetsEnabled = (type: string) => {
+        const enabled = (this.menuItems.querySelector(".b3-switch") as HTMLInputElement).checked;
+        if (type === "css") {
+            window.siyuan.config.snippet.enabledCSS = enabled;
+        } else if (type === "js") {
+            window.siyuan.config.snippet.enabledJS = enabled;
+        }
+        fetchPost("/api/setting/setSnippet", window.siyuan.config.snippet);
+    };
+
+
+    /**
+     * 渲染代码片段（代码目前来自思源本体 app/src/config/util/snippets.ts ）
+     * 看起来像是对所有代码片段进行处理，看看能不能改成只处理变更的代码片段（包括切换整体启用状态时会产生多余一个代码片段状态变更）
+     */
+    renderSnippet = () => {
+        fetchPost("/api/snippet/getSnippet", {type: "all", enabled: 2}, (response) => {
+            response.data.snippets.forEach((item: any) => {
+                const id = `snippet${item.type === "css" ? "CSS" : "JS"}${item.id}`;
+                let exitElement = document.getElementById(id) as HTMLScriptElement;
+                if ((!window.siyuan.config.snippet.enabledCSS && item.type === "css") ||
+                    (!window.siyuan.config.snippet.enabledJS && item.type === "js")) {
+                    if (exitElement) {
+                        exitElement.remove();
+                    }
+                    return;
+                }
+                if (!item.enabled) {
+                    if (exitElement) {
+                        exitElement.remove();
+                    }
+                    return;
+                }
+                if (exitElement) {
+                    if (exitElement.innerHTML === item.content) {
+                        return;
+                    }
+                    exitElement.remove();
+                }
+                if (item.type === "css") {
+                    document.head.insertAdjacentHTML("beforeend", `<style id="${id}">${item.content}</style>`);
+                } else if (item.type === "js") {
+                    exitElement = document.createElement("script");
+                    exitElement.type = "text/javascript";
+                    exitElement.text = item.content;
+                    exitElement.id = id;
+                    document.head.appendChild(exitElement);
+                }
+            });
+        });
     };
 
 

@@ -67,6 +67,9 @@
     background-color: var(--b3-theme-surface);
     transition: 0.15s ease-in;
   }
+  label * {
+    pointer-events: none;
+  }
   input[type="radio"]:checked + label .sjosd-tab-text {
     color: var(--b3-theme-primary);
   }
