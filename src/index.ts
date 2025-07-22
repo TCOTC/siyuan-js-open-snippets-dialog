@@ -290,16 +290,18 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             <span class="fn__flex-1"></span>
             <input class="sjosd-all-snippet-switch b3-switch fn__flex-center" type="checkbox">
         `;
-        menuTop.querySelector("#sjosd-radio-" + this.snippetType).setAttribute("checked", "");
+        const radio = menuTop.querySelector("#sjosd-radio-" + this.snippetType) as HTMLInputElement;
+        radio.checked = true;
         this.menuItems.append(menuTop);
 
 
         // 生成代码片段列表
+        // TODO: this.snippetsList 没有代码片段的情况需要测试一下看看
         let snippetsHtml = "";
         this.snippetsList.forEach((snippet: any) => {
             snippetsHtml += `
-                <div class="b3-menu__item sjosd-snippet-item" data-type="${snippet.type}" data-id="${snippet.id}">
-                    <span class="fn__flex-1" placeholder="${this.i18n.unNamed}">${snippet.name}</span>
+                <div class="sjosd-snippet-item b3-menu__item" data-type="${snippet.type}" data-id="${snippet.id}">
+                    <span class="sjosd-snippet-name fn__flex-1" placeholder="${this.i18n.unNamed}">${snippet.name}</span>
                     <span class="fn__space"></span>
                     <button class="block__icon block__icon--show fn__flex-center" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
                     <button class="block__icon block__icon--show fn__flex-center" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
@@ -331,8 +333,9 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
                 isLeft: false,
             });
             // 不要用鼠标位置、菜单要固定宽度，否则切换 CSS 和 JS 时，菜单可能会大幅抖动或者超出窗口边界
-            menu.element.style.minWidth = "370px";
-            menu.element.style.maxWidth = "450px";
+            // menu.element.style.minWidth = "370px";
+            // menu.element.style.maxWidth = "450px";
+            menu.element.style.width = "380px";
             menu.element.style.right = ((dockRight?.width || 0) + 1).toString() + "px";
             menu.element.style.left = "";
         }
@@ -473,6 +476,9 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             window.siyuan.config.snippet.enabledJS = enabled;
         }
         fetchPost("/api/setting/setSnippet", window.siyuan.config.snippet);
+
+        // 更新整体启用状态开关状态（依赖全局变量，所以要在更新全局变量之后执行）
+        this.updateAllSnippetSwitch();
 
         // 更新代码片段元素
         const filteredSnippets = this.snippetsList.filter((snippet: any) => snippet.type === snippetType && snippet.enabled === true);
@@ -662,16 +668,20 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
 
 
     /**
+     * 更新整体启用状态开关状态
+     */
+    updateAllSnippetSwitch = () => {
+        const enabled = this.isSnippetEnabled(this.snippetType);
+        const allSnippetSwitch = this.menuItems.querySelector(".sjosd-all-snippet-switch") as HTMLInputElement;
+        allSnippetSwitch.checked = enabled;
+    };
+
+
+    /**
      * 切换代码片段类型
      */
     switchSnippet = () => {
-        // 更新整体启用状态开关状态
-        const enabled = this.isSnippetEnabled(this.snippetType);
-        if (enabled) {
-            this.menuItems.querySelector(".sjosd-all-snippet-switch")?.setAttribute("checked", "");
-        } else {
-            this.menuItems.querySelector(".sjosd-all-snippet-switch")?.removeAttribute("checked");
-        }
+        this.updateAllSnippetSwitch();
 
         // 过滤列表
         const isCSS = this.snippetType === "css";

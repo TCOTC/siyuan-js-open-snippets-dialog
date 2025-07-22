@@ -106,8 +106,14 @@
     pointer-events: none;
   }
 
-  .fn__flex-1:empty::before {
-    content: attr(placeholder);
-    color: var(--b3-theme-on-surface-light);
-}
+  .sjosd-snippet-name {
+    &:empty::before {
+      content: attr(placeholder);
+      color: var(--b3-theme-on-surface-light);
+    }
+
+    &::-webkit-scrollbar {
+      height: 0; // 被截断的代码片段名称可以按住 Shift 滚动鼠标滚轮来查看
+    }
+  }
 }
