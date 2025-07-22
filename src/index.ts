@@ -41,6 +41,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
     private isMobile: boolean;
     private snippetsList: any[];
     private _snippetType: string = window.siyuan.sjosd?.topBarMenuInputType || "css"; // 顶栏菜单默认显示 CSS 代码片段
+    private menu: Menu;
     private menuItems: HTMLElement;
 
     /**
@@ -209,29 +210,80 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
     }
 
 
+    private genSnippet = (snippet: any) => {
+        return `
+            <div class="fn__flex-1" data-id="${snippet.id || ""}" data-type="${snippet.type}" style="padding: 0 24px; display: flex; flex-direction: column;">
+                <div class="fn__hr--b resize__move" style="cursor: grab;"></div>
+                <div class="fn__hr--small resize__move" style="cursor: grab;"></div>
+                <div class="fn__hr--small resize__move" style="cursor: grab;"></div>
+                <div class="fn__flex">
+                    <textarea class="sjosd-snippet-name fn__flex-1 b3-text-field" spellcheck="false" rows="1" placeholder="${window.siyuan.languages.title}" style="resize:none; width:${this.isMobile ? "50%" : "300px"}"></textarea>
+                    <div class="fn__space"></div>
+                    <span aria-label="${window.siyuan.languages.remove}" data-action="remove" class="b3-tooltips b3-tooltips__sw block__icon block__icon--show">
+                        <svg><use xlink:href="#iconTrashcan"></use></svg>
+                    </span>
+                    <div class="fn__space"></div>
+                    <input data-type="snippet" class="b3-switch fn__flex-center" type="checkbox"${snippet.enabled ? " checked" : ""}>
+                </div>
+                <div class="fn__hr"></div>
+                <textarea class="sjosd-snippet-content fn__flex-1 b3-text-field" spellcheck="false" placeholder="${window.siyuan.languages.codeSnippet}" style="resize:none; font-family:var(--b3-font-family-code)"></textarea>
+                <div class="fn__hr--b"></div>
+            </div>
+            <div class="b3-dialog__action">
+                <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
+                <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+            </div>
+        `;
+    };
+
+
     /**
-     * 显示对话框
+     * 打开代码片段编辑对话框
      */
-    private showDialog() {
+    private openSnippetDialog(snippetId: string) {
+        const snippet = this.snippetsList.find((snippet: any) => snippet.id === snippetId);
+        if (snippet) {
+            this.menu.close();
+        }
+        // TODO: 新建代码片段的时候手动生成 snippet（生成 ID 要用原生提供的接口）
+
         const dialog = new Dialog({
-            title: `SiYuan ${Constants.SIYUAN_VERSION}`,
-            content: `<div class="b3-dialog__content">
-    <div>appId:</div>
-    <div class="fn__hr"></div>
-    <div class="plugin-sample__time">${this.app.appId}</div>
-    <div class="fn__hr"></div>
-    <div class="fn__hr"></div>
-    <div>API demo:</div>
-    <div class="fn__hr"></div>
-    <div class="plugin-sample__time">System current time: <span id="time"></span></div>
-    <div class="fn__hr"></div>
-    <div class="fn__hr"></div>
-    <div>Protyle demo:</div>
-    <div class="fn__hr"></div>
-    <div id="protyle" style="height: 360px;"></div>
-</div>`,
-            width: this.isMobile ? "92vw" : "560px",
-            height: "540px",
+            content: this.genSnippet(snippet),
+            width: this.isMobile ? "92vw" : "70vw",
+            height: "80vh",
+            transparent: true,
+        });
+
+        console.log("dialog", dialog);
+        dialog.element.querySelector(".b3-dialog__scrim")?.remove();
+        const dialogElement = dialog.element.querySelector(".b3-dialog") as HTMLElement;
+        dialogElement.style.width = "0";
+        dialogElement.style.height = "0";
+        dialogElement.style.left = "50vw";
+        dialogElement.style.top = "50vh";
+        const b3DialogContainer = dialogElement.querySelector(".b3-dialog__container") as HTMLElement;
+        b3DialogContainer.style.position = "fixed";
+
+        const nameElement = (dialog.element.querySelector(`.sjosd-snippet-name`) as HTMLInputElement);
+        // 标题使用 textarea 是为了能够在文本被截断时上下滚动，使用 input 的话只能左右滚动
+        nameElement.value = snippet.name;
+        const contentElement = dialog.element.querySelector(`.sjosd-snippet-content`) as HTMLTextAreaElement;
+        contentElement.textContent = snippet.content;
+
+        // 聚焦到 nameElement
+        nameElement.focus();
+
+        // TODO: 标题不允许输入换行、保存的时候标题的换行要转换为空格
+        nameElement.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                contentElement.focus();
+            }
+        });
+
+        dialog.element.setAttribute("data-key", "sjosd-snippet-dialog");
+        dialog.element.addEventListener("click", (event) => {
+            return;
         });
         // new Protyle(this.app, dialog.element.querySelector("#protyle"), {
         //     blockId: this.getEditor().protyle.block.rootID,
@@ -247,20 +299,21 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * @param rect 菜单位置
      */
     private async addMenu(rect?: DOMRect) {
-        const menu = new Menu("siyuanJsOpenSnippetsDialog", () => {
+        this.menu = new Menu("siyuanJsOpenSnippetsDialog", () => {
             // 此处在关闭菜单时执行
-            menu.element.removeEventListener("click", this.menuClickHandler);
+            this.menu.element.removeEventListener("click", this.menuClickHandler);
+            this.menu = undefined;
             console.log("menu closed");
         });
         // 如果菜单已存在，再次点击按钮就会移除菜单，此时直接返回
-        if (menu.isOpen) return;
+        if (this.menu.isOpen) return;
 
 
         // 获取代码片段列表
         const response = await fetchSyncPost("/api/snippet/getSnippet", { type: "all", enabled: 2 });
         if (response.code !== 0) {
             // 异常处理
-            menu.close();
+            this.menu.close();
             this.showErrorMessage(this.i18n.getSnippetsListFailed + " [" + response.msg + "]");
             return;
         }
@@ -269,7 +322,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         console.log(this.snippetsList);
 
         // 插入菜单顶部
-        this.menuItems = menu.element.querySelector(".b3-menu__items");
+        this.menuItems = this.menu.element.querySelector(".b3-menu__items");
         const menuTop = document.createElement("div");
         menuTop.className = "sjosd-top-container fn__flex";
         // 选项卡的实现参考：https://codepen.io/havardob/pen/ExVaELV
@@ -278,12 +331,12 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
                 <input type="radio" id="sjosd-radio-css" name="sjosd-tabs"/>
                 <label class="sjosd-tab" for="sjosd-radio-css">
                     <span class="sjosd-tab-text">CSS</span>
-                    <span class="sjosd-tab-count"></span>
+                    <span class="sjosd-tab-count sjosd-tab-count-css">0</span>
                 </label>
                 <input type="radio" id="sjosd-radio-js" name="sjosd-tabs"/>
                 <label class="sjosd-tab" for="sjosd-radio-js">
                     <span class="sjosd-tab-text" style="padding-left: .2em;">JS</span>
-                    <span class="sjosd-tab-count"></span>
+                    <span class="sjosd-tab-count sjosd-tab-count-js">0</span>
                 </label>
                 <span class="sjosd-glider"></span>
             </div>
@@ -315,8 +368,8 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         this.updateSnippetCount();
         this.switchSnippet();
 
-        menu.element.removeEventListener("click", this.menuClickHandler);
-        menu.element.addEventListener("click", this.menuClickHandler);
+        this.menu.element.removeEventListener("click", this.menuClickHandler);
+        this.menu.element.addEventListener("click", this.menuClickHandler);
         // 监听按键操作，在选项上按回车时切换开关/特定交互、按 Delete 时删除代码片段、按 Tab 可以在各个可交互的元素上轮流切换
         // 处理太麻烦，先不做了，有其他人需要再说
         // menu.element.addEventListener("keydown", this.menuKeyDownHandler);
@@ -324,20 +377,18 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
 
         // 弹出菜单
         if (this.isMobile) {
-            menu.fullscreen();
+            this.menu.fullscreen();
         } else {
             const dockRight = document.querySelector("#dockRight").getBoundingClientRect();
-            menu.open({
+            this.menu.open({
                 x: rect.right,
                 y: rect.bottom + 1,
                 isLeft: false,
             });
             // 不要用鼠标位置、菜单要固定宽度，否则切换 CSS 和 JS 时，菜单可能会大幅抖动或者超出窗口边界
-            // menu.element.style.minWidth = "370px";
-            // menu.element.style.maxWidth = "450px";
-            menu.element.style.width = "380px";
-            menu.element.style.right = ((dockRight?.width || 0) + 1).toString() + "px";
-            menu.element.style.left = "";
+            this.menu.element.style.width = "min(400px, 90vw)";
+            this.menu.element.style.right = ((dockRight?.width || 0) + 1).toString() + "px";
+            this.menu.element.style.left = "";
         }
     }
 
@@ -346,7 +397,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 菜单顶部点击事件处理
      * @param event 鼠标事件
      */
-    menuClickHandler = (event: MouseEvent) => {
+    private menuClickHandler = (event: MouseEvent) => {
         // 点击代码片段的删除按钮之后默认会关闭整个菜单（点击 button 后关闭菜单），这里需要阻止事件冒泡
         event.stopPropagation();
         // 阻止事件默认行为会使得点击 label 时无法切换 input 的选中状态
@@ -380,18 +431,20 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         // 点击按钮
         if (target.tagName.toLowerCase() === "button") {
             const button = target as HTMLButtonElement;
+            const menuItem = target.closest(".b3-menu__item") as HTMLElement;
+            if (!menuItem || !menuItem.dataset.id) {
+                this.showErrorMessage(this.i18n.getSnippetFailed);
+                return;
+            }
             // console.log(buttonTarget);
             if (button.dataset.type === "edit") {
-                // TODO: 编辑代码片段
+                // 编辑代码片段
+                // TODO: 对话框、页签
+                this.openSnippetDialog(menuItem.dataset.id);
             } else if (button.dataset.type === "delete") {
                 // 删除代码片段
-                const menuItem = target.closest(".b3-menu__item") as HTMLElement;
-                if (menuItem && menuItem.dataset.id) {
-                    this.deleteSnippet(menuItem.dataset.id);
-                    menuItem.remove();
-                } else {
-                    this.showErrorMessage(this.i18n.deleteSnippetFailed);
-                }
+                this.deleteSnippet(menuItem.dataset.id);
+                menuItem.remove();
             }
             return;
         }
@@ -415,7 +468,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * @param id 代码片段 ID
      * @returns 代码片段类型
      */
-    getSnippetType = (id: string) => {
+    private getSnippetType = (id: string) => {
         return this.snippetsList.find((snippet: any) => snippet.id === id)?.type;
     };
 
@@ -424,7 +477,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 添加代码片段
      * @param snippet 代码片段
      */
-    addSnippet = (snippet: any) => {
+    private addSnippet = (snippet: any) => {
         this.snippetsList.push(snippet);
         this.setSnippetPost(this.snippetsList);
         this.addSnippetElement(snippet.id, snippet.type, snippet.content);
@@ -436,7 +489,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 删除代码片段
      * @param id 代码片段 ID
      */
-    deleteSnippet = (id: string) => {
+    private deleteSnippet = (id: string) => {
         const snippetType = this.getSnippetType(id);
         // 先从 snippetsList 获取到移除的代码片段的类型，然后才在 snippetsList 中删除代码片段
         this.snippetsList = this.snippetsList.filter((snippet: any) => snippet.id !== id);
@@ -450,7 +503,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * @param id 代码片段 ID
      * @param enabled 是否启用
      */
-    toggleSnippetEnabled = (id: string, enabled: boolean) => {
+    private toggleSnippetEnabled = (id: string, enabled: boolean) => {
         const snippet = this.snippetsList.find((snippet: any) => snippet.id === id);
         if (snippet) {
             // 更新代码片段列表
@@ -468,7 +521,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
     };
 
 
-    toggleAllSnippetEnabled = (snippetType: string, enabled: boolean) => {
+    private toggleAllSnippetEnabled = (snippetType: string, enabled: boolean) => {
         // 更新全局变量和配置
         if (snippetType === "css") {
             window.siyuan.config.snippet.enabledCSS = enabled;
@@ -494,7 +547,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
     };
 
     // 插件不使用该函数，仅用来参考原生写法
-    setSnippet = (dialog: Dialog, oldSnippets: any[]) => {
+    private setSnippet = (dialog: Dialog, oldSnippets: any[]) => {
         const snippets: any[] = [];
         dialog.element.querySelectorAll("[data-id]").forEach((item) => {
             snippets.push({
@@ -519,7 +572,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 设置代码片段（参考思源本体 app/src/config/util/snippets.ts ）
      * @param snippets 代码片段
      */
-    setSnippetPost = (snippets: any[]) => {
+    private setSnippetPost = (snippets: any[]) => {
         fetchPost("/api/snippet/setSnippet", {snippets}, (response) => {
             // 增加错误处理
             if (response.code !== 0) {
@@ -538,7 +591,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * @param snippetType 代码片段类型
      * @returns 代码片段元素 ID
      */
-    getSnippetElementId = (id: string, snippetType: string) => {
+    private getSnippetElementId = (id: string, snippetType: string) => {
         return `snippet${snippetType === "css" ? "CSS" : "JS"}${id}`;
     };
 
@@ -548,7 +601,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * @param snippetType 代码片段类型
      * @returns 是否启用
      */
-    isSnippetEnabled = (snippetType: string) => {
+    private isSnippetEnabled = (snippetType: string) => {
         return (window.siyuan.config.snippet.enabledCSS && snippetType === "css") ||
                (window.siyuan.config.snippet.enabledJS  && snippetType === "js" );
     };
@@ -558,7 +611,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 添加代码片段元素
      * @param elementIds 代码片段元素 ID
      */
-    addSnippetElement = (id: string, snippetType: string, content: string) => {
+    private addSnippetElement = (id: string, snippetType: string, content: string) => {
         if (!this.isSnippetEnabled(snippetType)) {
             // 如果对应类型的代码片段未启用，则不添加元素
             return;
@@ -581,7 +634,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 移除代码片段元素
      * @param elementIds 代码片段元素 ID
      */
-    removeSnippetElement = (id: string, snippetType: string) => {
+    private removeSnippetElement = (id: string, snippetType: string) => {
         const elementId = this.getSnippetElementId(id, snippetType);
         document.getElementById(elementId)?.remove();
     };
@@ -593,7 +646,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * @param snippetType 代码片段类型
      * @param content 代码片段内容
      */
-    updateSnippetElement = (id: string, snippetType: string, content: string) => {
+    private updateSnippetElement = (id: string, snippetType: string, content: string) => {
         const elementId = this.getSnippetElementId(id, snippetType);
         const element = document.getElementById(elementId);
         if (element) {
@@ -608,7 +661,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 设置代码片段整体启用状态
      * @param type 代码片段类型
      */
-    setSnippetsEnabled = (type: string) => {
+    private setSnippetsEnabled = (type: string) => {
         const enabled = (this.menuItems.querySelector(".b3-switch") as HTMLInputElement).checked;
         if (type === "css") {
             window.siyuan.config.snippet.enabledCSS = enabled;
@@ -623,7 +676,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 渲染代码片段（代码目前来自思源本体 app/src/config/util/snippets.ts ）
      * 看起来像是对所有代码片段进行处理，看看能不能改成只处理变更的代码片段（包括切换整体启用状态时会产生多余一个代码片段状态变更）
      */
-    renderSnippet = () => {
+    private renderSnippet = () => {
         fetchPost("/api/snippet/getSnippet", {type: "all", enabled: 2}, (response) => {
             // TODO: 对比看看 snippetsList 有没有变化，有变化的话已经打开的菜单要重新渲染
             response.data.snippets.forEach((item: any) => {
@@ -670,7 +723,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
     /**
      * 更新整体启用状态开关状态
      */
-    updateAllSnippetSwitch = () => {
+    private updateAllSnippetSwitch = () => {
         const enabled = this.isSnippetEnabled(this.snippetType);
         const allSnippetSwitch = this.menuItems.querySelector(".sjosd-all-snippet-switch") as HTMLInputElement;
         allSnippetSwitch.checked = enabled;
@@ -680,7 +733,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
     /**
      * 切换代码片段类型
      */
-    switchSnippet = () => {
+    private switchSnippet = () => {
         this.updateAllSnippetSwitch();
 
         // 过滤列表
@@ -697,11 +750,11 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
     /**
      * 更新代码片段计数
      */
-    updateSnippetCount = () => {
+    private updateSnippetCount = () => {
         const cssCount = this.snippetsList.filter((item: any) => item.type === "css").length;
         const jsCount = this.snippetsList.filter((item: any) => item.type === "js").length;
-        this.menuItems.querySelector("#sjosd-radio-css + label .sjosd-tab-count").textContent = cssCount > 99 ? "99+" : cssCount.toString();
-        this.menuItems.querySelector("#sjosd-radio-js + label .sjosd-tab-count").textContent = jsCount > 99 ? "99+" : jsCount.toString();
+        this.menuItems.querySelector(".sjosd-tab-count-css").textContent = cssCount > 99 ? "99+" : cssCount.toString();
+        this.menuItems.querySelector(".sjosd-tab-count-js").textContent = jsCount > 99 ? "99+" : jsCount.toString();
     };
 
 
@@ -709,7 +762,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 显示错误信息
      * @param message 错误信息
      */
-    showErrorMessage = (message: string) => {
+    private showErrorMessage = (message: string) => {
         showMessage(this.i18n.pluginDisplayName + ": " + message, undefined, "error");
     };
 
