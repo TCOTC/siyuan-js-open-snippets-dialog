@@ -428,6 +428,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             // 此处在关闭菜单时执行
             this.menu.element.removeEventListener("click", this.menuClickHandler);
             this.menu = undefined;
+            document.removeEventListener("keydown", this.menuKeyDownHandler);
             console.log("menu closed");
         });
         // 如果菜单已存在，再次点击按钮就会移除菜单，此时直接返回
@@ -480,16 +481,20 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         // TODO: this.snippetsList 没有代码片段的情况需要测试一下看看
         const snippetsHtml = this.genSnippetsHtml(this.snippetsList);
         this.menuItems.insertAdjacentHTML("beforeend", snippetsHtml);
+        const firstMenuItem = this.menuItems.querySelector(".b3-menu__item:not(.fn__none)") as HTMLElement;
+        if (firstMenuItem) {
+            firstMenuItem.classList.add("b3-menu__item--current");
+        }
 
         this.updateSnippetCount();
         this.switchSnippet();
 
-        this.menu.element.removeEventListener("click", this.menuClickHandler);
+        // 监听点击事件
         this.menu.element.addEventListener("click", this.menuClickHandler);
+        // 监听键盘事件
+        document.addEventListener("keydown", this.menuKeyDownHandler);
         // 监听按键操作，在选项上按回车时切换开关/特定交互、按 Delete 时删除代码片段、按 Tab 可以在各个可交互的元素上轮流切换
         // 处理太麻烦，先不做了，有其他人需要再说
-        // menu.element.addEventListener("keydown", this.menuKeyDownHandler);
-        // TODO: 监听回车，然后阻止冒泡，避免 menu 关闭
 
 
         // 弹出菜单
@@ -508,6 +513,43 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             this.menu.element.style.left = "";
         }
     }
+    
+
+    /**
+     * 菜单按键事件处理
+     * @param event 键盘事件
+     */
+    private menuKeyDownHandler = (event: KeyboardEvent) => {
+        if (event.key === "Enter") {
+            const snippetElement = this.menuItems.querySelector(".b3-menu__item--current") as HTMLElement;
+            if (snippetElement) {
+                // 阻止冒泡，避免 menu 关闭
+                event.stopPropagation();
+                this.toggleSnippetSwitch(snippetElement);
+            }
+        } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+            // 按上下方向键切换选项
+            // 获取当前显示的所有选项
+            const menuItems = this.menuItems.querySelectorAll(".b3-menu__item:not(.fn__none)");
+            if (menuItems.length > 0) {
+                const firstMenuItem = menuItems[0] as HTMLElement;
+                const lastMenuItem = menuItems[menuItems.length - 1] as HTMLElement;
+                const currentMenuItem = this.menuItems.querySelector(".b3-menu__item--current") as HTMLElement;
+                if (event.key === "ArrowUp" && currentMenuItem === firstMenuItem) {
+                    // 如果当前选中的是第一个，则按下方向键上时切换到最后一个
+                    event.stopPropagation();
+                    currentMenuItem.classList.remove("b3-menu__item--current");
+                    lastMenuItem.classList.add("b3-menu__item--current");
+                } else if (event.key === "ArrowDown" && currentMenuItem === lastMenuItem) {
+                    // 如果当前选中的是最后一个，则按下方向键下时切换到第一个
+                    event.stopPropagation();
+                    currentMenuItem.classList.remove("b3-menu__item--current");
+                    firstMenuItem.classList.add("b3-menu__item--current");
+                }
+            }
+        }
+        
+    };
 
 
     /**
@@ -606,9 +648,15 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
 
         // 点击代码片段
         const snippetElement = target.closest(".b3-menu__item") as HTMLElement;
+        this.toggleSnippetSwitch(snippetElement, target);
+    };
+
+
+    // 切换开关
+    private toggleSnippetSwitch = (snippetElement: HTMLElement, target?: HTMLElement) => {
         if (snippetElement && snippetElement.dataset.id) {
             const checkBox = snippetElement.querySelector("input") as HTMLInputElement;
-            if (target !== checkBox) {
+            if (!target || target !== checkBox) {
                 // 如果点击的不是 checkBox 就手工切换开关状态
                 checkBox.checked = !checkBox.checked;
             }
@@ -738,8 +786,6 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
                 this.showErrorMessage(this.i18n.setSnippetFailed + " [" + response.msg + "]");
                 return;
             }
-            // TODO: 改成更细的粒度，不用这个函数
-            // this.renderSnippet();
         });
     };
 
