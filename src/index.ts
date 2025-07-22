@@ -476,7 +476,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
                 <span class="sjosd-glider"></span>
             </div>
             <span class="fn__flex-1"></span>
-            <button class="block__icon block__icon--show fn__flex-center ariaLabel" data-type="new" aria-label="${window.siyuan.languages.addAttr} CSS"><svg><use xlink:href="#iconAdd"></use></svg></button>
+            <button class="block__icon block__icon--show fn__flex-center ariaLabel" data-type="new" data-position="north"><svg><use xlink:href="#iconAdd"></use></svg></button>
             <span class="fn__space"></span>
             <input class="sjosd-all-snippet-switch b3-switch fn__flex-center" type="checkbox">
         `;
@@ -957,6 +957,9 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      */
     private switchSnippet = () => {
         this.updateAllSnippetSwitch();
+
+        // 更新按钮提示
+        this.menuItems.querySelector("button[data-type='new']").setAttribute("aria-label", window.siyuan.languages.addAttr + " " + this.snippetType.toUpperCase());
 
         // 过滤列表
         const isCSS = this.snippetType === "css";
