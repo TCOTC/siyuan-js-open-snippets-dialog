@@ -1,4 +1,5 @@
-[English](https://github.com/TCOTC/siyuan-js-open-snippets-dialog/blob/main/README.md)
+[English](https://github.com/TCOTC/snippets/blob/main/README.md)
 
+## 功能
 
-旧版本纯 JS 代码：https://github.com/TCOTC/siyuan-js-open-snippets-dialog/blob/main/old-js.js
+TODO 详细的说明，中文和英文

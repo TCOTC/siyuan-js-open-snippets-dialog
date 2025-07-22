@@ -74,7 +74,10 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 启用插件
      */
     onload() {
-        this.data[STORAGE_NAME] = {readonlyText: "Readonly"};
+        // 发布服务不启用插件
+        if (window.siyuan && (window.siyuan as any).isPublish) return;
+
+        this.data[STORAGE_NAME] = { readonlyText: "Readonly" };
 
         const frontEnd = getFrontend();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
@@ -188,6 +191,8 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 布局加载完成
      */
     onLayoutReady() {
+        // 发布服务不启用插件
+        if (window.siyuan && (window.siyuan as any).isPublish) return;
         // 加载插件配置
         this.loadData(STORAGE_NAME);
     }
@@ -196,6 +201,8 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 禁用插件
      */
     onunload() {
+        // 发布服务不启用插件
+        if (window.siyuan && (window.siyuan as any).isPublish) return;
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnunload);
     }
 
@@ -203,6 +210,8 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 卸载插件
      */
     uninstall() {
+        // 发布服务不启用插件
+        if (window.siyuan && (window.siyuan as any).isPublish) return;
         // 移除全局变量
         delete window.siyuan.sjosd;
 
@@ -254,6 +263,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             content: this.genSnippet(snippet),
             width: this.isMobile ? "92vw" : "70vw",
             height: "80vh",
+            hideCloseIcon: this.isMobile,
         });
 
         if (!this.isMobile) {
@@ -529,12 +539,14 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             }
         } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
             // 按上下方向键切换选项
+            const currentMenuItem = this.menuItems.querySelector(".b3-menu__item--current") as HTMLElement;
+            if (!currentMenuItem) return;
+
             // 获取当前显示的所有选项
             const menuItems = this.menuItems.querySelectorAll(".b3-menu__item:not(.fn__none)");
             if (menuItems.length > 0) {
                 const firstMenuItem = menuItems[0] as HTMLElement;
                 const lastMenuItem = menuItems[menuItems.length - 1] as HTMLElement;
-                const currentMenuItem = this.menuItems.querySelector(".b3-menu__item--current") as HTMLElement;
                 if (event.key === "ArrowUp" && currentMenuItem === firstMenuItem) {
                     // 如果当前选中的是第一个，则按下方向键上时切换到最后一个
                     event.stopPropagation();
@@ -587,7 +599,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             // 切换整体启用状态
             if (target.classList.contains("sjosd-all-snippet-switch")) {
                 const input = target as HTMLInputElement;
-                this.toggleAllSnippetEnabled(this.snippetType, input.checked);
+                this.toggleAllSnippetsEnabled(this.snippetType, input.checked);
             }
         }
             
@@ -728,7 +740,12 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
     };
 
 
-    private toggleAllSnippetEnabled = (snippetType: string, enabled: boolean) => {
+    /**
+     * 切换整体启用状态
+     * @param snippetType 代码片段类型
+     * @param enabled 是否启用
+     */
+    private toggleAllSnippetsEnabled = (snippetType: string, enabled: boolean) => {
         // 更新全局变量和配置
         if (snippetType === "css") {
             window.siyuan.config.snippet.enabledCSS = enabled;
@@ -844,76 +861,6 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         document.getElementById(elementId)?.remove();
     };
 
-
-    // /**
-    //  * 更新代码片段列表
-    //  * @param snippets 新的代码片段列表
-    //  */
-    // private updateSnippetsList = (snippets: any[]) => {
-    //     if (this.snippetsList !== snippets) {
-    //         console.log("updateSnippetsList", this.snippetsList, snippets);
-    //         // 比较新旧代码片段列表，找出需要更新、添加和删除的代码片段
-    //         const oldSnippetsMap = new Map();
-    //         const newSnippetsMap = new Map();
-            
-    //         // 构建旧代码片段映射
-    //         this.snippetsList.forEach((snippet: any) => {
-    //             oldSnippetsMap.set(snippet.id, snippet);
-    //         });
-            
-    //         // 构建新代码片段映射
-    //         snippets.forEach((snippet: any) => {
-    //             newSnippetsMap.set(snippet.id, snippet);
-    //         });
-            
-    //         // 找出需要更新的代码片段（ID 存在但内容或状态有变化）
-    //         const updateSnippetsList: any[] = [];
-    //         newSnippetsMap.forEach((id: string, newSnippet: any) => {
-    //             const oldSnippet = oldSnippetsMap.get(id);
-    //             if (oldSnippet && (
-    //                 oldSnippet.name !== newSnippet.name ||
-    //                 oldSnippet.content !== newSnippet.content ||
-    //                 oldSnippet.type !== newSnippet.type ||
-    //                 oldSnippet.enabled !== newSnippet.enabled
-    //             )) {
-    //                 updateSnippetsList.push(newSnippet);
-    //             }
-    //         });
-            
-    //         // 找出需要添加的代码片段（新列表中有但旧列表中没有）
-    //         const addSnippetsList: any[] = [];
-    //         newSnippetsMap.forEach((id: string, newSnippet: any) => {
-    //             if (!oldSnippetsMap.has(id)) {
-    //                 addSnippetsList.push(newSnippet);
-    //             }
-    //         });
-            
-    //         // 找出需要删除的代码片段（旧列表中有但新列表中没有）
-    //         const removeSnippetsList: any[] = [];
-    //         oldSnippetsMap.forEach((id: string, oldSnippet: any) => {
-    //             if (!newSnippetsMap.has(id)) {
-    //                 removeSnippetsList.push(oldSnippet);
-    //             }
-    //         });
-            
-    //         // 执行更新操作
-    //         updateSnippetsList.forEach((snippet: any) => {
-    //             this.updateSnippetElement(snippet.id, snippet.type, snippet.content);
-    //         });
-    //         addSnippetsList.forEach((snippet: any) => {
-    //             this.addSnippetElement(snippet.id, snippet.type, snippet.content);
-    //         });
-    //         removeSnippetsList.forEach((snippet: any) => {
-    //             this.removeSnippetElement(snippet.id, snippet.type);
-    //         });
-            
-    //         // 更新代码片段列表
-    //         this.snippetsList = snippets;
-    //         this.setSnippetPost(this.snippetsList);
-    //         console.log("updateSnippetsListDone", this.snippetsList, snippets);
-    //         this.updateSnippetCount();
-    //     }
-    // };
 
     /**
      * 更新代码片段元素
