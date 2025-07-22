@@ -40,7 +40,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
     private custom: () => Custom;
     private isMobile: boolean;
     private snippetsList: any[];
-    private _snippetType: string = window.siyuan.sjosd?.topBarMenuInputType || "sjosd-radio-css"; // 顶栏菜单默认显示 CSS 代码片段
+    private _snippetType: string = window.siyuan.sjosd?.topBarMenuInputType || "css"; // 顶栏菜单默认显示 CSS 代码片段
     private menuItems: HTMLElement;
 
     /**
@@ -261,7 +261,7 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         if (response.code !== 0) {
             // 异常处理
             menu.close();
-            showMessage(this.i18n.pluginDisplayName + ": " + this.i18n.getSnippetsListFailed + " [" + response.msg + "]", 6000, "error");
+            this.showErrorMessage(this.i18n.getSnippetsListFailed + " [" + response.msg + "]");
             return;
         }
 
@@ -271,26 +271,26 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         // 插入菜单顶部
         this.menuItems = menu.element.querySelector(".b3-menu__items");
         const menuTop = document.createElement("div");
-        menuTop.className = "sjosd-top-bar-menu fn__flex";
+        menuTop.className = "sjosd-top-container fn__flex";
         // 选项卡的实现参考：https://codepen.io/havardob/pen/ExVaELV
         menuTop.innerHTML = `
-            <div class="sjosd-top-bar-menu__top-container">
-                <div class="sjosd-tabs">
-                    <input type="radio" id="sjosd-radio-css" name="sjosd-tabs"/>
-                    <label class="sjosd-tab" for="sjosd-radio-css">
-                        <span class="sjosd-tab-text">CSS</span>
-                        <span class="sjosd-tab-count"></span>
-                    </label>
-                    <input type="radio" id="sjosd-radio-js" name="sjosd-tabs"/>
-                    <label class="sjosd-tab" for="sjosd-radio-js">
-                        <span class="sjosd-tab-text" style="padding-left: .2em;">JS</span>
-                        <span class="sjosd-tab-count"></span>
-                    </label>
-                    <span class="sjosd-glider"></span>
-                </div>
+            <div class="sjosd-tabs">
+                <input type="radio" id="sjosd-radio-css" name="sjosd-tabs"/>
+                <label class="sjosd-tab" for="sjosd-radio-css">
+                    <span class="sjosd-tab-text">CSS</span>
+                    <span class="sjosd-tab-count"></span>
+                </label>
+                <input type="radio" id="sjosd-radio-js" name="sjosd-tabs"/>
+                <label class="sjosd-tab" for="sjosd-radio-js">
+                    <span class="sjosd-tab-text" style="padding-left: .2em;">JS</span>
+                    <span class="sjosd-tab-count"></span>
+                </label>
+                <span class="sjosd-glider"></span>
             </div>
+            <span class="fn__flex-1"></span>
+            <input class="sjosd-all-snippet-switch b3-switch fn__flex-center" type="checkbox">
         `;
-        menuTop.querySelector("#" + this.snippetType).setAttribute("checked", "");
+        menuTop.querySelector("#sjosd-radio-" + this.snippetType).setAttribute("checked", "");
         this.menuItems.append(menuTop);
 
 
@@ -299,10 +299,10 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         this.snippetsList.forEach((snippet: any) => {
             snippetsHtml += `
                 <div class="b3-menu__item sjosd-snippet-item" data-type="${snippet.type}" data-id="${snippet.id}">
-                    <div class="fn__flex-1">${snippet.name}</div>
+                    <span class="fn__flex-1" placeholder="${this.i18n.unNamed}">${snippet.name}</span>
                     <span class="fn__space"></span>
                     <button class="block__icon block__icon--show fn__flex-center" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
-                    <button class="block__icon block__icon--show fn__flex-center" data-type="remove"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
                     <span class="fn__space"></span>
                     <input class="b3-switch fn__flex-center" type="checkbox"${snippet.enabled ? " checked" : ""}>
                 </div>
@@ -310,8 +310,8 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         });
         this.menuItems.insertAdjacentHTML("beforeend", snippetsHtml);
 
-        this.switchSnippet();
         this.updateSnippetCount();
+        this.switchSnippet();
 
         menu.element.removeEventListener("click", this.menuClickHandler);
         menu.element.addEventListener("click", this.menuClickHandler);
@@ -344,22 +344,33 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * @param event 鼠标事件
      */
     menuClickHandler = (event: MouseEvent) => {
+        // 点击代码片段的删除按钮之后默认会关闭整个菜单（点击 button 后关闭菜单），这里需要阻止事件冒泡
+        event.stopPropagation();
+        // 阻止事件默认行为会使得点击 label 时无法切换 input 的选中状态
+        // event.preventDefault();
+
         const target = event.target as HTMLElement;
         // console.log(event);
         console.log(target);
 
         // 点击顶部
-        if (target.closest(".sjosd-top-bar-menu")) {
+        if (target.closest(".sjosd-top-container")) {
             // 取消选中代码片段
             this.menuItems.querySelectorAll(".b3-menu__item--current").forEach((item: any) => {
                 item.classList.remove("b3-menu__item--current");
             });
             
             // 切换代码片段类型
-            if (target.tagName.toLowerCase() === "input") {
+            if (target.tagName.toLowerCase() === "input" && target.getAttribute("name") === "sjosd-tabs") {
                 const input = target as HTMLInputElement;
-                this.snippetType = input.id;
+                this.snippetType = input.id.replace("sjosd-radio-", "");
                 this.switchSnippet();
+            }
+
+            // 切换整体启用状态
+            if (target.classList.contains("sjosd-all-snippet-switch")) {
+                const input = target as HTMLInputElement;
+                this.toggleAllSnippetEnabled(this.snippetType, input.checked);
             }
         }
             
@@ -369,8 +380,15 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
             // console.log(buttonTarget);
             if (button.dataset.type === "edit") {
                 // TODO: 编辑代码片段
-            } else if (button.dataset.type === "remove") {
-                // TODO: 删除代码片段
+            } else if (button.dataset.type === "delete") {
+                // 删除代码片段
+                const menuItem = target.closest(".b3-menu__item") as HTMLElement;
+                if (menuItem && menuItem.dataset.id) {
+                    this.deleteSnippet(menuItem.dataset.id);
+                    menuItem.remove();
+                } else {
+                    this.showErrorMessage(this.i18n.deleteSnippetFailed);
+                }
             }
             return;
         }
@@ -388,22 +406,89 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
         }
     };
 
+
+    /**
+     * 获取代码片段类型
+     * @param id 代码片段 ID
+     * @returns 代码片段类型
+     */
+    getSnippetType = (id: string) => {
+        return this.snippetsList.find((snippet: any) => snippet.id === id)?.type;
+    };
+
+
+    /**
+     * 添加代码片段
+     * @param snippet 代码片段
+     */
+    addSnippet = (snippet: any) => {
+        this.snippetsList.push(snippet);
+        this.setSnippetPost(this.snippetsList);
+        this.addSnippetElement(snippet.id, snippet.type, snippet.content);
+        this.updateSnippetCount();
+    };
+
+
+    /**
+     * 删除代码片段
+     * @param id 代码片段 ID
+     */
+    deleteSnippet = (id: string) => {
+        const snippetType = this.getSnippetType(id);
+        // 先从 snippetsList 获取到移除的代码片段的类型，然后才在 snippetsList 中删除代码片段
+        this.snippetsList = this.snippetsList.filter((snippet: any) => snippet.id !== id);
+        this.setSnippetPost(this.snippetsList);
+        this.removeSnippetElement(id, snippetType);
+        this.updateSnippetCount();
+    };
+
     /**
      * 切换代码片段启用状态
      * @param id 代码片段 ID
      * @param enabled 是否启用
      */
     toggleSnippetEnabled = (id: string, enabled: boolean) => {
-        // 过滤出目标代码片段
-        const filtered = this.snippetsList.filter((snippet: any) => snippet.id === id);
-        filtered.forEach((snippet: any) => {
+        const snippet = this.snippetsList.find((snippet: any) => snippet.id === id);
+        if (snippet) {
+            // 更新代码片段列表
             snippet.enabled = enabled;
-        });
-        this.setSnippetPost(this.snippetsList);
+            this.setSnippetPost(this.snippetsList);
+
+            // 更新代码片段元素
+            const snippetType = this.getSnippetType(snippet.id);
+            if (enabled) {
+                this.addSnippetElement(id, snippetType, snippet.content);
+            } else {
+                this.removeSnippetElement(id, snippetType);
+            }
+        }
+    };
+
+
+    toggleAllSnippetEnabled = (snippetType: string, enabled: boolean) => {
+        // 更新全局变量和配置
+        if (snippetType === "css") {
+            window.siyuan.config.snippet.enabledCSS = enabled;
+        } else if (snippetType === "js") {
+            window.siyuan.config.snippet.enabledJS = enabled;
+        }
+        fetchPost("/api/setting/setSnippet", window.siyuan.config.snippet);
+
+        // 更新代码片段元素
+        const filteredSnippets = this.snippetsList.filter((snippet: any) => snippet.type === snippetType && snippet.enabled === true);
+        if (enabled) {
+            filteredSnippets.forEach((snippet: any) => {
+                this.addSnippetElement(snippet.id, snippet.type, snippet.content);
+            });
+        } else {
+            filteredSnippets.forEach((snippet: any) => {
+                this.removeSnippetElement(snippet.id, snippet.type);
+            });
+        }
     };
 
     // 插件不使用该函数，仅用来参考原生写法
-    setSnippet = (dialog: Dialog, oldSnippets: any[], removeIds: string[], confirm = false) => {
+    setSnippet = (dialog: Dialog, oldSnippets: any[]) => {
         const snippets: any[] = [];
         dialog.element.querySelectorAll("[data-id]").forEach((item) => {
             snippets.push({
@@ -425,27 +510,97 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
 
 
     /**
-     * 设置代码片段（代码参考思源本体 app/src/config/util/snippets.ts ）
-     * @param dialog 对话框
+     * 设置代码片段（参考思源本体 app/src/config/util/snippets.ts ）
      * @param snippets 代码片段
-     * @param removeIds 要移除的代码片段 ID
      */
-    setSnippetPost = (snippets: any[], removeIds?: string[]) => {
-        fetchPost("/api/snippet/setSnippet", {snippets}, () => {
-            // removeIds.push("#snippet" + (itemElement.getAttribute("data-type") === "css" ? "CSS" : "JS") + itemElement.getAttribute("data-id"));
-            removeIds?.forEach(item => {
-                const rmElement = document.querySelector(item);
-                if (rmElement) {
-                    rmElement.remove();
-                }
-            });
-            this.renderSnippet();
+    setSnippetPost = (snippets: any[]) => {
+        fetchPost("/api/snippet/setSnippet", {snippets}, (response) => {
+            // 增加错误处理
+            if (response.code !== 0) {
+                this.showErrorMessage(this.i18n.setSnippetFailed + " [" + response.msg + "]");
+                return;
+            }
+            // TODO: 改成更细的粒度，不用这个函数
+            // this.renderSnippet();
         });
     };
 
 
     /**
+     * 获取代码片段元素 ID
+     * @param id 代码片段 ID
+     * @param snippetType 代码片段类型
+     * @returns 代码片段元素 ID
+     */
+    getSnippetElementId = (id: string, snippetType: string) => {
+        return `snippet${snippetType === "css" ? "CSS" : "JS"}${id}`;
+    };
+
+
+    /**
+     * 判断代码片段是否启用
+     * @param snippetType 代码片段类型
+     * @returns 是否启用
+     */
+    isSnippetEnabled = (snippetType: string) => {
+        return (window.siyuan.config.snippet.enabledCSS && snippetType === "css") ||
+               (window.siyuan.config.snippet.enabledJS  && snippetType === "js" );
+    };
+
+
+    /**
+     * 添加代码片段元素
+     * @param elementIds 代码片段元素 ID
+     */
+    addSnippetElement = (id: string, snippetType: string, content: string) => {
+        if (!this.isSnippetEnabled(snippetType)) {
+            // 如果对应类型的代码片段未启用，则不添加元素
+            return;
+        }
+        const elementId = this.getSnippetElementId(id, snippetType);
+        // 插入代码片段元素的方式与原生保持一致
+        if (snippetType === "css") {
+            document.head.insertAdjacentHTML("beforeend", `<style id="${elementId}">${content}</style>`);
+        } else if (snippetType === "js") {
+            const jsElement = document.createElement("script");
+            jsElement.type = "text/javascript";
+            jsElement.text = content;
+            jsElement.id = elementId;
+            document.head.appendChild(jsElement);
+        }
+    };
+
+
+    /**
+     * 移除代码片段元素
+     * @param elementIds 代码片段元素 ID
+     */
+    removeSnippetElement = (id: string, snippetType: string) => {
+        const elementId = this.getSnippetElementId(id, snippetType);
+        document.getElementById(elementId)?.remove();
+    };
+
+
+    /**
+     * 更新代码片段元素
+     * @param id 代码片段 ID
+     * @param snippetType 代码片段类型
+     * @param content 代码片段内容
+     */
+    updateSnippetElement = (id: string, snippetType: string, content: string) => {
+        const elementId = this.getSnippetElementId(id, snippetType);
+        const element = document.getElementById(elementId);
+        if (element) {
+            if (element.innerHTML === content) return;
+            this.removeSnippetElement(id, snippetType);
+        }
+        this.addSnippetElement(id, snippetType, content);
+    };
+
+
+    /**
      * 设置代码片段整体启用状态
+     * @param type 代码片段类型
      */
     setSnippetsEnabled = (type: string) => {
         const enabled = (this.menuItems.querySelector(".b3-switch") as HTMLInputElement).checked;
@@ -464,31 +619,37 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      */
     renderSnippet = () => {
         fetchPost("/api/snippet/getSnippet", {type: "all", enabled: 2}, (response) => {
+            // TODO: 对比看看 snippetsList 有没有变化，有变化的话已经打开的菜单要重新渲染
             response.data.snippets.forEach((item: any) => {
                 const id = `snippet${item.type === "css" ? "CSS" : "JS"}${item.id}`;
                 let exitElement = document.getElementById(id) as HTMLScriptElement;
                 if ((!window.siyuan.config.snippet.enabledCSS && item.type === "css") ||
                     (!window.siyuan.config.snippet.enabledJS && item.type === "js")) {
+                    // 如果对应类型的代码片段未启用，则移除已存在的元素并返回
                     if (exitElement) {
                         exitElement.remove();
                     }
                     return;
                 }
                 if (!item.enabled) {
+                    // 如果当前代码片段未启用，则移除已存在的元素并返回
                     if (exitElement) {
                         exitElement.remove();
                     }
                     return;
                 }
                 if (exitElement) {
+                    // 如果已存在且内容未变，则不做处理；否则移除旧元素
                     if (exitElement.innerHTML === item.content) {
                         return;
                     }
                     exitElement.remove();
                 }
                 if (item.type === "css") {
+                    // 如果是 CSS 片段，则插入 style 元素
                     document.head.insertAdjacentHTML("beforeend", `<style id="${id}">${item.content}</style>`);
                 } else if (item.type === "js") {
+                    // 如果是 JS 片段，则插入 script 元素
                     exitElement = document.createElement("script");
                     exitElement.type = "text/javascript";
                     exitElement.text = item.content;
@@ -501,10 +662,19 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
 
 
     /**
-     * 根据代码片段类型过滤列表
+     * 切换代码片段类型
      */
     switchSnippet = () => {
-        const isCSS = this.snippetType === "sjosd-radio-css";
+        // 更新整体启用状态开关状态
+        const enabled = this.isSnippetEnabled(this.snippetType);
+        if (enabled) {
+            this.menuItems.querySelector(".sjosd-all-snippet-switch")?.setAttribute("checked", "");
+        } else {
+            this.menuItems.querySelector(".sjosd-all-snippet-switch")?.removeAttribute("checked");
+        }
+
+        // 过滤列表
+        const isCSS = this.snippetType === "css";
         this.menuItems.querySelectorAll(isCSS ? "[data-type='css']" : "[data-type='js']").forEach((item: HTMLElement) => {
             item.classList.remove("fn__none");
         });
@@ -518,12 +688,26 @@ export default class PluginSiyuanJsOpenSnippetsDialog extends Plugin {
      * 更新代码片段计数
      */
     updateSnippetCount = () => {
-        const cssCount = this.menuItems.querySelectorAll("[data-type='css']").length;
-        const jsCount = this.menuItems.querySelectorAll("[data-type='js']").length;
+        const cssCount = this.snippetsList.filter((item: any) => item.type === "css").length;
+        const jsCount = this.snippetsList.filter((item: any) => item.type === "js").length;
         this.menuItems.querySelector("#sjosd-radio-css + label .sjosd-tab-count").textContent = cssCount > 99 ? "99+" : cssCount.toString();
         this.menuItems.querySelector("#sjosd-radio-js + label .sjosd-tab-count").textContent = jsCount > 99 ? "99+" : jsCount.toString();
     };
 
+
+    /**
+     * 显示错误信息
+     * @param message 错误信息
+     */
+    showErrorMessage = (message: string) => {
+        showMessage(this.i18n.pluginDisplayName + ": " + message, undefined, "error");
+    };
+
+    // TODO: 桌面端修改代码片段之后同步到打开的新窗口（所有变更都是弹窗确认，避免以后原生改进了 https://github.com/siyuan-note/siyuan/issues/12303 造成冲突）
+    // 问：桌面端使用新窗口的情况下插件能实现跨窗口通信吗？A 窗口的插件将状态同步到 B 窗口的插件，然后执行一些操作
+    // 答：简单的用 localStorage、复杂的用 broadCast
+    //  localStraoge.setItem 设置，window.addEventListener('storage' 监听
+    //  我这边用的 broadCast 的ws方案，代码小多
 
     // // 自定义插件设置窗口
     // openSetting() {

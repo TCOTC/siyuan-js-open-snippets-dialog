@@ -23,19 +23,18 @@
   }
 }
 
-.sjosd-top-bar-menu {
+.sjosd-top-container {
   user-select: none;
+  padding-right: 8px;
   
-  // 自定义菜单顶部的选项卡
-  &__top-container {
-    border-radius: var(--b3-border-radius);
-    background-color: var(--b3-theme-background);
-    margin-bottom: 5px;
-  }
   .sjosd-tabs {
     display: flex;
     position: relative;
     padding: 0 6px;
+
+    border-radius: var(--b3-border-radius);
+    background-color: var(--b3-theme-background);
+    margin-bottom: 5px;
   }
   .sjosd-tabs * {
     z-index: 2;
@@ -106,4 +105,9 @@
   button svg {
     pointer-events: none;
   }
+
+  .fn__flex-1:empty::before {
+    content: attr(placeholder);
+    color: var(--b3-theme-on-surface-light);
+}
 }
