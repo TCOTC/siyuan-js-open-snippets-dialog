@@ -3,6 +3,7 @@
   "author": "TCOTC",
   "url": "https://github.com/TCOTC/snippets",
   "version": "1.0.0",
+  "minAppVersion": "3.1.27",
   "backends": [
     "all"
   ],

@@ -1,5 +1,5 @@
 {
-  "name": "siyuan-js-open-snippets-dialog",
+  "name": "snippets",
   "version": "0.4.0",
   "description": "This is a sample plugin for Siyuan (https://b3log.org/siyuan)",
   "main": ".src/index.js",
