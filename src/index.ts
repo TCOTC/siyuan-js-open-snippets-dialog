@@ -297,7 +297,7 @@ export default class PluginSnippets extends Plugin {
         newSnippetButton.setAttribute("aria-label", window.siyuan.languages.addAttr + " " + this.snippetType.toUpperCase());
         const reloadUIButton = menuTop.querySelector("button[data-type='reload']") as HTMLButtonElement;
         const reloadUICommand = this.getCustomCommand("reloadUI");
-        reloadUIButton.setAttribute("aria-label", !this.isMobile && reloadUICommand ? this.i18n.reloadUI + " " + this.updateHotkeyTip(reloadUICommand) : this.i18n.reloadUI);
+        reloadUIButton.setAttribute("aria-label", (!this.isMobile && reloadUICommand) ? this.i18n.reloadUI + " " + this.updateHotkeyTip(reloadUICommand) : this.i18n.reloadUI);
         
         this.menuItems.append(menuTop);
 
@@ -604,8 +604,8 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 切换代码片段启用状态
-     * @param snippetElement 代码片段元素
-     * @param target 目标元素
+     * @param snippetId 代码片段 ID
+     * @param enabled 是否启用
      * @param type 不需要同步开关状态的类型
      */
     private toggleSnippetEnabled(snippetId: string, enabled: boolean, type: string) {
@@ -631,7 +631,7 @@ export default class PluginSnippets extends Plugin {
         if (type !== "menu") {
             // TODO: 切换菜单上对应的代码片段的开关状态
             // 切换菜单上对应的代码片段的开关状态
-            const snippetElement = this.menuItems.querySelector(`div[data-type="${snippet.type}"][data-id="${snippetId}"]`) as HTMLElement;
+            const snippetElement = this.menuItems.querySelector(`div[data-id="${snippetId}"]`) as HTMLElement;
             if (snippetElement) {
                 snippetElement.querySelector("input").checked = enabled;
             }
@@ -930,7 +930,8 @@ export default class PluginSnippets extends Plugin {
                 // TODO: isNewSnippet 为 true 时表示这个代码片段没有添加到 snippetsList 中（也没有添加到 DOM 中？）
                 const isNewSnippet = !this.snippetsList.find((s: Snippet) => s.id === snippet.id);
                 switch (target.dataset.action) {
-                    // TODO: 桌面端在前面执行了 this.menu.close(); 所以不用管菜单，但移动端需要根据情况修改菜单列表
+                    // 桌面端在前面执行了 this.menu.close(); 所以不用管菜单，但移动端需要根据情况修改菜单列表
+                    // TODO: 还是不执行 this.menu.close() 了，让菜单和 Dialog 能一起显示
 
                     case "delete":
                         // 弹窗确定后删除代码片段/不新建代码片段、关闭 Dialog

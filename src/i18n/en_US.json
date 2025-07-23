@@ -1,0 +1,18 @@
+{
+  "pluginDisplayName": "Snippets Panel",
+  "pluginOnload": " plugin enabled",
+  "pluginOnunload": " plugin disabled",
+  "pluginUninstall": " plugin uninstalled",
+  "getSnippetsListFailed": "Get snippets list failed",
+  "getSnippetFailed": "Get snippet failed, not found snippet element or ID",
+  "setSnippetFailed": "Set snippet failed",
+  "unNamed": "Unnamed",
+  "reloadUI": "Reload UI",
+  "edit": "Edit",
+  "delete": "Delete",
+  "cancel": "Cancel",
+  "save": "Save",
+  "openSnippetsPanel": "Open snippets panel",
+  "deleteSnippet": "Delete snippet",
+  "deleteSnippetConfirm": "Are you sure you want to delete snippet${x}?"
+}

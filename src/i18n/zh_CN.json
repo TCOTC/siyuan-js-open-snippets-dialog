@@ -1,0 +1,18 @@
+{
+  "pluginDisplayName": "代码片段快捷面板",
+  "pluginOnload": " 插件已启用",
+  "pluginOnunload": " 插件已禁用",
+  "pluginUninstall": " 插件已卸载",
+  "getSnippetsListFailed": "获取代码片段列表失败",
+  "getSnippetFailed": "获取代码片段失败，未找到代码片段元素或 ID",
+  "setSnippetFailed": "设置代码片段失败",
+  "unNamed": "未命名",
+  "reloadUI": "重新加载界面",
+  "edit": "编辑",
+  "delete": "删除",
+  "cancel": "取消",
+  "save": "保存",
+  "openSnippetsPanel": "打开代码片段快捷面板",
+  "deleteSnippet": "删除代码片段",
+  "deleteSnippetConfirm": "确定要删除代码片段${x}吗？"
+}
