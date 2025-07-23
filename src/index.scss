@@ -1,6 +1,6 @@
 // TODO: 所有使用 px 的地方都改成 em，否则界面缩放会影响布局
 
-.sjosd {
+.jcsm {
   &__custom-tab {
     background-color: var(--b3-theme-background);
     height: 100%;
@@ -23,7 +23,7 @@
   }
 }
 
-.sjosd-top-container {
+.jcsm-top-container {
   user-select: none;
   padding-right: 8px;
   
@@ -31,7 +31,7 @@
     pointer-events: none;
   }
   
-  .sjosd-tabs {
+  .jcsm-tabs {
     display: flex;
     position: relative;
     padding: 0 6px;
@@ -40,13 +40,13 @@
     background-color: var(--b3-theme-background);
     margin-bottom: 5px;
   }
-  .sjosd-tabs * {
+  .jcsm-tabs * {
     z-index: 2;
   }
   input[type="radio"] {
     display: none;
   }
-  .sjosd-tab {
+  .jcsm-tab {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -58,7 +58,7 @@
     cursor: pointer;
     transition: color 0.15s ease-in;
   }
-  .sjosd-tab-count {
+  .jcsm-tab-count {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -73,20 +73,20 @@
   label * {
     pointer-events: none;
   }
-  input[type="radio"]:checked + label .sjosd-tab-text {
+  input[type="radio"]:checked + label .jcsm-tab-text {
     color: var(--b3-theme-primary);
   }
-  input[type="radio"]:checked + label > .sjosd-tab-count {
+  input[type="radio"]:checked + label > .jcsm-tab-count {
     background-color: var(--b3-theme-primary);
     color: #fff;
   }
-  input[id="sjosd-radio-css"]:checked ~ .sjosd-glider {
+  input[id="jcsm-radio-css"]:checked ~ .jcsm-glider {
     transform: translateX(0);
   }
-  input[id="sjosd-radio-js"]:checked ~ .sjosd-glider {
+  input[id="jcsm-radio-js"]:checked ~ .jcsm-glider {
     transform: translateX(100%);
   }
-  .sjosd-glider {
+  .jcsm-glider {
     position: absolute;
     display: flex;
     top: 4px;
@@ -99,18 +99,18 @@
     transition: 0.25s ease-out;
   }
   @media (max-width: 700px) {
-    .sjosd-tabs {
+    .jcsm-tabs {
       transform: scale(0.6);
     }
   }
 }
 
-.sjosd-snippet-item {
+.jcsm-snippet-item {
   button svg {
     pointer-events: none;
   }
 
-  .sjosd-snippet-name {
+  .jcsm-snippet-name {
     &:empty::before {
       content: attr(placeholder);
       color: var(--b3-theme-on-surface-light);
@@ -123,7 +123,7 @@
   }
 }
 
-.sjosd-dialog {
+.jcsm-dialog {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -132,14 +132,14 @@
     pointer-events: none;
   }
 
-  .sjosd-dialog-header {
+  .jcsm-dialog-header {
     display: block;
     height: 24px;
     flex-shrink: 0;
     cursor: grab;
   }
 
-  .sjosd-dialog-container {
+  .jcsm-dialog-container {
     padding: 0 24px;
     display: flex;
     flex-direction: column;
