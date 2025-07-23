@@ -889,6 +889,8 @@ export default class PluginSnippets extends Plugin {
         nameElement.focus();
         const contentElement = dialog.element.querySelector(".jcsm-dialog-content") as HTMLTextAreaElement;
         contentElement.value = snippet.content;
+        const switchInput = dialog.element.querySelector("input[data-type='snippetSwitch']") as HTMLInputElement;
+        // switchInput.checked = snippet.enabled; // genSnippetDialog 的时候已经添加了 enabled 属性，这里不需要重复设置
 
         // TODO: 保存（保存时如果 List 中没有这个代码片段，则新建，否则更新）
         // TODO: 标题不允许输入换行、保存的时候标题的换行要转换为空格
@@ -914,9 +916,9 @@ export default class PluginSnippets extends Plugin {
             const target = event.target as HTMLElement;
             if (target.tagName.toLowerCase() === "input" && target.getAttribute("data-type") === "snippetSwitch") {
                 // TODO: 切换代码片段的开关状态
-                if (target.getAttribute("data-type") === "snippetSwitch") {
+                if (target === switchInput) {
                     if (this.cssRealTimeApply) {
-                        const enabled = (target as HTMLInputElement).checked;
+                        const enabled = switchInput.checked;
                         this.toggleSnippetEnabled(dialog.element.dataset.snippetId, enabled, "dialog");
                     }
                 }
@@ -951,6 +953,7 @@ export default class PluginSnippets extends Plugin {
                         // 新建/更新代码片段
                         snippet.name = nameElement.value.replace(/\n/g, " "); // 标题的换行要转换为空格
                         snippet.content = contentElement.value;
+                        snippet.enabled = switchInput.checked;
                         console.log("confirm", snippet);
                         if (isNewSnippet) {
                             // 如果已经删除了对应 ID 的代码片段而 Dialog 还在，此时点击“新建”按钮需要新建代码片段
