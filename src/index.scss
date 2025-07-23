@@ -23,6 +23,15 @@
   }
 }
 
+// :not(.b3-menu--fullscreen) 排除移动端
+#commonMenu[data-name="PluginSnippets"]:not(.b3-menu--fullscreen) > .b3-menu__items {
+  // 右侧滚动条宽度 10px，把左侧 padding 设置为 10px，左右边距一致
+  // 2px 加上菜单上下原有的 8px，边距与左右相同
+  padding: 2px 0 2px 10px;
+  // 出现滚动条的时候列表不会偏移
+  scrollbar-gutter: stable;
+}
+
 .jcsm-top-container {
   user-select: none;
   padding-right: 8px;
@@ -98,14 +107,11 @@
     border-radius: var(--b3-border-radius);
     transition: 0.25s ease-out;
   }
-  @media (max-width: 700px) {
-    .jcsm-tabs {
-      transform: scale(0.6);
-    }
-  }
 }
 
 .jcsm-snippet-item {
+  padding: 0 8px;
+
   button svg {
     pointer-events: none;
   }
