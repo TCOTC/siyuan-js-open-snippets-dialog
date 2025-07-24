@@ -6,6 +6,7 @@
   "getSnippetsListFailed": "Get snippets list failed",
   "getSnippetFailed": "Get snippet failed, not found snippet element or ID",
   "setSnippetFailed": "Set snippet failed",
+  "snippetDialogParamError": "Open snippet dialog failed, missing snippet parameter: ",
   "unNamed": "Unnamed",
   "reloadUI": "Reload UI",
   "edit": "Edit",
@@ -14,5 +15,6 @@
   "save": "Save",
   "openSnippetsPanel": "Open snippets panel",
   "deleteSnippet": "Delete snippet",
-  "deleteSnippetConfirm": "Are you sure you want to delete snippet${x}?"
+  "deleteSnippetConfirm": "Are you sure you want to delete snippet${x}?",
+  "deleteSnippetFailed": "Delete snippet failed, missing parameter ID or type"
 }
