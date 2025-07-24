@@ -41,6 +41,7 @@ import { Snippet } from "./types";
 
 const PLUGIN_NAME = "snippets"; // 插件名
 const STORAGE_NAME = "config.json"; // 配置文件名
+const LOG_NAME = "plugin-snippets.log"; // 日志文件名
 const TAB_TYPE = "custom-tab";
 
 export default class PluginSnippets extends Plugin {
@@ -51,6 +52,10 @@ export default class PluginSnippets extends Plugin {
     private _snippetsType: string = window.siyuan.jcsm?.snippetsType || "css"; // 顶栏菜单默认显示 CSS 代码片段
     private menu: Menu;
     private menuItems: HTMLElement;
+    
+    // 日志写入队列相关
+    private logWriteQueue: Array<() => Promise<void>> = [];
+    private isLogWriting: boolean = false;
 
     // 插件配置项
     private version: number = 1;       // 配置文件版本（配置结构有变化时升级）
@@ -71,11 +76,15 @@ export default class PluginSnippets extends Plugin {
         // 加载配置文件数据
         // TODO: 需要测试会不会在同步完成之前加载数据，然后同步修改数据之后插件没有重载。如果有这种情况的话提 issue、试试把 loadData() 和 this.setting 相关的逻辑放在 onLayoutReady 中有没有问题
         await this.loadData(STORAGE_NAME);
-        console.log("this.data:", this.data);
         const config = this.data[STORAGE_NAME];
         if (config) {
-            if (config.version > this.version) {
-                // TODO: 当前配置文件是更高版本的，与当前版本不兼容，需要将该配置文件重命名为 config_{timestamp}_v{version}.json
+            if (!config.version) {
+                // 配置文件异常，移除配置文件、弹出错误消息
+                this.removeData(STORAGE_NAME);
+                this.showErrorMessage(this.i18n.loadConfigError);
+            } else if (config.version > this.version) {
+                // TODO: 当前配置文件是更高版本的，与当前版本不兼容，弹窗提示用户升级插件（可以不升级）
+                // 如果用户不升级插件，还保存了设置，则直接覆盖掉高版本配置，这样也没有问题，因为高版本加载的时候又会自动调整配置结构
                 return
             }
             // 预留逻辑
@@ -84,6 +93,8 @@ export default class PluginSnippets extends Plugin {
             //     this.updateConfig(config);
             //     return
             // }
+
+            // 加载配置文件中的设置
             this.realTimeApply = config.realTimeApply ?? this.realTimeApply;
         }
 
@@ -165,9 +176,7 @@ export default class PluginSnippets extends Plugin {
         // TODO: 插件设置中的各个配置项
         this.setting = new Setting({
             confirmCallback: () => {
-                console.log("this.setting.confirmCallback");
-                // TODO: 保存设置
-                console.log("this.data[STORAGE_NAME]:", this.data[STORAGE_NAME]);
+                // 保存设置
                 const config  = {
                     version: this.version,
                     realTimeApply: this.realTimeApply,
@@ -175,7 +184,6 @@ export default class PluginSnippets extends Plugin {
                 this.saveData(STORAGE_NAME, config);
             }
         });
-        console.log("this.setting:", this.setting);
 
         const textareaElement = document.createElement("textarea");
         this.setting.addItem({
@@ -278,7 +286,6 @@ export default class PluginSnippets extends Plugin {
         // const btnsElement = dialog.element.querySelectorAll(".b3-dialog__action .b3-button");
 
         dialog.element.addEventListener("click", (event: Event) => {
-            console.log("event:", event);
             // 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭
             event.stopPropagation();
 
@@ -328,11 +335,9 @@ export default class PluginSnippets extends Plugin {
         document.addEventListener("keydown", keydownHandler, true);
 
         const cancelHandler = () => {
-            console.log("cancelHandler");
             this.removeDialog(dialog);
         };
         const confirmHandler = () => {
-            console.log("confirmHandler");
             this.setting.confirmCallback();
             this.removeDialog(dialog);
         };
@@ -393,8 +398,6 @@ export default class PluginSnippets extends Plugin {
             this.menu.element.removeEventListener("mousedown", this.menuMousedownHandler);
             this.menu = undefined;
             document.removeEventListener("keydown", this.menuKeyDownHandler);
-
-            console.log("menu closed");
         });
         // 如果菜单已存在，再次点击按钮就会移除菜单，此时直接返回
         if (this.menu.isOpen) {
@@ -422,7 +425,7 @@ export default class PluginSnippets extends Plugin {
             return;
         }
         this.snippetsList = response.data.snippets;
-        console.log("this.snippetsList:", this.snippetsList);
+        console.log("getSnippet:", this.snippetsList);
 
         // 插入菜单顶部
         this.menuItems = this.menu.element.querySelector(".b3-menu__items");
@@ -1156,7 +1159,6 @@ export default class PluginSnippets extends Plugin {
                         snippet.name = nameElement.value.replace(/\n/g, " "); // 标题的换行要转换为空格
                         snippet.content = contentElement.value;
                         snippet.enabled = switchInput.checked;
-                        console.log("confirm", snippet);
                         if (isNewSnippet) {
                             // 如果已经删除了对应 ID 的代码片段而 Dialog 还在，此时点击“新建”按钮需要新建代码片段
                             // 无视 this.realTimeApply，在 Dialog 新建的代码片段都要添加到菜单顶部
@@ -1233,7 +1235,6 @@ export default class PluginSnippets extends Plugin {
         });
 
         dialog.element.addEventListener("click", (event) => {
-            console.log("event:", event);
             // 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭
             event.stopPropagation();
             let target = event.target as HTMLElement;
@@ -1274,11 +1275,126 @@ export default class PluginSnippets extends Plugin {
     /**
      * 弹出错误消息
      * @param message 错误消息
+     * @param timeout 消息显示时间（毫秒）；-1 永不关闭；0 永不关闭，添加一个关闭按钮；undefined 默认 6000 毫秒
      */
-    private showErrorMessage(message: string) {
-        showMessage(this.i18n.pluginDisplayName + ": " + message, undefined, "error");
-        // TODO: 在 temp 目录记录错误日志（格式参考 siyuan.log）
+    private showErrorMessage(message: string, timeout: number | undefined = undefined) {
+        showMessage(this.i18n.pluginDisplayName + ": " + message, timeout, "error");
+
+        // 将日志写入任务添加到队列
+        this.addLogWriteTask(message);
     };
+
+    /**
+     * 添加日志写入任务到队列
+     * @param message 错误消息
+     */
+    private addLogWriteTask(message: string) {
+        const writeTask = async () => {
+            try {
+                // 在 temp 目录记录错误日志（格式参考 siyuan.log）
+                const writeLog = async (oldLog: string = "") => {
+                    // 如果 oldLog 的行数超过 200 行，则删除开头 1 行
+                    const lines = oldLog.split("\n");
+                    if (lines.length > 200) {
+                        oldLog = lines.slice(1).join("\n");
+                    }
+                    // E 2025/07/24 21:13:19 错误消息
+                    const newLog = oldLog + "E " + new Date().toLocaleString() + " " + message + "\n";
+                    const response = await this.putFile("/temp/" + LOG_NAME, newLog);
+                    if (!response || (response as any).code !== 0) {
+                        // 写入失败
+                        const errorResponse = response as any;
+                        showMessage(this.i18n.pluginDisplayName + ": " + this.i18n.writePluginLogFailed + " [" + errorResponse.code + ": " + errorResponse.msg + "]", 20000, "error");
+                    }
+                };
+
+                const response = await this.getFile("/temp/" + LOG_NAME) as any;
+                if (response && response.code === 404) {
+                    // 没有文件，直接创建文件
+                    await writeLog();
+                } else if ((response || response === "") && !response.code) {
+                    // 如果有文件，response 就是文件内容、没有 response.code
+                    await writeLog(response as string);
+                } else {
+                    // 其他错误（具体错误详情见原生 API 文档）
+                    const errorResponse = response as any;
+                    showMessage(this.i18n.pluginDisplayName + ": " + this.i18n.getPluginLogFailed + " [" + errorResponse.code + ": " + errorResponse.msg + "]", 20000, "error");
+                }
+            } catch (error) {
+                console.error("Failed to write log:", error);
+            }
+        };
+
+        // 将任务添加到队列
+        this.logWriteQueue.push(writeTask);
+
+        // 如果当前没有在写入，则开始处理队列
+        if (!this.isLogWriting) {
+            this.processLogQueue();
+        }
+    }
+
+    /**
+     * 处理日志写入队列
+     */
+    private async processLogQueue() {
+        if (this.isLogWriting || this.logWriteQueue.length === 0) {
+            return;
+        }
+
+        this.isLogWriting = true;
+
+        try {
+            // 依次处理队列中的任务
+            while (this.logWriteQueue.length > 0) {
+                const task = this.logWriteQueue.shift();
+                if (task) {
+                    await task();
+                }
+            }
+        } catch (error) {
+            console.error("Error occurred while processing the log queue:", error);
+        } finally {
+            this.isLogWriting = false;
+        }
+    }
+
+    /**
+     * 获取文件内容，返回 Promise
+     * @param path 文件路径
+     * @returns Promise<any>
+     */
+    private getFile(path: string): Promise<any> {
+        // 解决 400 parses request failed 问题，fetchPost 需要传递对象而不是 JSON 字符串
+        return new Promise((resolve) => {
+            fetchPost("/api/file/getFile", { path }, (response: any) => {
+                resolve(response);
+            });
+        });
+    }
+
+    /**
+     * 写入文件，返回 Promise
+     * @param path 文件路径
+     * @param content 文件内容
+     * @returns Promise<any>
+     */
+    private putFile(path: string, content: string) {
+        if (!path || !content) {
+            return Promise.reject({ code: 400, msg: "path or content is empty" });
+        }
+
+        const formData = new FormData();
+        formData.append("path", path);
+        formData.append("isDir", "false");
+        formData.append("file", new File([content], path.split('/').pop(), { type: "text/plain" }));
+
+        return new Promise((resolve) => {
+            fetchPost("/api/file/putFile", formData, (response: any) => {
+                resolve(response);
+            });
+        });
+    }
 
     /**
      * 判断代码片段类型是否启用

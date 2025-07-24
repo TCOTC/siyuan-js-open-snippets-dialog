@@ -16,5 +16,8 @@
   "openSnippetsPanel": "打开代码片段快捷面板",
   "deleteSnippet": "删除代码片段",
   "deleteSnippetConfirm": "确定要删除代码片段${x}吗？",
-  "deleteSnippetFailed": "删除代码片段失败，缺少参数 ID 或类型"
+  "deleteSnippetFailed": "删除代码片段失败，缺少参数 ID 或类型",
+  "loadConfigError": "配置文件异常，已移除配置文件",
+  "getPluginLogFailed": "获取插件日志失败",
+  "writePluginLogFailed": "写入插件日志失败"
 }
