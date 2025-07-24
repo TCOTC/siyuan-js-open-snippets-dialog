@@ -4,7 +4,7 @@ declare global {
     interface Window {
         siyuan: ISiyuan & {
             jcsm?: {
-                topBarMenuInputType?: string;
+                snippetsType?: string;
             };
         };
     }
@@ -37,6 +37,7 @@ interface Snippet {
 declare module "siyuan" {
     interface Setting {
         items: SettingItem[];
+        confirmCallback: () => void;
     }
 }
 

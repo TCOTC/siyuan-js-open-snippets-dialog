@@ -44,31 +44,48 @@ const STORAGE_NAME = "config.json"; // 配置文件名
 const TAB_TYPE = "custom-tab";
 
 export default class PluginSnippets extends Plugin {
-
+    // 插件内部变量
     private custom: () => Custom;
     private isMobile: boolean;
     private snippetsList: Snippet[];
-    private _snippetType: string = window.siyuan.jcsm?.topBarMenuInputType || "css"; // 顶栏菜单默认显示 CSS 代码片段
+    private _snippetsType: string = window.siyuan.jcsm?.snippetsType || "css"; // 顶栏菜单默认显示 CSS 代码片段
     private menu: Menu;
     private menuItems: HTMLElement;
 
-    // CSS 实时应用（默认开启）
-    // TODO: 需要添加配置项，优先从配置中获取
-    private cssRealTimeApply: boolean = true;
-    // private cssRealTimeApply: boolean = false;
-    // TODO: 所有使用了 this.cssRealTimeApply 来判断的地方，都要同时判断代码片段的类型：(this.cssRealTimeApply && snippet.type === "css")
-
+    // 插件配置项
+    private version: number = 1;       // 配置文件版本（配置结构有变化时升级）
+    // TODO: 需要添加到设置菜单
+    private realTimeApply: number = 1; // 实时应用：0 表示关闭，1 表示 CSS 实时应用（默认）（保留拓展性，有需要时可以添加其他值）
+    // private realTimeApply: number = 0;
+    // TODO: 所有使用了 this.realTimeApply 来判断的地方，都要同时判断代码片段的类型：(this.realTimeApply === 1 && snippet.type === "css")
 
     // ================================ 生命周期方法 ================================
 
     /**
      * 启用插件（进行各种初始化）
      */
-    onload() {
+    async onload() {
         // 发布服务不启用插件
         if (window.siyuan && (window.siyuan as any).isPublish) return;
 
-        this.data[STORAGE_NAME] = { readonlyText: "Readonly" };
+        // 加载配置文件数据
+        // TODO: 需要测试会不会在同步完成之前加载数据，然后同步修改数据之后插件没有重载。如果有这种情况的话提 issue、试试把 loadData() 和 this.setting 相关的逻辑放在 onLayoutReady 中有没有问题
+        await this.loadData(STORAGE_NAME);
+        console.log("this.data:", this.data);
+        const config = this.data[STORAGE_NAME];
+        if (config) {
+            if (config.version > this.version) {
+                // TODO: 当前配置文件是更高版本的，与当前版本不兼容，需要将该配置文件重命名为 config_{timestamp}_v{version}.json
+                return
+            }
+            // 预留逻辑
+            // else if (config.version < this.version) {
+            //     // 当前配置文件是更低版本的，需要调整结构
+            //     this.updateConfig(config);
+            //     return
+            // }
+            this.realTimeApply = config.realTimeApply ?? this.realTimeApply;
+        }
 
         const frontEnd = getFrontend();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
@@ -148,9 +165,17 @@ export default class PluginSnippets extends Plugin {
         // TODO: 插件设置中的各个配置项
         this.setting = new Setting({
             confirmCallback: () => {
-                this.saveData(STORAGE_NAME, {readonlyText: textareaElement.value});
+                console.log("this.setting.confirmCallback");
+                // TODO: 保存设置
+                console.log("this.data[STORAGE_NAME]:", this.data[STORAGE_NAME]);
+                const config  = {
+                    version: this.version,
+                    realTimeApply: this.realTimeApply,
+                };
+                this.saveData(STORAGE_NAME, config);
             }
         });
+        console.log("this.setting:", this.setting);
 
         const textareaElement = document.createElement("textarea");
         this.setting.addItem({
@@ -270,11 +295,24 @@ export default class PluginSnippets extends Plugin {
         });
 
         const keydownHandler = (event: KeyboardEvent) => {
-            console.log("keydownHandler:", event);
+            // 判断当前激活元素是否为输入框（input 或 textarea）
+            const isInput = (() => {
+                const tag = document.activeElement.tagName.toLowerCase();
+                return tag === "input" || tag === "textarea";
+            })();
             if (event.key === "Escape") {
+                // 如果焦点在输入框里，移除焦点
+                if (isInput) {
+                    (document.activeElement as HTMLInputElement | HTMLTextAreaElement).blur();
+                    // 阻止冒泡
+                    event.stopPropagation();
+                    return;
+                }
                 destroyKeydownHandler(event);
                 cancelHandler();
             } else if (event.key === "Enter") {
+                // 如果焦点在输入框里，不操作
+                if (isInput) return;
                 destroyKeydownHandler(event);
                 confirmHandler();
             }
@@ -294,8 +332,8 @@ export default class PluginSnippets extends Plugin {
             this.removeDialog(dialog);
         };
         const confirmHandler = () => {
-            // TODO: 保存设置
             console.log("confirmHandler");
+            this.setting.confirmCallback();
             this.removeDialog(dialog);
         };
         
@@ -307,8 +345,6 @@ export default class PluginSnippets extends Plugin {
     onLayoutReady() {
         // 发布服务不启用插件
         if (window.siyuan && (window.siyuan as any).isPublish) return;
-        // 加载插件配置
-        this.loadData(STORAGE_NAME);
     }
 
     /**
@@ -582,7 +618,7 @@ export default class PluginSnippets extends Plugin {
                 };
                 let confirmText;
                 // TODO: 如果开启了 CSS 实时应用，则这个时候就添加代码片段
-                if (snippet.type === "css" && this.cssRealTimeApply) {
+                if (snippet.type === "css" && this.realTimeApply === 1) {
                     this.addSnippet(snippet);
                     confirmText = window.siyuan.languages.save;
                 } else {
@@ -708,7 +744,7 @@ export default class PluginSnippets extends Plugin {
      * @param snippet 代码片段
      * @param addToMenu 是否将代码片段添加到菜单顶部
      */
-    private addSnippet(snippet: Snippet, addToMenu: boolean = this.cssRealTimeApply) {
+    private addSnippet(snippet: Snippet, addToMenu: boolean = this.realTimeApply === 1) {
         // 将 snippet 添加到 snippetsList 开头
         this.snippetsList.unshift(snippet);
         this.setSnippetPost(this.snippetsList);
@@ -764,7 +800,7 @@ export default class PluginSnippets extends Plugin {
         }
 
         // 同步开关状态到其他地方（目前只有 menu 和 dialog，未来可能增加自定义页签）
-        if (type !== "menu" && !this.cssRealTimeApply) {
+        if (type !== "menu" && this.realTimeApply !== 1) {
             // 如果没有开启 CSS 实时应用，则不更新
             return
         }
@@ -1082,7 +1118,7 @@ export default class PluginSnippets extends Plugin {
             if (target.tagName.toLowerCase() === "input" && target.getAttribute("data-type") === "snippetSwitch") {
                 // TODO: 切换代码片段的开关状态
                 if (target === switchInput) {
-                    if (this.cssRealTimeApply) {
+                    if (this.realTimeApply === 1) {
                         const enabled = switchInput.checked;
                         this.toggleSnippetEnabled(dialog.element.dataset.snippetId, enabled, "dialog");
                     }
@@ -1123,7 +1159,7 @@ export default class PluginSnippets extends Plugin {
                         console.log("confirm", snippet);
                         if (isNewSnippet) {
                             // 如果已经删除了对应 ID 的代码片段而 Dialog 还在，此时点击“新建”按钮需要新建代码片段
-                            // 无视 this.cssRealTimeApply，在 Dialog 新建的代码片段都要添加到菜单顶部
+                            // 无视 this.realTimeApply，在 Dialog 新建的代码片段都要添加到菜单顶部
                             this.addSnippet(snippet, true);
                         } else {
                             // 更新现有 snippet
@@ -1370,7 +1406,7 @@ export default class PluginSnippets extends Plugin {
      * snippetType 属性的 getter
      */
     get snippetType() {
-        return this._snippetType;
+        return this._snippetsType;
     }
 
     /**
@@ -1378,8 +1414,8 @@ export default class PluginSnippets extends Plugin {
      * @param value 新的 snippetType
      */
     set snippetType(value: string) {
-        if (this._snippetType !== value) {
-            this._snippetType = value;
+        if (this._snippetsType !== value) {
+            this._snippetsType = value;
             this.syncSnippetType(value);
         }
     }
@@ -1390,7 +1426,7 @@ export default class PluginSnippets extends Plugin {
      */
     private syncSnippetType(value: string) {
         if (!window.siyuan.jcsm) window.siyuan.jcsm = {};
-        window.siyuan.jcsm.topBarMenuInputType = value;
+        window.siyuan.jcsm.snippetsType = value;
     }
 
 
