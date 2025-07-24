@@ -7,6 +7,7 @@
   "getSnippetFailed": "Failed to get snippet, snippet element or ID not found",
   "setSnippetFailed": "Failed to set snippet",
   "snippetDialogParamError": "Failed to open snippet dialog, missing snippet parameter: ",
+  "updateSnippetElementParamError": "Failed to update snippet element, missing snippet parameter",
   "unNamed": "Unnamed",
   "reloadUI": "Reload UI",
   "edit": "Edit",
@@ -19,5 +20,8 @@
   "deleteSnippetFailed": "Failed to delete snippet, missing parameter ID or type",
   "loadConfigError": "Configuration file error, configuration file has been removed",
   "getPluginLogFailed": "Failed to get plugin log",
-  "writePluginLogFailed": "Failed to write plugin log"
+  "writePluginLogFailed": "Failed to write plugin log",
+  "realTimeApply": "Apply CSS snippets changes in real time",
+  "viewPluginSourceCode": "Feedback issues",
+  "viewPluginSourceCodeDescription": "Open plugin's repository page, welcome to click Star to support the author"
 }
