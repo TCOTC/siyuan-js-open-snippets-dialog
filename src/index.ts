@@ -40,7 +40,7 @@ import "./index.scss";
 import { Snippet } from "./types";
 
 const PLUGIN_NAME = "snippets"; // 插件名
-const STORAGE_NAME = "config.json"; // 配置文件名
+const STORAGE_NAME = "plugin-config.json"; // 配置文件名
 const LOG_NAME = "plugin-snippets.log"; // 日志文件名
 const TAB_TYPE = "custom-tab";
 
@@ -72,31 +72,6 @@ export default class PluginSnippets extends Plugin {
     async onload() {
         // 发布服务不启用插件
         if (window.siyuan && (window.siyuan as any).isPublish) return;
-
-        // 加载配置文件数据
-        // TODO: 需要测试会不会在同步完成之前加载数据，然后同步修改数据之后插件没有重载。如果有这种情况的话提 issue、试试把 loadData() 和 this.setting 相关的逻辑放在 onLayoutReady 中有没有问题
-        await this.loadData(STORAGE_NAME);
-        const config = this.data[STORAGE_NAME];
-        if (config) {
-            if (!config.version) {
-                // 配置文件异常，移除配置文件、弹出错误消息
-                this.removeData(STORAGE_NAME);
-                this.showErrorMessage(this.i18n.loadConfigError);
-            } else if (config.version > this.version) {
-                // TODO: 当前配置文件是更高版本的，与当前版本不兼容，弹窗提示用户升级插件（可以不升级）
-                // 如果用户不升级插件，还保存了设置，则直接覆盖掉高版本配置，这样也没有问题，因为高版本加载的时候又会自动调整配置结构
-                return
-            }
-            // 预留逻辑
-            // else if (config.version < this.version) {
-            //     // 当前配置文件是更低版本的，需要调整结构
-            //     this.updateConfig(config);
-            //     return
-            // }
-
-            // 加载配置文件中的设置
-            this.realTimeApply = config.realTimeApply ?? this.realTimeApply;
-        }
 
         const frontEnd = getFrontend();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
@@ -160,6 +135,7 @@ export default class PluginSnippets extends Plugin {
             langKey: "openSnippetsManager",
             hotkey: "",
             callback: () => {
+                // 快捷键唤起菜单时，如果菜单已经打开，要先关闭再重新打开，所以这里直接执行就好，会自动关闭菜单再重开
                 openSnippetsManager();
             },
         });
@@ -172,10 +148,36 @@ export default class PluginSnippets extends Plugin {
             },
         });
 
+        // 加载配置文件数据
+        // TODO: 需要测试会不会在同步完成之前加载数据，然后同步修改数据之后插件没有重载。如果有这种情况的话提 issue、试试把 loadData() 和 this.setting 相关的逻辑放在 onLayoutReady 中有没有问题
+        await this.loadData(STORAGE_NAME);
+        const config = this.data[STORAGE_NAME];
+        if (config) {
+            // 版本处理
+            if (!config.version) {
+                // 配置文件异常，移除配置文件、弹出错误消息
+                this.removeData(STORAGE_NAME);
+                this.showErrorMessage(this.i18n.loadConfigError);
+            } else if (config.version > this.version) {
+                // TODO: 当前配置文件是更高版本的，与当前版本不兼容，弹窗提示用户升级插件（可以不升级）
+                // 如果用户不升级插件，还保存了设置，则直接覆盖掉高版本配置，这样也没有问题，因为高版本加载的时候又会自动调整配置结构
+                return
+            }
+            // 预留逻辑
+            // else if (config.version < this.version) {
+            //     // 当前配置文件是更低版本的，需要调整结构
+            //     this.updateConfig(config);
+            //     return
+            // }
+
+            // 加载配置文件中的设置
+            this.realTimeApply = config.realTimeApply ?? this.realTimeApply;
+        }
 
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
     }
 
+    // TODO: 把这个方法移到后面
     /**
      * 打开插件设置窗口（参考原生代码 app/src/plugin/Setting.ts Setting.open 方法）
      * 支持通过菜单按钮打开、被思源调用打开
@@ -310,7 +312,7 @@ export default class PluginSnippets extends Plugin {
         // 发布服务不启用插件
         if (window.siyuan && (window.siyuan as any).isPublish) return;
 
-        // TODO: 插件设置中的各个配置项
+        // TODO: 插件设置窗口中的各个配置项
         // window.siyuan.languages 在 onload 的时候还不存在，所以要放到 onLayoutReady 中执行
         this.setting = new Setting({
             confirmCallback: () => {
@@ -493,7 +495,7 @@ export default class PluginSnippets extends Plugin {
         }
 
         this.updateSnippetCount();
-        this.switchSnippet(this.snippetType);
+        this.switchMenuSnippetsType(this.snippetType);
 
         // 监听点击事件
         this.menu.element.addEventListener("click", this.menuClickHandler);
@@ -595,6 +597,7 @@ export default class PluginSnippets extends Plugin {
         // 阻止事件默认行为会使得点击 label 时无法切换 input 的选中状态
         // event.preventDefault();
         const target = event.target as HTMLElement;
+        const tagName = target.tagName.toLowerCase();
 
         if (document.activeElement === target) {
             // 移除焦点，避免后续回车还会触发按钮
@@ -606,108 +609,113 @@ export default class PluginSnippets extends Plugin {
             this.unselectSnippet();
             
             // 切换代码片段类型
-            if (target.tagName.toLowerCase() === "input" && target.getAttribute("name") === "jcsm-tabs") {
+            if (tagName === "input" && target.getAttribute("name") === "jcsm-tabs") {
                 const type = target.dataset.snippetType;
                 this.snippetType = type;
-                this.switchSnippet(type);
+                this.switchMenuSnippetsType(type);
             }
 
             // 切换全局开关
             if (target.classList.contains("jcsm-all-snippets-switch")) {
-                this.toggleAllSnippetsEnabled(this.snippetType, (target as HTMLInputElement).checked);
+                // 更新全局变量和配置
+                const enabled = (target as HTMLInputElement).checked;
+                if (this.snippetType === "css") {
+                    window.siyuan.config.snippet.enabledCSS = enabled;
+                } else if (this.snippetType === "js") {
+                    window.siyuan.config.snippet.enabledJS = enabled;
+                }
+                fetchPost("/api/setting/setSnippet", window.siyuan.config.snippet);
+        
+                // 更新代码片段元素
+                // 切换全局开关只会影响已启用的代码片段，所以过滤出来
+                const filteredSnippets = this.snippetsList.filter((snippet: Snippet) => snippet.type === this.snippetType && snippet.enabled === true);
+                console.log("filteredSnippets", filteredSnippets);
+                filteredSnippets.forEach((snippet: Snippet) => {
+                    // enabled 为 true 时，snippet.enabled 也一定为 true
+                    this.updateSnippetElement(snippet, enabled);
+                });
+            }
+
+            // 点击顶部的按钮
+            if (tagName === "button") {
+                const button = target as HTMLButtonElement;
+                const type = button.dataset.type;
+    
+                if (type === "config") {
+                    // 打开设置对话框
+                    this.openSetting();
+                } else if (type === "reload") {
+                    // 重新加载界面
+                    this.reloadUI();
+                } else if (type === "new") {
+                    // 新建代码片段
+                    const snippet: Snippet = {
+                        id: window.Lute.NewNodeID(),
+                        name: "",
+                        content: "",
+                        type: this.snippetType as "css" | "js",
+                        enabled: true, // TODO: 新建的代码片段支持配置是否默认启用
+                    };
+                    // 如果开启了 CSS 实时应用，则这个时候就添加代码片段
+                    if (snippet.type === "css" && this.realTimeApply === 1) {
+                        this.addSnippet(snippet);
+                        this.snippetDialog(snippet, window.siyuan.languages.save);
+                    } else {
+                        this.snippetDialog(snippet, window.siyuan.languages.new);
+                    }
+                }
             }
         }
-            
-        // 点击按钮
-        if (target.tagName.toLowerCase() === "button") {
-            const button = target as HTMLButtonElement;
-            const buttonType = button.dataset.type;
-            const menuItem = target.closest(".b3-menu__item") as HTMLElement;
-            const snippetId = menuItem?.dataset.id;
-            const snippetType = menuItem?.dataset.type;
-            const snippetName = menuItem?.querySelector(".jcsm-snippet-name")?.textContent;
 
-            // TODO: 这里弄一个 snippet，之后要传递参数的地方都优化成传递 snippet 对象
-            if (menuItem) {
-                // 点击按钮不会改变代码片段的开关状态，所以直接从 this.snippetsList 中获取
-                const snippet = this.getSnippetById(menuItem.dataset.id);
+        // 点击代码片段
+        const snippetMenuItem = target.closest(".b3-menu__item") as HTMLElement;
+        if (snippetMenuItem) {
+            if (tagName === "button") {
+                // 点击按钮
+                
+                // TODO: 取消选中代码片段，否则打开 Dialog 之后按回车会触发 menuItem 导致 menu 被移除。这个方法好像还是有问题？需要单独用一个方法来监听按键操作，统一处理
+                this.unselectSnippet();
+                
+                const buttonType = target.dataset.type;
+                // 点击按钮不会改变代码片段的开关状态，所以直接从 this.snippetsList 中获取当前代码片段
+                const snippet = this.getSnippetById(snippetMenuItem.dataset.id);
                 if (!snippet) {
                     this.showErrorMessage(this.i18n.getSnippetFailed);
                     return;
                 }
-                // TODO: 后面的逻辑移上来，直接使用 snippet.id 和 snippet.type 等参数
-            } else {
-                // TODO: 后面的逻辑移上来
-                // if () {}
-            }
-            
-            // 取消选中代码片段，否则打开 Dialog 之后按回车会触发 menuItem 导致 menu 被移除
-            this.unselectSnippet();
-            if (buttonType === "config") {
-                // 打开设置对话框
-                this.openSetting();
-            } else if (buttonType === "reload") {
-                // 重新加载界面
-                this.reloadUI();
-            } else if (buttonType === "new") {
-                // 新建代码片段
-                const snippet: Snippet = {
-                    id: window.Lute.NewNodeID(),
-                    name: "",
-                    content: "",
-                    type: this.snippetType as "css" | "js",
-                    enabled: true,
-                };
-                let confirmText;
-                // TODO: 如果开启了 CSS 实时应用，则这个时候就添加代码片段
-                if (snippet.type === "css" && this.realTimeApply === 1) {
-                    this.addSnippet(snippet);
-                    confirmText = window.siyuan.languages.save;
-                } else {
-                    confirmText = window.siyuan.languages.new;
-                }
-                this.snippetDialog(snippet, confirmText);
-            } else if (buttonType === "edit" && snippetId) {
-                // 编辑代码片段，打开编辑对话框
-                const snippet = this.snippetsList.find((snippet: Snippet) => snippet.id === snippetId);
-                if (snippet) {
+                if (buttonType === "edit") {
+                    // 编辑代码片段，打开编辑对话框
                     this.snippetDialog(snippet);
+                    // TODO: 编辑页签，等其他功能稳定之后再做
+                } else if (buttonType === "delete") {
+                    // 删除代码片段
+                    this.snippetDeleteDialog(snippet.name, () => {
+                        // 弹窗确定后删除代码片段
+                        this.deleteSnippet(snippet.id, snippet.type);
+                        snippetMenuItem.remove();
+                        // 查找对应的打开着的 Dialog，将“保存”按钮的文案改为“新建”
+                        const dialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippet.id}"]`) as HTMLDivElement;
+                        const confirmButton = dialog?.querySelector(`.jcsm-dialog .b3-dialog__action button[data-action="confirm"]`) as HTMLButtonElement;
+                        if (confirmButton) {
+                            confirmButton.textContent = window.siyuan.languages.new;
+                        }
+                    }); // 取消后无操作
                 } else {
-                    this.showErrorMessage(this.i18n.getSnippetFailed);
+                    // 点击到不知道哪里的按钮，显示错误信息
+                    this.showErrorMessage(this.i18n.unknownButtonType);
                 }
-                // TODO: 编辑页签，等其他功能稳定之后再做
-            } else if (buttonType === "delete" && menuItem) {
-                // 删除代码片段
-                this.snippetDeleteDialog(snippetName, () => {
-                    // 弹窗确定后删除代码片段
-                    this.deleteSnippet(snippetId, snippetType);
-                    menuItem.remove();
-                    // 查找对应的打开着的 Dialog，将“保存”按钮的文案改为“新建”
-                    const dialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippetId}"]`) as HTMLDivElement;
-                    const confirmButton = dialog?.querySelector(`.jcsm-dialog .b3-dialog__action button[data-action="confirm"]`) as HTMLButtonElement;
-                    if (confirmButton) {
-                        confirmButton.textContent = window.siyuan.languages.new;
-                    }
-                }); // 取消后无操作
             } else {
-                // 点击到不知道哪里的按钮，或者代码片段没有 ID，显示错误信息
-                this.showErrorMessage(this.i18n.getSnippetFailed);
-            }
-            return; // 不执行后面的判断
-        }
-
-        // 点击代码片段
-        const snippetElement = target.closest(".b3-menu__item") as HTMLElement;
-        if (snippetElement) {
-            const checkBox = snippetElement.querySelector("input") as HTMLInputElement;
-            if (target !== checkBox) {
-                // 如果点击的不是 checkBox 就手工切换开关状态
-                checkBox.checked = !checkBox.checked;
-            }
-            const enabled = checkBox.checked;
-            this.toggleSnippetEnabled(snippetElement.dataset.id, enabled, "menu");
-            if (this.isMobile) {
-                this.unselectSnippet()
+                // 点击非按钮的部分
+                const checkBox = snippetMenuItem.querySelector("input") as HTMLInputElement;
+                if (target !== checkBox) {
+                    // 如果点击的不是 checkBox 就手工切换开关状态
+                    checkBox.checked = !checkBox.checked;
+                }
+                const enabled = checkBox.checked;
+                this.toggleSnippetEnabled(snippetMenuItem.dataset.id, enabled, "menu");
+                if (this.isMobile) {
+                    this.unselectSnippet()
+                }
             }
         }
     };
@@ -738,30 +746,18 @@ export default class PluginSnippets extends Plugin {
      * 切换代码片段类型
      * @param snippetType 代码片段类型
      */
-    private switchSnippet(snippetType: string) {
-        this.updateAllSnippetSwitch(snippetType);
+    private switchMenuSnippetsType(snippetType: string) {
+        // 切换为 snippetType 类型的代码片段的全局开关状态
+        const enabled = this.isSnippetsTypeEnabled(snippetType);
+        const snippetsTypeSwitch = this.menuItems.querySelector(".jcsm-all-snippets-switch") as HTMLInputElement;
+        snippetsTypeSwitch.checked = enabled;
 
         // 更新按钮提示
         this.menuItems.querySelector("button[data-type='new']").setAttribute("aria-label", window.siyuan.languages.addAttr + " " + snippetType.toUpperCase());
 
-        // 过滤列表
-        const isCSS = snippetType === "css";
-        this.menuItems.querySelectorAll(isCSS ? "[data-type='css']" : "[data-type='js']").forEach((item: HTMLElement) => {
-            item.classList.remove("fn__none");
-        });
-        this.menuItems.querySelectorAll(isCSS ? "[data-type='js']" : "[data-type='css']").forEach((item: HTMLElement) => {
-            item.classList.add("fn__none");
-        });
-    };
-
-    /**
-     * 更新全局开关状态
-     * @param snippetType 代码片段类型
-     */
-    private updateAllSnippetSwitch(snippetType: string) {
-        const enabled = this.isAllSnippetsEnabled(snippetType);
-        const allSnippetSwitch = this.menuItems.querySelector(".jcsm-all-snippets-switch") as HTMLInputElement;
-        allSnippetSwitch.checked = enabled;
+        // 设置元素属性，通过 CSS 过滤列表
+        const topContainer = this.menuItems.querySelector(".jcsm-top-container") as HTMLElement;
+        topContainer?.setAttribute("data-type", snippetType);
     };
 
     /**
@@ -787,10 +783,11 @@ export default class PluginSnippets extends Plugin {
      * @param addToMenu 是否将代码片段添加到菜单顶部
      */
     private addSnippet(snippet: Snippet, addToMenu: boolean = this.realTimeApply === 1) {
+        // 添加的代码片段有可能未启用，所以 updateSnippetElement() 不传入 enabled === true 的参数
+        this.updateSnippetElement(snippet);
         // 将 snippet 添加到 snippetsList 开头
         this.snippetsList.unshift(snippet);
         this.setSnippetPost(this.snippetsList);
-        this.updateSnippetElement(snippet);
         this.updateSnippetCount();
 
         // 将代码片段添加到菜单顶部
@@ -810,7 +807,13 @@ export default class PluginSnippets extends Plugin {
             this.showErrorMessage(this.i18n.deleteSnippetFailed);
             return;
         }
-        this.updateSnippetElement(this.getSnippetById(id));
+        const snippet = this.getSnippetById(id);
+        if (!snippet) {
+            this.showErrorMessage(this.i18n.getSnippetFailed);
+            return;
+        }
+        // 删除的代码片段一定需要移除元素，所以 updateSnippetElement() 传入 enabled === false 的参数
+        this.updateSnippetElement(snippet, false);
         // getSnippetById 需要使用旧的 this.snippetsList，所以下面才修改 this.snippetsList
         this.snippetsList = this.snippetsList.filter((snippet: Snippet) => snippet.id !== id);
         this.setSnippetPost(this.snippetsList);
@@ -869,31 +872,6 @@ export default class PluginSnippets extends Plugin {
                 }
             }
         }
-    };
-
-    /**
-     * 切换全局开关
-     * @param snippetType 代码片段类型
-     * @param enabled 是否启用
-     */
-    private toggleAllSnippetsEnabled(snippetType: string, enabled: boolean) {
-        // 更新全局变量和配置
-        if (snippetType === "css") {
-            window.siyuan.config.snippet.enabledCSS = enabled;
-        } else if (snippetType === "js") {
-            window.siyuan.config.snippet.enabledJS = enabled;
-        }
-        fetchPost("/api/setting/setSnippet", window.siyuan.config.snippet);
-
-        // 更新全局开关状态
-        this.updateAllSnippetSwitch(snippetType);
-
-        // 更新代码片段元素
-        // 切换全局开关只会影响 snippet.enabled === true 的代码片段，所以过滤出来
-        const filteredSnippets = this.snippetsList.filter((snippet: Snippet) => snippet.type === snippetType && snippet.enabled === true);
-        filteredSnippets.forEach((snippet: Snippet) => {
-            this.updateSnippetElement(snippet);
-        });
     };
 
     /**
@@ -964,27 +942,29 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 更新代码片段元素
-     * @param id 代码片段 ID
-     * @param snippetType 代码片段类型
-     * @param content 代码片段内容
+     * @param snippet 代码片段
+     * @param enabled 是否启用
      */
-    private updateSnippetElement(snippet: Snippet) {
+    private updateSnippetElement(snippet: Snippet, enabled?: boolean) {
         if (!snippet) {
             this.showErrorMessage(this.i18n.updateSnippetElementParamError);
             return;
         }
+        if (enabled === undefined) {
+            enabled = snippet.enabled;
+        }
 
         const elementId = `snippet${snippet.type === "css" ? "CSS" : "JS"}${snippet.id}`;
         const element = document.getElementById(elementId);
-        if (snippet.enabled === false) {
+        if (!enabled) {
             element?.remove();
-        } else if (snippet.enabled === true) {
+        } else {
             // 移除旧元素
             if (element && element.innerHTML !== snippet.content) {
                 element.remove();
             }
             // 添加新元素
-            if (!this.isAllSnippetsEnabled(snippet.type)) {
+            if (!this.isSnippetsTypeEnabled(snippet.type)) {
                 // 如果对应类型的代码片段未启用，则不添加元素
                 return;
             }
@@ -1136,7 +1116,8 @@ export default class PluginSnippets extends Plugin {
             event.stopPropagation();
 
             const target = event.target as HTMLElement;
-            if (target.tagName.toLowerCase() === "input" && target.getAttribute("data-type") === "snippetSwitch") {
+            const tagName = target.tagName.toLowerCase();
+            if (tagName === "input" && target.getAttribute("data-type") === "snippetSwitch") {
                 // TODO: 切换代码片段的开关状态
                 if (target === switchInput) {
                     if (this.realTimeApply === 1) {
@@ -1148,7 +1129,7 @@ export default class PluginSnippets extends Plugin {
                 // TODO: 分别处理 实时应用开关状态 和 点击保存后更新代码片段的开关状态 两种情况
 
 
-            } else if (target.tagName.toLowerCase() === "button") {
+            } else if (tagName === "button") {
                 // TODO: isNewSnippet 为 true 时表示这个代码片段没有添加到 snippetsList 中（也没有添加到 DOM 中？）
                 const isNewSnippet = !this.snippetsList.find((s: Snippet) => s.id === snippet.id);
                 switch (target.dataset.action) {
@@ -1230,6 +1211,7 @@ export default class PluginSnippets extends Plugin {
      * 确认对话框（参考原生代码 app/src/dialog/confirmDialog.ts ）
      * @param title 对话框标题
      * @param text 对话框内容
+     * @param isDelete 是否是删除对话框
      * @param confirm 确认回调
      * @param cancel 取消回调
      */
@@ -1422,7 +1404,7 @@ export default class PluginSnippets extends Plugin {
      * @param snippetType 代码片段类型
      * @returns 是否启用
      */
-    private isAllSnippetsEnabled(snippetType: string) {
+    private isSnippetsTypeEnabled(snippetType: string) {
         return (window.siyuan.config.snippet.enabledCSS && snippetType === "css") ||
                (window.siyuan.config.snippet.enabledJS  && snippetType === "js" );
     };
@@ -1440,7 +1422,7 @@ export default class PluginSnippets extends Plugin {
      * 重新加载界面
      */
     private reloadUI() {
-        fetchPost("/api/ui/reloadUI", {}, (response: any) => {
+        fetchPost("/api/ui/reloadUI", (response: any) => {
             if (response.status !== 200) {
                 this.showErrorMessage(this.i18n.reloadUIFailed);
             }

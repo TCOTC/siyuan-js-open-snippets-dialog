@@ -35,6 +35,14 @@
 .jcsm-top-container {
   user-select: none;
   padding-right: 8px;
+
+  // 隐藏非当前类型的代码片段
+  &[data-type="css"] ~ .jcsm-snippet-item[data-type="js"] {
+    display: none !important;
+  }
+  &[data-type="js"] ~ .jcsm-snippet-item[data-type="css"] {
+    display: none !important;
+  }
   
   button svg {
     pointer-events: none;
