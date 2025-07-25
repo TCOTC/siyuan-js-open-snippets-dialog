@@ -23,6 +23,7 @@
   "getPluginLogFailed": "Failed to get plugin log",
   "writePluginLogFailed": "Failed to write plugin log",
   "realTimeApply": "Apply CSS snippets changes in real time",
-  "viewPluginSourceCode": "Feedback issues",
-  "viewPluginSourceCodeDescription": "Open plugin's repository page, welcome to click Star to support the author"
+  "feedbackIssue": "Feedback issues",
+  "feedbackIssueDescription": "Open plugin's repository page, welcome to click Star to support the author",
+  "feedbackIssueButton": "Open GitHub"
 }

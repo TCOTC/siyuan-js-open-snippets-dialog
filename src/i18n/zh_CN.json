@@ -23,6 +23,7 @@
   "getPluginLogFailed": "获取插件日志失败",
   "writePluginLogFailed": "写入插件日志失败",
   "realTimeApply": "实时应用 CSS 代码片段的更改",
-  "viewPluginSourceCode": "反馈问题",
-  "viewPluginSourceCodeDescription": "打开插件的仓库页面，欢迎点击 Star 支持作者"
+  "feedbackIssue": "反馈问题",
+  "feedbackIssueDescription": "打开插件的仓库页面，欢迎点击 Star 支持作者",
+  "feedbackIssueButton": "打开 GitHub"
 }

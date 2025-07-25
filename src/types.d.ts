@@ -5,6 +5,7 @@ declare global {
         siyuan: ISiyuan & {
             jcsm?: {
                 snippetsType?: string;
+                snippetsList?: Snippet[];
             };
         };
     }
@@ -37,7 +38,6 @@ interface Snippet {
 declare module "siyuan" {
     interface Setting {
         items: SettingItem[];
-        confirmCallback: () => void;
     }
 }
 
