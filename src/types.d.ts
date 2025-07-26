@@ -8,8 +8,9 @@ declare global {
                 isMobile?: boolean;
                 snippetsType?: string;
                 snippetsList?: Snippet[];
-                realTimeApply?: number;
+                realTimeApply?: boolean;
                 newSnippetEnabled?: boolean;
+                listeners?: WeakMap<HTMLElement, any[]>;
             };
         };
     }
