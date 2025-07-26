@@ -5,8 +5,11 @@ declare global {
         siyuan: ISiyuan & {
             isPublish?: boolean;
             jcsm?: {
+                isMobile?: boolean;
                 snippetsType?: string;
                 snippetsList?: Snippet[];
+                realTimeApply?: number;
+                newSnippetEnabled?: boolean;
             };
         };
     }

@@ -1,6 +1,8 @@
 {
   "pluginDisplayName": "Snippets Panel",
-  "pluginNotSupportedInPublish": " plugin not supported in publish service",
+  "pluginNotSupportedInPublish": "plugin not supported in publish service",
+  "loadConfigError": "Configuration file error, configuration file has been removed",
+  "loadConfigIncompatible": "The plugin configuration file is of a higher version, please upgrade the plugin, or save once plugin settings to overwrite the current configuration",
   "pluginOnload": " plugin enabled",
   "pluginOnunload": " plugin disabled",
   "pluginUninstall": " plugin uninstalled",
@@ -20,10 +22,10 @@
   "deleteSnippet": "Delete snippet",
   "deleteSnippetConfirm": "Are you sure you want to delete snippet${x}?",
   "deleteSnippetFailed": "Failed to delete snippet, missing parameter ID or type",
-  "loadConfigError": "Configuration file error, configuration file has been removed",
   "getPluginLogFailed": "Failed to get plugin log",
   "writePluginLogFailed": "Failed to write plugin log",
   "realTimeApply": "Apply CSS snippets changes in real time",
+  "newSnippetEnabled": "Enable new snippets by default",
   "feedbackIssue": "Feedback issues",
   "feedbackIssueDescription": "Open plugin's repository page, welcome to click Star to support the author",
   "feedbackIssueButton": "Open GitHub"

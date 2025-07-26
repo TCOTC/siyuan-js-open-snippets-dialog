@@ -1,6 +1,8 @@
 {
   "pluginDisplayName": "代码片段快捷面板",
   "pluginNotSupportedInPublish": " 插件不支持在发布服务下使用",
+  "loadConfigError": "配置文件异常，已移除配置文件",
+  "loadConfigIncompatible": "当前的插件配置文件是更高版本的，请升级插件，或者保存一次插件设置以覆盖当前配置",
   "pluginOnload": " 插件已启用",
   "pluginOnunload": " 插件已禁用",
   "pluginUninstall": " 插件已卸载",
@@ -20,10 +22,10 @@
   "deleteSnippet": "删除代码片段",
   "deleteSnippetConfirm": "确定要删除代码片段${x}吗？",
   "deleteSnippetFailed": "删除代码片段失败，缺少参数 ID 或类型",
-  "loadConfigError": "配置文件异常，已移除配置文件",
   "getPluginLogFailed": "获取插件日志失败",
   "writePluginLogFailed": "写入插件日志失败",
   "realTimeApply": "实时应用 CSS 代码片段的更改",
+  "newSnippetEnabled": "新建代码片段时默认启用",
   "feedbackIssue": "反馈问题",
   "feedbackIssueDescription": "打开插件的仓库页面，欢迎点击 Star 支持作者",
   "feedbackIssueButton": "打开 GitHub"
