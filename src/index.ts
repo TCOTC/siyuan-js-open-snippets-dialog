@@ -48,14 +48,10 @@ export default class PluginSnippets extends Plugin {
     // 插件内部变量
     private custom: () => Custom;
     private isMobile: boolean;
-    // this.snippetsList 与 window.siyuan.jcsm.snippetsList 保持完全同步
-    // 这样重载插件（比如插件配置同步）之后，旧实例中未关闭的 Dialog 与新实例使用的 this.snippetsList 始终是一致的
-    get snippetsList() {
-        return window.siyuan.jcsm?.snippetsList ?? [];
-    }
-    set snippetsList(value: Snippet[]) {
-        window.siyuan.jcsm.snippetsList = value;
-    }
+    // 使用 window.siyuan.jcsm.snippetsList 存储 this.snippetsList
+    // 这样重载插件（比如插件配置同步）之后，旧实例（包含未关闭的 Dialog）与新实例使用的 this.snippetsList 始终是一致的
+    get snippetsList() { return window.siyuan.jcsm?.snippetsList ?? []; }
+    set snippetsList(value: Snippet[]) { window.siyuan.jcsm.snippetsList = value; }
 
     // ================================ 生命周期方法 ================================
 
@@ -64,7 +60,10 @@ export default class PluginSnippets extends Plugin {
      */
     async onload() {
         // 发布服务不启用插件
-        if (window.siyuan && (window.siyuan as any).isPublish) return;
+        if (window.siyuan.isPublish) {
+            console.log(this.i18n.pluginDisplayName + this.i18n.pluginNotSupportedInPublish);
+            return;
+        }
 
         // 初始化 window.siyuan.jcsm
         if (!window.siyuan.jcsm) window.siyuan.jcsm = {};
@@ -93,7 +92,7 @@ export default class PluginSnippets extends Plugin {
 
         // 顶栏按钮点击回调：打开代码片段管理器
         const openSnippetsManager = () => {
-            if (this.getSettingDialog()) {
+            if (this.getDialogByDataKey("jcsm-setting-dialog")) {
                 // 如果设置对话框打开，则不打开菜单
                 return;
             }
@@ -183,7 +182,7 @@ export default class PluginSnippets extends Plugin {
      */
     onLayoutReady() {
         // 发布服务不启用插件
-        if (window.siyuan && (window.siyuan as any).isPublish) return;
+        if (window.siyuan.isPublish) return;
 
         // initSetting() 里用到的 window.siyuan.languages 在 onload 的时候还不存在，所以要放到 onLayoutReady 中执行
         this.initSetting();
@@ -194,7 +193,7 @@ export default class PluginSnippets extends Plugin {
      */
     onunload() {
         // 发布服务不启用插件
-        if (window.siyuan && (window.siyuan as any).isPublish) return;
+        if (window.siyuan.isPublish) return;
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnunload);
     }
 
@@ -203,7 +202,7 @@ export default class PluginSnippets extends Plugin {
      */
     uninstall() {
         // 发布服务不启用插件
-        if (window.siyuan && (window.siyuan as any).isPublish) return;
+        if (window.siyuan.isPublish) return;
         // 移除全局变量
         delete window.siyuan.jcsm;
 
@@ -264,9 +263,9 @@ export default class PluginSnippets extends Plugin {
 
         // 反馈问题
         this.setting.addItem({
-            title: this.i18n.feedbackIssue,
-            description: this.i18n.feedbackIssueDescription,
-            direction: "column",
+            // title: this.i18n.feedbackIssue,
+            // description: this.i18n.feedbackIssueDescription,
+            // direction: "column",
         });
     }
 
@@ -302,7 +301,7 @@ export default class PluginSnippets extends Plugin {
                 html = `
                     <${tagName} class="b3-label">
                         <div class="fn__block">
-                            ${item.title}
+                            ${item.title ?? ""}
                             ${item.description ? `<div class="b3-label__text">${item.description}</div>` : ""}
                             <div class="fn__hr"></div>
                         </div>
@@ -312,10 +311,10 @@ export default class PluginSnippets extends Plugin {
                 html = `
                     <${tagName} class="fn__flex b3-label config__item">
                         <div class="fn__flex-1">
-                            ${item.title}
+                            ${item.title ?? ""}
                             ${item.description ? `<div class="b3-label__text">${item.description}</div>` : ""}
                         </div>
-                        <span class="fn__space${actionElement ? "" : " fn__none"}"></span>
+                        ${actionElement ? "<span class='fn__space'></span>" : ""}
                     </${tagName}>
                 `;
             }
@@ -383,12 +382,13 @@ export default class PluginSnippets extends Plugin {
 
 
     /**
-     * 获取设置对话框元素
-     * @returns 设置对话框元素
+     * 根据 data-key 获取对话框元素
+     * @param dataKey 对话框元素的 data-key 属性值
+     * @returns 对话框元素
      */
-    private getSettingDialog() {
-        // 设置对话框打开时，不允许操作菜单和代码片段编辑对话框，否则 this.keyDownHandler() 判断不了 Escape 和 Enter 按键是对哪个元素的操作
-        const dialogElement = document.querySelector(".b3-dialog--open[data-key='jcsm-setting-dialog']") as HTMLElement;
+    private getDialogByDataKey(dataKey: string) {
+        // 设置和删除对话框打开时，不允许操作菜单和代码片段编辑对话框，否则 this.keyDownHandler() 判断不了 Escape 和 Enter 按键是对哪个元素的操作
+        const dialogElement = document.querySelector(`.b3-dialog--open[data-key="${dataKey}"]`) as HTMLElement;
         return dialogElement;
     }
 
@@ -536,8 +536,8 @@ export default class PluginSnippets extends Plugin {
         }
 
         // 移除事件监听
-        this.menu = undefined;
         this.removeListener(this.menu.element);
+        this.menu = undefined;
         this.destroyKeyDownHandler();
     }
 
@@ -635,9 +635,6 @@ export default class PluginSnippets extends Plugin {
             if (tagName === "button") {
                 // 点击按钮
                 
-                // TODO: 取消选中代码片段，否则打开 Dialog 之后按回车会触发 menuItem 导致 menu 被移除。这个方法好像还是有问题？需要单独用一个方法来监听按键操作，统一处理
-                this.unselectSnippet();
-                
                 const buttonType = target.dataset.type;
                 // 点击按钮不会改变代码片段的开关状态，所以直接从 this.snippetsList 中获取当前代码片段
                 const snippet = this.getSnippetById(snippetMenuItem.dataset.id);
@@ -651,6 +648,8 @@ export default class PluginSnippets extends Plugin {
                     // TODO: 编辑页签，等其他功能稳定之后再做
                 } else if (buttonType === "delete") {
                     // 删除代码片段
+                    // TODO: 取消选中代码片段选项，否则打开 Dialog 之后按回车会触发 menuItem 导致 menu 被移除。这个方法好像还是有问题？需要单独用一个方法来监听按键操作，统一处理
+                    // this.unselectSnippet();
                     this.snippetDeleteDialog(snippet.name, () => {
                         // 弹窗确定后删除代码片段
                         this.deleteSnippet(snippet.id, snippet.type);
@@ -676,6 +675,7 @@ export default class PluginSnippets extends Plugin {
                 const enabled = checkBox.checked;
                 this.toggleSnippetEnabled(snippetMenuItem.dataset.id, enabled, "menu");
                 if (this.isMobile) {
+                    // 移动端点击之后一直高亮不好看
                     this.unselectSnippet()
                 }
             }
@@ -914,7 +914,7 @@ export default class PluginSnippets extends Plugin {
                     <div class="fn__flex">
                         <textarea class="jcsm-dialog-name fn__flex-1 b3-text-field" spellcheck="false" rows="1" placeholder="${window.siyuan.languages.title}" style="resize:none; width:${this.isMobile ? "50%" : "300px"}"></textarea>
                         <div class="fn__space"></div>
-                        <button data-action="delete" class="block__icon block__icon--show ariaLabel" aria-label="${window.siyuan.languages.remove}" data-position="north">
+                        <button data-action="delete" class="block__icon block__icon--show ariaLabel" aria-label="${this.i18n.deleteSnippet}" data-position="north">
                             <svg><use xlink:href="#iconTrashcan"></use></svg>
                         </button>
                         <div class="fn__space"></div>
@@ -938,7 +938,7 @@ export default class PluginSnippets extends Plugin {
      * @param confirmText 确认按钮的文案
      */
     private snippetDialog(snippet: Snippet, confirmText?: string) {
-        if (this.getSettingDialog()) {
+        if (this.getDialogByDataKey("jcsm-setting-dialog")) {
             // 如果设置对话框打开，则不打开代码片段编辑对话框
             return;
         }
@@ -1028,6 +1028,9 @@ export default class PluginSnippets extends Plugin {
         dialog.element.addEventListener("mousedown", () => {
             // 点击 Dialog 时要显示在最上层
             this.bringElementToFront(dialog.element);
+
+            // 移除菜单上的 b3-menu__item--current，否则 this.keyDownHandler() 会操作菜单
+            this.unselectSnippet();
         });
 
         dialog.element.addEventListener("click", (event: Event) => {
@@ -1114,7 +1117,7 @@ export default class PluginSnippets extends Plugin {
         this.confirmDialog(
             this.i18n.deleteSnippet,
             this.i18n.deleteSnippetConfirm.replace("${x}", snippetName ? " <b>" + snippetName + "</b> " : ""),
-            true,
+            "jcsm-snippet-delete",
             () => {
                 // 删除代码片段
                 confirm?.();
@@ -1124,6 +1127,9 @@ export default class PluginSnippets extends Plugin {
                 cancel?.();
             }
         );
+
+        // 不需要移除菜单上的 b3-menu__item--current，方便判断点击的是哪个代码片段
+        // this.unselectSnippet();
     };
 
     /**
@@ -1134,7 +1140,7 @@ export default class PluginSnippets extends Plugin {
      * @param confirm 确认回调
      * @param cancel 取消回调
      */
-    private confirmDialog(title: string, text: string, isDelete = false, confirm?: () => void, cancel?: () => void) {
+    private confirmDialog(title: string, text: string, dataKey?: string, confirm?: () => void, cancel?: () => void) {
         if (!text && !title) {
             confirm();
             return;
@@ -1146,12 +1152,20 @@ export default class PluginSnippets extends Plugin {
                     <div class="ft__breakword">${text}</div>
                 </div>
                 <div class="b3-dialog__action">
-                    <button class="b3-button b3-button--cancel" data-type="cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-                    <button class="b3-button ${isDelete ? "b3-button--remove" : "b3-button--text"}" data-type="confirm">${window.siyuan.languages[isDelete ? "delete" : "confirm"]}</button>
+                    <button class="b3-button b3-button--cancel" data-type="cancel">${window.siyuan.languages.cancel}</button>
+                    <div class="fn__space"></div>
+                    ${(() => {
+                        if (dataKey === "jcsm-snippet-delete") {
+                            return `<button class="b3-button b3-button--remove" data-type="confirm">${window.siyuan.languages.delete}</button>`;
+                        } else {
+                            return `<button class="b3-button b3-button--text" data-type="confirm">${window.siyuan.languages.confirm}</button>`;
+                        }
+                    })()}
                 </div>
             `,
             width: this.isMobile ? "92vw" : "520px",
         });
+        dialog.element.setAttribute("data-key", dataKey ?? "dialog-confirm"); // Constants.DIALOG_CONFIRM
 
         dialog.element.addEventListener("click", (event) => {
             // 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭
@@ -1171,7 +1185,6 @@ export default class PluginSnippets extends Plugin {
                 target = target.parentElement;
             }
         });
-        dialog.element.setAttribute("data-key", "dialog-confirm"); // Constants.DIALOG_CONFIRM
     };
 
     /**
@@ -1469,6 +1482,10 @@ export default class PluginSnippets extends Plugin {
      * @param event 键盘事件
      */
     private keyDownHandler = (event: KeyboardEvent) => {
+
+        // TODO: 目前无法在输入框中使用方向键移动光标
+
+
         // TODO: 单独用一个方法来监听按键操作，统一处理（多个会产生冲突）
         // - [ ] 根据菜单的 zIndex 是不是最高的来判断 keydown 时是否操作菜单
         // - [ ] 打开了菜单、没有打开菜单
@@ -1476,16 +1493,18 @@ export default class PluginSnippets extends Plugin {
         // - [ ] 焦点在输入框、焦点不在输入框
         console.log("documentKeyDownHandler", event);
 
-        // 设置对话框操作
-        const settingDialogElement = this.getSettingDialog();
+        // 设置对话框操作（优先查找设置对话框，因为设置对话框的元素一定在最顶上）
+        const settingDialogElement = this.getDialogByDataKey("jcsm-setting-dialog");
         if (settingDialogElement) {
+            // 阻止冒泡
+            event.stopPropagation();
             if (event.key === "Escape") {
                 console.log("Escape");
                 // 如果焦点在输入框里，移除焦点
                 if (this.isInputElementActive()) {
                     (document.activeElement as HTMLElement).blur();
-                    // 阻止冒泡
-                    event.stopPropagation();
+                    // // 阻止冒泡
+                    // event.stopPropagation();
                     return;
                 }
                 this.removeDialog(settingDialogElement);
@@ -1497,55 +1516,71 @@ export default class PluginSnippets extends Plugin {
             return;
         }
 
+        // 删除对话框操作
+        const snippetDeleteDialogElement = this.getDialogByDataKey("jcsm-snippet-delete");
+        if (snippetDeleteDialogElement) {
+            // 阻止冒泡
+            event.stopPropagation();
+            console.log("snippetDeleteDialogElement", event);
+            // TODO: 需要把对话框的回调函数抽取为单独的方法，这里才能调用
+            if (event.key === "Escape") {
+                console.log("Escape");
+            } else if (event.key === "Enter" && !this.isInputElementActive()) {
+                console.log("Enter");
+            }
+            return;
+        }
+
         // TODO: 代码片段编辑对话框操作
 
 
         // TODO: 菜单操作
-        // 如果当前在输入框中使用键盘，则不处理菜单按键事件
-        if (this.isInputElementActive()) {
-            console.log("isInputElementActive");
-            return;
-        }
+        // // 如果当前在输入框中使用键盘，则不处理菜单按键事件
+        // if (this.isInputElementActive()) {
+        //     console.log("isInputElementActive");
+        //     return;
+        // }
 
-        if (event.key === "Enter") {
-            const snippetElement = this.menuItems.querySelector(".b3-menu__item--current") as HTMLElement;
-            if (snippetElement) {
-                // 阻止冒泡，避免 menu 关闭
-                event.stopPropagation();
-                this.toggleSnippetEnabled(snippetElement.dataset.id, snippetElement.querySelector("input").checked, "menu");
-            }
-        } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-            // 按上下方向键切换选项
-            const menuItems = this.menuItems.querySelectorAll(".b3-menu__item:not(.fn__none)");
-            const currentMenuItem = this.menuItems.querySelector(".b3-menu__item--current") as HTMLElement;
-            if (menuItems.length > 0) {
-                const firstMenuItem = menuItems[0] as HTMLElement;
-                const lastMenuItem = menuItems[menuItems.length - 1] as HTMLElement;
-                if (event.key === "ArrowUp") {
-                    if (!currentMenuItem) {
-                        // 如果当前没有选中任何选项，则选中最后一个选项
-                        event.stopPropagation();
-                        lastMenuItem.classList.add("b3-menu__item--current");
-                    } else if (currentMenuItem === firstMenuItem) {
-                        // 如果当前选中的是第一个，则按方向键上时切换到最后一个
-                        event.stopPropagation();
-                        currentMenuItem.classList.remove("b3-menu__item--current");
-                        lastMenuItem.classList.add("b3-menu__item--current");
-                    }
-                } else if (event.key === "ArrowDown") {
-                    if (!currentMenuItem) {
-                        // 如果当前没有选中任何选项，则选中第一个选项
-                        event.stopPropagation();
-                        firstMenuItem.classList.add("b3-menu__item--current");
-                    } else if (currentMenuItem === lastMenuItem) {
-                        // 如果当前选中的是最后一个，则按方向键下时切换到第一个
-                        event.stopPropagation();
-                        currentMenuItem.classList.remove("b3-menu__item--current");
-                        firstMenuItem.classList.add("b3-menu__item--current");
-                    }
-                }
-            }
-        }
+        // if (event.key === "Enter") {
+        //     const snippetElement = this.menuItems.querySelector(".b3-menu__item--current") as HTMLElement;
+        //     if (snippetElement) {
+        //         // 阻止冒泡，避免 menu 关闭
+        //         event.stopPropagation();
+        //         this.toggleSnippetEnabled(snippetElement.dataset.id, snippetElement.querySelector("input").checked, "menu");
+        //     }
+        // } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        //     // 按上下方向键切换选项
+        //     const menuItems = this.menuItems.querySelectorAll(".b3-menu__item:not(.fn__none)");
+        //     const currentMenuItem = this.menuItems.querySelector(".b3-menu__item--current") as HTMLElement;
+        //     if (menuItems.length > 0) {
+        //         const firstMenuItem = menuItems[0] as HTMLElement;
+        //         const lastMenuItem = menuItems[menuItems.length - 1] as HTMLElement;
+        //         if (event.key === "ArrowUp") {
+        //             if (!currentMenuItem) {
+        //                 // 如果当前没有选中任何选项，则选中最后一个选项
+        //                 event.stopPropagation();
+        //                 lastMenuItem.classList.add("b3-menu__item--current");
+        //             } else if (currentMenuItem === firstMenuItem) {
+        //                 // 如果当前选中的是第一个，则按方向键上时切换到最后一个
+        //                 event.stopPropagation();
+        //                 currentMenuItem.classList.remove("b3-menu__item--current");
+        //                 lastMenuItem.classList.add("b3-menu__item--current");
+        //             }
+        //         } else if (event.key === "ArrowDown") {
+        //             if (!currentMenuItem) {
+        //                 // 如果当前没有选中任何选项，则选中第一个选项
+        //                 event.stopPropagation();
+        //                 firstMenuItem.classList.add("b3-menu__item--current");
+        //             } else if (currentMenuItem === lastMenuItem) {
+        //                 // 如果当前选中的是最后一个，则按方向键下时切换到第一个
+        //                 event.stopPropagation();
+        //                 currentMenuItem.classList.remove("b3-menu__item--current");
+        //                 firstMenuItem.classList.add("b3-menu__item--current");
+        //             }
+        //         }
+        //     }
+        // }
+
 
         // TODO: 以下是不记得从哪移过来的 Dialog 处理，还没修改
         // if (event.key === "Escape") {
@@ -1618,6 +1653,10 @@ export default class PluginSnippets extends Plugin {
      * @param fn 回调函数
      */
     private removeListener(element: HTMLElement, event?: string, fn?: (event?: Event) => void) {
+        if (!element) {
+            console.warn("removeListener: element is not found");
+            return;
+        }
         if (!this.listeners.has(element)) return;
         
         const listenerList = this.listeners.get(element);

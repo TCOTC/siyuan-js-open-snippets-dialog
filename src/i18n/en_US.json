@@ -1,5 +1,6 @@
 {
   "pluginDisplayName": "Snippets Panel",
+  "pluginNotSupportedInPublish": " plugin not supported in publish service",
   "pluginOnload": " plugin enabled",
   "pluginOnunload": " plugin disabled",
   "pluginUninstall": " plugin uninstalled",

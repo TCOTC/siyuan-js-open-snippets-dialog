@@ -1,5 +1,6 @@
 {
   "pluginDisplayName": "代码片段快捷面板",
+  "pluginNotSupportedInPublish": " 插件不支持在发布服务下使用",
   "pluginOnload": " 插件已启用",
   "pluginOnunload": " 插件已禁用",
   "pluginUninstall": " 插件已卸载",

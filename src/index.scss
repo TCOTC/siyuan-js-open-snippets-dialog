@@ -1,149 +1,146 @@
-// TODO: 所有使用 px 的地方都改成 em，否则界面缩放会影响布局
-
-.jcsm {
-  &__custom-tab {
-    background-color: var(--b3-theme-background);
-    height: 100%;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+// 顶栏菜单
+#commonMenu[data-name="PluginSnippets"]{
+  // 菜单布局。:not(.b3-menu--fullscreen) 排除移动端
+  &:not(.b3-menu--fullscreen) > .b3-menu__items {
+    // 右侧滚动条宽度 10px，把左侧 padding 设置为 10px，左右边距一致
+    // 2px 加上菜单上下原有的 8px，边距与左右相同
+    padding: 2px 0 2px 10px;
+    // 出现滚动条的时候列表不会偏移
+    scrollbar-gutter: stable;
   }
 
-  &__custom-dock {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+  // 菜单按钮
+  button {
+    margin: 2px;
 
-  &__time {
-    background: var(--b3-card-info-background);
-    border-radius: var(--b3-border-radius-b);
-    padding: 2px 8px;
-  }
-}
-
-// :not(.b3-menu--fullscreen) 排除移动端
-#commonMenu[data-name="PluginSnippets"]:not(.b3-menu--fullscreen) > .b3-menu__items {
-  // 右侧滚动条宽度 10px，把左侧 padding 设置为 10px，左右边距一致
-  // 2px 加上菜单上下原有的 8px，边距与左右相同
-  padding: 2px 0 2px 10px;
-  // 出现滚动条的时候列表不会偏移
-  scrollbar-gutter: stable;
-}
-
-.jcsm-top-container {
-  user-select: none;
-  padding-right: 8px;
-
-  // 隐藏非当前类型的代码片段
-  &[data-type="css"] ~ .jcsm-snippet-item[data-type="js"] {
-    display: none !important;
-  }
-  &[data-type="js"] ~ .jcsm-snippet-item[data-type="css"] {
-    display: none !important;
-  }
-  
-  button svg {
-    pointer-events: none;
-  }
-  
-  .jcsm-tabs {
-    display: flex;
-    position: relative;
-    padding: 0 6px;
-
-    border-radius: var(--b3-border-radius);
-    background-color: var(--b3-theme-background);
-    margin-bottom: 5px;
-  }
-  .jcsm-tabs * {
-    z-index: 2;
-  }
-  input[type="radio"] {
-    display: none;
-  }
-  .jcsm-tab {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 30px;
-    width: 60px;
-    // font-size: 1.25rem;
-    // font-weight: 500;
-    border-radius: var(--b3-border-radius-b);
-    cursor: pointer;
-    transition: color 0.15s ease-in;
-  }
-  .jcsm-tab-count {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: .8em;
-    min-width: 1.4em;
-    height: 1.4em;
-    margin-left: .4em;
-    border-radius: var(--b3-border-radius);
-    background-color: var(--b3-theme-surface);
-    transition: 0.15s ease-in;
-  }
-  label * {
-    pointer-events: none;
-  }
-  input[type="radio"]:checked + label .jcsm-tab-text {
-    color: var(--b3-theme-primary);
-  }
-  input[type="radio"]:checked + label > .jcsm-tab-count {
-    background-color: var(--b3-theme-primary);
-    color: #fff;
-  }
-  input[id="jcsm-radio-css"]:checked ~ .jcsm-glider {
-    transform: translateX(0);
-  }
-  input[id="jcsm-radio-js"]:checked ~ .jcsm-glider {
-    transform: translateX(100%);
-  }
-  .jcsm-glider {
-    position: absolute;
-    display: flex;
-    top: 4px;
-    height: 22px;
-    width: 60px;
-    left: 6px;
-    background-color: var(--b3-menu-background);
-    z-index: 1;
-    border-radius: var(--b3-border-radius);
-    transition: 0.25s ease-out;
-  }
-}
-
-.jcsm-snippet-item {
-  padding: 0 8px;
-
-  button svg {
-    pointer-events: none;
-  }
-
-  .jcsm-snippet-name {
-    &:empty::before {
-      content: attr(placeholder);
-      color: var(--b3-theme-on-surface-light);
+    svg {
+      pointer-events: none;
     }
+  }
 
-    &::-webkit-scrollbar {
-      // 被截断的代码片段名称，在桌面端可以按住 Shift 滚动鼠标滚轮来查看，在移动端可以直接按住左右划动查看
-      height: 0;
+  // 菜单顶部
+  // TODO: 检查看看有没有样式是不必要的
+  .jcsm-top-container {
+    user-select: none;
+    padding-right: 8px;
+  
+    // 隐藏非当前类型的代码片段
+    &[data-type="css"] ~ .jcsm-snippet-item[data-type="js"] {
+      display: none !important;
+    }
+    &[data-type="js"] ~ .jcsm-snippet-item[data-type="css"] {
+      display: none !important;
+    }
+    
+    // 代码片段类型切换
+    .jcsm-tabs {
+      display: flex;
+      position: relative;
+      padding: 0 6px;
+      border-radius: var(--b3-border-radius);
+      background-color: var(--b3-theme-background);
+      margin-bottom: 5px;
+
+      input[type="radio"] {
+        display: none;
+
+        &:checked + .jcsm-tab {
+          .jcsm-tab-text {
+            color: var(--b3-theme-primary);
+          }
+
+          .jcsm-tab-count {
+            background-color: var(--b3-theme-primary);
+            color: var(--b3-theme-background);
+          }
+        }
+        
+        &[id="jcsm-radio-css"]:checked ~ .jcsm-glider {
+          transform: translateX(0);
+        }
+
+        &[id="jcsm-radio-js"]:checked ~ .jcsm-glider {
+          transform: translateX(100%);
+        }
+      }
+      
+      * {
+        z-index: 2;
+      }
+      
+      .jcsm-glider {
+        position: absolute;
+        display: flex;
+        top: 4px;
+        height: 22px;
+        width: 60px;
+        left: 6px;
+        background-color: var(--b3-menu-background);
+        z-index: 1;
+        border-radius: var(--b3-border-radius);
+        transition: 0.25s ease-out;
+      }
+
+      .jcsm-tab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 30px;
+        width: 60px;
+        border-radius: var(--b3-border-radius-b);
+        cursor: pointer;
+        transition: color 0.15s ease-in;
+
+        * {
+          pointer-events: none;
+        }
+        
+        .jcsm-tab-count {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: .8em;
+          min-width: 1.4em;
+          height: 1.4em;
+          margin-left: .4em;
+          border-radius: var(--b3-border-radius);
+          background-color: var(--b3-theme-surface);
+          transition: 0.15s ease-in;
+        }
+      }
+    }
+  }
+
+  // 代码片段列表选项
+  .jcsm-snippet-item {
+    padding: 0 8px;
+  
+    .jcsm-snippet-name {
+      &:empty::before {
+        content: attr(placeholder);
+        color: var(--b3-theme-on-surface-light);
+      }
+  
+      &::-webkit-scrollbar {
+        // 被截断的代码片段名称，在桌面端可以按住 Shift 滚动鼠标滚轮来查看，在移动端可以直接按住左右划动查看
+        height: 0;
+      }
     }
   }
 }
 
+// 代码片段编辑对话框，.jcsm-dialog 是 .b3-dialog__body 的子元素
 .jcsm-dialog {
   flex: 1;
   display: flex;
   flex-direction: column;
-  
-  button svg {
-    pointer-events: none;
+
+  button {
+    margin: 2px;
+
+    svg {
+      pointer-events: none;
+    }
   }
 
   .jcsm-dialog-header {
@@ -160,3 +157,27 @@
 
   }
 }
+
+// 预留给自定义页签
+// .jcsm {
+//   &__custom-tab {
+//     background-color: var(--b3-theme-background);
+//     height: 100%;
+//     width: 100%;
+//     display: flex;
+//     justify-content: center;
+//     align-items: center;
+//   }
+
+//   &__custom-dock {
+//     display: flex;
+//     justify-content: center;
+//     align-items: center;
+//   }
+
+//   &__time {
+//     background: var(--b3-card-info-background);
+//     border-radius: var(--b3-border-radius-b);
+//     padding: 2px 8px;
+//   }
+// }

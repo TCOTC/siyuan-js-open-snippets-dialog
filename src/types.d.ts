@@ -3,6 +3,7 @@ import { ISiyuan } from "siyuan/types";
 declare global {
     interface Window {
         siyuan: ISiyuan & {
+            isPublish?: boolean;
             jcsm?: {
                 snippetsType?: string;
                 snippetsList?: Snippet[];
@@ -15,7 +16,7 @@ declare global {
  * 设置项类型
  */
 interface SettingItem {
-    title: string;
+    title?: string;
     description?: string;
     direction?: "row" | "column";
     actionElement?: HTMLElement;
@@ -38,6 +39,14 @@ interface Snippet {
 declare module "siyuan" {
     interface Setting {
         items: SettingItem[];
+
+        addItem(options: {
+            title?: string,
+            direction?: "column" | "row"
+            description?: string,
+            actionElement?: HTMLElement,
+            createActionElement?(): HTMLElement,
+        }): void;
     }
 }
 
