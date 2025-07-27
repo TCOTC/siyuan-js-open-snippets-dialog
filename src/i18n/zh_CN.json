@@ -35,12 +35,13 @@
   "realTimeApplyDescription": "启用后，当你在代码片段浮窗中修改 CSS 代码片段时，会实时应用到当前界面中",
   "newSnippetEnabled": "新建代码片段时默认启用",
   "consoleDebug": "在开发者工具中输出插件日志",
-  "consoleDebugDescription": "仅供本插件的开发者调试，非必要请勿开启",
+  "consoleDebugDescription": "仅供插件出现异常时调试，非必要请勿开启",
   "feedbackIssue": "反馈问题",
   "feedbackIssueDescription": "打开插件的仓库页面，欢迎点击 Star 支持作者",
   "feedbackIssueButton": "打开 GitHub",
   "notificationSwitch": "通知总开关",
+  "couldCloseNoticeInPluginSettings": "<span class='ariaLabel' aria-label='在插件设置中可以关闭该通知'>${x}</span>",
+  "reloadUIAfterModifyJS": "修改 JS 代码片段后需重新加载界面才能保证生效",
   "reloadUIAfterModifyJSNotice": "通知：修改 JS 代码片段",
-  "reloadUIAfterModifyJSNoticeDescription": "修改 JS 代码片段后需重新加载界面才能保证生效，可以在插件的顶栏菜单中点击“重新加载界面”按钮，或者在 [设置 - 快捷键] 中给“重新加载界面”按钮绑定快捷键",
-  "reloadUIAfterModifyJS": "修改 JS 代码片段后需重新加载界面才能保证生效"
+  "reloadUIAfterModifyJSNoticeDescription": "修改 JS 代码片段后需重新加载界面才能保证生效，可以在插件的顶栏菜单中点击“重新加载界面”按钮，或者在 [设置 - 快捷键] 中给“重新加载界面”按钮绑定快捷键"
 }

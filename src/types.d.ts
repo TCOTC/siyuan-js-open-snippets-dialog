@@ -36,6 +36,8 @@ declare global {
                 isCheckingListeners?: boolean;
                 listenerCheckIntervalId?: number | null;
                 consoleDebug?: boolean;
+                notificationSwitch?: boolean;
+                reloadUIAfterModifyJS?: boolean;
             };
         };
     }

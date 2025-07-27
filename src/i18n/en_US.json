@@ -35,12 +35,13 @@
   "realTimeApplyDescription": "Enable this option, when you modify the CSS snippet in the snippet floating window, the changes will be applied to the current interface in real time",
   "newSnippetEnabled": "Enable new snippets by default",
   "consoleDebug": "Output logs of the plugin in the developer tool",
-  "consoleDebugDescription": "Only for plugin's developers to debug, do not open unless necessary",
+  "consoleDebugDescription": "Only for debugging when the plugin encounters an exception, do not open unless necessary",
   "feedbackIssue": "Feedback issues",
   "feedbackIssueDescription": "Open plugin's repository page, welcome to click Star to support the author",
   "feedbackIssueButton": "Open GitHub",
   "notificationSwitch": "Notification master switch",
+  "couldCloseNoticeInPluginSettings": "<span class='ariaLabel' aria-label='this notice can be closed in plugin settings'>${x}</span>",
+  "reloadUIAfterModifyJS": "Modifying JS snippets requires reloading the interface to ensure that the changes take effect",
   "reloadUIAfterModifyJSNotice": "Notice: Modifying JS snippets",
-  "reloadUIAfterModifyJSNoticeDescription": "Modifying JS snippets requires reloading the interface to ensure that the changes take effect, you can click the \"Reload UI\" button in the plugin's top bar menu, or bind the \"Reload UI\" button to a shortcut in [Settings - Shortcuts]",
-  "reloadUIAfterModifyJS": "Modifying JS snippets requires reloading the interface to ensure that the changes take effect"
+  "reloadUIAfterModifyJSNoticeDescription": "Modifying JS snippets requires reloading the interface to ensure that the changes take effect, you can click the \"Reload UI\" button in the plugin's top bar menu, or bind the \"Reload UI\" button to a shortcut in [Settings - Shortcuts]"
 }

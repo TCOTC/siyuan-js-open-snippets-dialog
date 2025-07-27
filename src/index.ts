@@ -281,15 +281,15 @@ export default class PluginSnippets extends Plugin {
                 );
             },
         },
-        {
-            key: "notificationSwitch",
-            type: "boolean",
-            defaultValue: true,
-        },
+        // {
+        //     key: "notificationSwitch",
+        //     type: "boolean",
+        //     defaultValue: true,
+        // },
         {
             key: "reloadUIAfterModifyJSNotice",
             description: "reloadUIAfterModifyJSNoticeDescription",
-            type: "boolean",
+            type: "boolean", // TODO: description 中的 [设置 - 快捷键] 支持点击，点击后跳转到 [设置 - 快捷键] 页面，并滚动到插件的快捷键设置、展开插件的快捷键设置
             defaultValue: true,
         }
     ];
@@ -393,26 +393,6 @@ export default class PluginSnippets extends Plugin {
         this.configItems.forEach(item => {
             this.setting.addItem(this.createSettingItem(item));
         });
-
-        // 插件设置窗口中的非配置项
-        // // 反馈问题
-        // this.setting.addItem({
-        //     title: this.i18n.feedbackIssue,
-        //     description: this.i18n.feedbackIssueDescription,
-        //     direction: "column",
-        //     createActionElement: () => {
-        //         const repoLink = "https://github.com/TCOTC/snippets";
-        //         return this.htmlToElement(
-        //             `<a href="${repoLink}" target="_blank" rel="noopener noreferrer" class="b3-button b3-button--outline fn__flex-center fn__size200 ariaLabel" aria-label="${repoLink}" data-position="north"><svg><use xlink:href="#iconGithub"></use></svg>${this.i18n.feedbackIssueButton}</a>`
-        //         );
-        //     },
-        // });
-
-        // // 注意事项
-        // this.setting.addItem({
-        //     description: this.i18n.reloadUIAfterModifyJSNotice,
-        //     // TODO: attentionDescription 中的 [设置 - 快捷键] 支持点击，点击后跳转到 [设置 - 快捷键] 页面，并滚动到插件的快捷键设置、展开插件的快捷键设置
-        // });
     }
 
     /**
@@ -426,8 +406,11 @@ export default class PluginSnippets extends Plugin {
             if (element && item.type === 'boolean') {
                 const newValue = element.checked;
                 if ((window.siyuan.jcsm as any)[item.key] !== newValue) {
-                    // TODO: 修改 realTimeApply 设置之后查询所有对话框按钮修改文案与 fn__none
                     (window.siyuan.jcsm as any)[item.key] = newValue;
+                    
+                    if (item.key === "realTimeApply") {
+                        // TODO: 修改 realTimeApply 设置之后查询所有对话框按钮修改文案与 fn__none
+                    }
                 }
             }
         });
@@ -505,9 +488,12 @@ export default class PluginSnippets extends Plugin {
             }
         });
 
+        const closeElement = dialog.element.querySelector(".b3-dialog__close") as HTMLElement;
+        const scrimElement = dialog.element.querySelector(".b3-dialog__scrim") as HTMLElement;
+
         // 设置对话框点击事件
         const dialogClickHandler = (event: MouseEvent) => {
-            // TODO: 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭？打开插件设置时无法按 Alt+P 打开思源设置菜单，需要看看是不是阻止冒泡影响的
+            // TODO测试: 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭？
             event.stopPropagation();
 
             const target = event.target as HTMLElement;
@@ -524,13 +510,22 @@ export default class PluginSnippets extends Plugin {
                     event.stopPropagation();
                     this.applySetting(dialog.element);
                 }
+            } else if (target === closeElement || target === scrimElement) {
+                this.removeDialog(dialog.element);
             }
         }
 
         // 添加事件监听
         this.addListener(dialog.element, "click", dialogClickHandler, {capture: true});
         this.addListener(document.documentElement, "keydown", this.keyDownHandler);
-        // TODO: 在菜单打开的情况下，桌面端无法滚轮滚动/移动端无法上下划动设置对话框的 .b3-dialog__content，看看能否通过阻止对应事件冒泡来解决
+        this.addListener(dialog.element, "wheel", (event: WheelEvent) => {
+            // 在菜单打开的情况下，桌面端无法滚轮滚动设置对话框的 .b3-dialog__content，需要阻止事件冒泡
+            event.stopPropagation();
+        }, {passive: true});
+        // 在菜单打开的情况下，移动端无法上下划动设置对话框的 .b3-dialog__content，需要阻止事件冒泡
+        this.addListener(dialog.element, "touchmove", (event: TouchEvent) => {
+            event.stopPropagation();
+        }, {passive: true});
     }
 
     
@@ -624,7 +619,7 @@ export default class PluginSnippets extends Plugin {
         this.menuItems.append(menuTop);
 
 
-        // TODO: this.snippetsList 没有代码片段的情况需要测试一下看看
+        // TODO测试: this.snippetsList 没有代码片段的情况需要测试一下看看
         const snippetsHtml = this.genSnippetsHtml(this.snippetsList);
         this.menuItems.insertAdjacentHTML("beforeend", snippetsHtml);
 
@@ -788,7 +783,6 @@ export default class PluginSnippets extends Plugin {
                 // 切换全局开关只会影响已启用的代码片段，所以过滤出来
                 const filteredSnippets = this.snippetsList.filter((snippet: Snippet) => snippet.type === this.snippetsType && snippet.enabled === true);
                 this.console.log("filteredSnippets", filteredSnippets);
-                // TODO: 如果切换的包含内容不为空且不为空字符的 JS 片段，需要弹出消息提示
                 filteredSnippets.forEach((snippet: Snippet) => {
                     // enabled 为 true 时，snippet.enabled 也一定为 true
                     this.updateSnippetElement(snippet, enabled);
@@ -955,8 +949,8 @@ export default class PluginSnippets extends Plugin {
      * @param snippet 代码片段
      */
     private async addOrUpdateSnippet(snippet: Snippet) {
+        this.console.log("addOrUpdateSnippet: snippet", snippet);
         // 添加的代码片段有可能未启用，所以 updateSnippetElement() 不传入 enabled === true 的参数
-        // TODO: 如果更新的是内容不为空且不为空字符的 JS 片段，需要弹出消息提示
         this.updateSnippetElement(snippet);
         await this.updateSnippetsList();
         // 在 snippetsList 中查找是否存在该代码片段
@@ -973,7 +967,7 @@ export default class PluginSnippets extends Plugin {
         this.updateSnippetCount();
 
         // 修改相关的元素
-        // TODO: 重复的代码比较多，单独提取为一个方法，然后 addOrUpdateSnippet 和 deleteSnippet 调用时传递一个参数
+        // TODO: 重复的代码比较多，单独提取为一个 applySnippetChange 方法，然后 addOrUpdateSnippet 和 deleteSnippet 调用时传递一个参数
         // 更新菜单
         const snippetMenuItem = this.menuItems.querySelector(`.jcsm-snippet-item[data-id="${snippet.id}"]`) as HTMLElement;
         if (snippetMenuItem) {
@@ -995,9 +989,11 @@ export default class PluginSnippets extends Plugin {
         // TODO: getDialogByDataId 方法
         const dialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippet.id}"]`) as HTMLDivElement;
         if (dialog) {
+            this.console.log("addOrUpdateSnippet: dialog", dialog);
             // 显示删除按钮
             const deleteButton = dialog.querySelector(`.jcsm-dialog .jcsm-dialog-container button[data-action="delete"]`) as HTMLButtonElement;
             if (deleteButton) {
+                this.console.log("addOrUpdateSnippet: deleteButton", deleteButton);
                 deleteButton.classList.remove("fn__none");
             }
             // 显示“应用”按钮
@@ -1030,7 +1026,6 @@ export default class PluginSnippets extends Plugin {
             return;
         }
         // 删除的代码片段一定需要移除元素，所以 updateSnippetElement() 传入 enabled === false 的参数
-        // TODO: 如果切换的是内容不为空且不为空字符的 JS 片段，需要弹出消息提示
         this.updateSnippetElement(snippet, false);
         // getSnippetById() 方法刚刚执行过了，所以这里不需要再执行 updateSnippetsList()
         // await this.updateSnippetsList();
@@ -1065,6 +1060,13 @@ export default class PluginSnippets extends Plugin {
     };
 
     /**
+     * 应用代码片段变更
+     */
+    private applySnippetChange() {
+        // TODO: 应用代码片段变更
+    }
+
+    /**
      * 根据 ID 获取代码片段
      * @param id 代码片段 ID
      * @returns 代码片段
@@ -1091,7 +1093,6 @@ export default class PluginSnippets extends Plugin {
             snippet.enabled = enabled;
             this.putSnippetsList(this.snippetsList);
             // 更新代码片段元素
-            // TODO: 任何代码片段都切换，但如果切换的是内容不为空且不为空字符的 JS 片段，需要弹出消息提示。
             // 直接在 updateSnippetElement() 中处理提示
             this.updateSnippetElement(snippet);
         }
@@ -1103,7 +1104,6 @@ export default class PluginSnippets extends Plugin {
             return
         }
         if (type !== "menu") {
-            // TODO: 切换菜单上对应的代码片段的开关状态
             // 切换菜单上对应的代码片段的开关状态
             const snippetElement = this.menuItems.querySelector(`div[data-id="${snippetId}"]`) as HTMLElement;
             if (snippetElement) {
@@ -1111,7 +1111,7 @@ export default class PluginSnippets extends Plugin {
             }
         }
         if (type !== "dialog") {
-            // TODO: 切换对应的 Dialog 的开关状态
+            // 切换对应的 Dialog 中的开关状态
             const dialog = document.querySelector(`div[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippetId}"]`) as HTMLDivElement;
             if (dialog) {
                 const switchInput = dialog.querySelector("input[data-type='snippetSwitch']") as HTMLInputElement;
@@ -1135,6 +1135,7 @@ export default class PluginSnippets extends Plugin {
             // 2. 内容：如果 CSS 实时应用，则需要查找对应的代码片段编辑对话框更新内容；其他情况下无操作
             // 3. 开关状态：切换代码片段的开关状态，如果是关闭的 JS 片段但是在 DOM 中找到了对应的元素，要移除元素然后弹出消息提示用户重载界面（如果这个消息的开关打开的话）
             // 4. 标题：查找对应的代码片段编辑对话框更新标题
+            // TODO: 感觉可以调用 addOrUpdateSnippet 和 deleteSnippet 方法来处理差异，所以不应该直接执行下面的 this.snippetsList = snippetsList; 来更新变量
             this.snippetsList = snippetsList;
         }
     }
@@ -1185,9 +1186,10 @@ export default class PluginSnippets extends Plugin {
         const element = document.getElementById(elementId);
 
         if (snippet.type === "js" && this.isValidJavaScript(snippet.content)) {
-            // TODO: 如果切换的是内容是有效的 JavaScript 代码片段，需要弹出消息提示
-            showMessage(this.i18n.reloadUIAfterModifyJS, undefined, "info");
-            // TODO: 高亮重新加载界面按钮
+            // 如果切换的是内容是有效的 JavaScript 代码片段，需要弹出消息提示
+            // TODO: 这部分还需要思考一下逻辑是否完备
+            this.showNotification("reloadUIAfterModifyJS", 2000);
+            // TODO: 高亮菜单上的重新加载界面按钮
         }
 
         if (!enabled) {
@@ -1255,7 +1257,7 @@ export default class PluginSnippets extends Plugin {
                     <div class="fn__flex">
                         <input class="jcsm-dialog-name fn__flex-1 b3-text-field" spellcheck="false" placeholder="${this.i18n.title}"}">
                         <div class="fn__space"></div>
-                        <button data-action="delete" class="block__icon block__icon--show ariaLabel" aria-label="${this.i18n.deleteSnippet}" data-position="north">
+                        <button data-action="delete" class="block__icon block__icon--show ariaLabel fn__none" aria-label="${this.i18n.deleteSnippet}" data-position="north">
                             <svg><use xlink:href="#iconTrashcan"></use></svg>
                         </button>
                         <div class="fn__space"></div>
@@ -1317,13 +1319,13 @@ export default class PluginSnippets extends Plugin {
             dialogContainer.style.position = "fixed";
         }
         
-        // TODO: 如果已经有打开的对应 snippetId 的 Dialog，则激活它（zIndex）、重置位置 resetDialogRootStyle()
+        // 如果已经有打开的对应 snippetId 的 Dialog，则激活它
         const existedDialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippet.id}"]`) as HTMLDivElement;
         if (existedDialog) {
             // 激活它
             this.bringElementToFront(existedDialog);
-            // 重置位置
-            resetDialogRootStyle(existedDialog);
+            // TODO: 重置位置 → 这个实际上不会改变位置，并且好像没有必要执行这个操作
+            // resetDialogRootStyle(existedDialog);
             return;
         }
 
@@ -1355,6 +1357,12 @@ export default class PluginSnippets extends Plugin {
         const switchInput = dialog.element.querySelector("input[data-type='snippetSwitch']") as HTMLInputElement;
         // switchInput.checked = snippet.enabled; // genSnippetDialog 的时候已经添加了 enabled 属性，这里不需要重复设置
 
+        const deleteButton = dialog.element.querySelector("button[data-action='delete']") as HTMLButtonElement;
+        if (this.realTimeApply && snippet.type === "css") {
+            // TODO: 新建的代码片段直接不显示删除按钮，addOrUpdateSnippet() 之后再显示
+            deleteButton.classList.remove("fn__none");
+        }
+
         this.addListener(dialog.element, "keydown", (event: KeyboardEvent) => {
             const target = event.target as HTMLElement;
             if (target === nameElement) {
@@ -1363,6 +1371,10 @@ export default class PluginSnippets extends Plugin {
                     contentElement.focus();
                 }
                 // TODO: 按 Tab 键输入制表符或空格（根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置）
+
+                // TODO: 直接添加一个代码编辑器组件来管理按键操作，体验更好而且不需要处理复杂按键
+
+
             } else if (target === contentElement) {
                 // TODO: 按 Tab 键输入制表符或空格（根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置）
                 // TODO: 选中代码按 (Shift +) Tab 键，对选中的代码行，执行（反）缩进
@@ -1398,24 +1410,17 @@ export default class PluginSnippets extends Plugin {
 
             const target = event.target as HTMLElement;
             const tagName = target.tagName.toLowerCase();
-            if (tagName === "input" && target.getAttribute("data-type") === "snippetSwitch") {
-                // TODO: 切换代码片段的开关状态
-                if (target === switchInput) {
-                    if (this.realTimeApply && snippet.type === "css") {
-                        const enabled = switchInput.checked;
-                        this.toggleSnippetEnabled(dialog.element.dataset.snippetId, enabled, "dialog");
-                    }
+            if (tagName === "input" && target === switchInput) {
+                // 切换代码片段的开关状态
+                if (this.realTimeApply && snippet.type === "css") {
+                    const enabled = switchInput.checked;
+                    this.toggleSnippetEnabled(dialog.element.dataset.snippetId, enabled, "dialog");
                 }
-
-                // TODO: 分别处理 实时应用开关状态 和 点击保存后更新代码片段的开关状态 两种情况
-
-
             } else if (tagName === "button") {
                 // 移除焦点，否则点击按钮后如果不关闭 Dialog 的话会一直显示 :focus 样式
                 target.blur();
                 switch (target.dataset.action) {
                     case "delete":
-                        // TODO: 新建的代码片段直接不显示删除按钮，addSinppet() 之后再显示
                         // 弹窗确定后删除代码片段/不新建代码片段、关闭 Dialog
                         this.snippetDeleteDialog(snippet.name, () => {
                             this.deleteSnippet(snippet.id, snippet.type);
@@ -1586,7 +1591,26 @@ export default class PluginSnippets extends Plugin {
     }
 
 
-    // ================================ 错误消息处理 ================================
+    // ================================ 消息处理 ================================
+
+    get notificationSwitch() { return window.siyuan.jcsm?.notificationSwitch ?? true; }
+    set notificationSwitch(value: boolean) { window.siyuan.jcsm.notificationSwitch = value; }
+
+    get reloadUIAfterModifyJS() { return window.siyuan.jcsm?.reloadUIAfterModifyJS ?? true; }
+    set reloadUIAfterModifyJS(value: boolean) { window.siyuan.jcsm.reloadUIAfterModifyJS = value; }
+
+    /**
+     * 弹出消息（仅限在插件设置中存在选项的通知可以使用该方法）
+     * @param messageI18nKey 消息的 i18n 键
+     * @param timeout 消息显示时间（毫秒）；-1 永不关闭；0 永不关闭，添加一个关闭按钮；undefined 默认 6000 毫秒
+     */
+    private showNotification(messageI18nKey: string, timeout: number | undefined = undefined) {
+        if (this.notificationSwitch && (this as any)[messageI18nKey + "Notice"] && this.i18n[messageI18nKey]) {
+            const message = this.i18n.couldCloseNoticeInPluginSettings.replace("${x}", this.i18n[messageI18nKey]);
+            // 传入 messageId 参数之后，反复弹出相同的消息时，不会关闭上一个消息再弹出新消息
+            showMessage(message, timeout, "info", PLUGIN_NAME + "-" + messageI18nKey);
+        }
+    }
 
     /**
      * 弹出错误消息
@@ -1938,7 +1962,10 @@ export default class PluginSnippets extends Plugin {
             // 阻止冒泡，避免：
             // 1. 触发原生监听器导致实际上会操作菜单选项，因此无法在输入框中使用方向键移动光标
             // 2. 按 Enter 之后默认会关闭整个菜单
-            event.stopPropagation();
+            // 打开插件设置时无法按 Alt+P 打开思源设置菜单，只要不是按 Enter 或方向键就放过事件冒泡
+            if (event.key === "Enter" || event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                event.stopPropagation();
+            }
             // 如果当前在输入框中使用键盘，则不处理菜单按键事件
             if (this.isInputElementActive()) return;
             this.menu.element.dispatchEvent(new CustomEvent("click", {detail: event.key}));
@@ -2073,7 +2100,7 @@ export default class PluginSnippets extends Plugin {
         this.listenerCheckIntervalId = window.setInterval(() => {
             this.isCheckingListeners = false; // 重置检查标志
             this.checkListenerElement();
-        }, this.consoleDebug ? 2000 : 30000);
+        }, this.consoleDebug ? 20000 : 30000);
     }
 
     /**
