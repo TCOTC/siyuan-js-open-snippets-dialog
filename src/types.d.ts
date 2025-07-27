@@ -1,5 +1,27 @@
 import { ISiyuan } from "siyuan/types";
 
+/**
+ * 单个监听器类型
+ */
+type ListenerItem = {
+    event: string;
+    fn: (event?: Event) => void;
+    options?: AddEventListenerOptions;
+};
+
+/**
+ * 元素监听器类型
+ */
+type ElementListeners = {
+    element: HTMLElement;
+    listeners: ListenerItem[];
+};
+
+/**
+ * 监听器数组类型
+ */
+type ListenersArray = Array<ElementListeners>;
+
 declare global {
     interface Window {
         siyuan: ISiyuan & {
@@ -10,7 +32,9 @@ declare global {
                 snippetsList?: Snippet[];
                 realTimeApply?: boolean;
                 newSnippetEnabled?: boolean;
-                listeners?: WeakMap<HTMLElement, any[]>;
+                listeners?: ListenersArray | null;
+                isCheckingListeners?: boolean;
+                listenerCheckIntervalId?: number | null;
             };
         };
     }
@@ -54,4 +78,4 @@ declare module "siyuan" {
     }
 }
 
-export { Snippet, SettingItem };
+export { Snippet, SettingItem, ListenersArray, ElementListeners, ListenerItem };

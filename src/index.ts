@@ -31,13 +31,12 @@ import {
 //     Files,
 //     platformUtils,
 //     openSetting,
-//     openAttributePanel
+//     openAttributePanel,
+//     saveLayout
 // } from "siyuan";
 
-// 注释掉有警告的导入
-// import { saveLayout } from "siyuan";
 import "./index.scss";
-import { Snippet } from "./types";
+import { Snippet, ListenersArray } from "./types";
 
 const PLUGIN_NAME = "snippets"; // 插件名
 const STORAGE_NAME = "plugin-config.json"; // 配置文件名
@@ -155,7 +154,7 @@ export default class PluginSnippets extends Plugin {
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
 
         // 调试
-        // await new Promise(resolve => setTimeout(resolve, 5000));
+        // await new Promise(resolve => setTimeout(resolve, 10000));
     }
 
     /**
@@ -172,6 +171,10 @@ export default class PluginSnippets extends Plugin {
     onunload() {
         // 发布服务不启用插件
         if (window.siyuan.isPublish) return;
+
+        // 移除菜单
+        this.menu?.close();
+
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnunload);
     }
 
@@ -194,38 +197,21 @@ export default class PluginSnippets extends Plugin {
 
         // TODO: 移除所有自定义页签
 
-        // TODO: 移除所有监听器
-        // WeakMap 不能直接遍历，这里通过遍历所有已知的 DOM 元素来尝试移除监听器
-        // 由于 listeners 只会存储已添加监听器的元素，所以可以通过维护一个元素引用列表来实现更彻底的清理
-        // 这里采用遍历 document.body 下所有元素的方式，尝试移除监听器
-        try {
-            const allElements: HTMLElement[] = [];
-            // 收集所有 HTMLElement
-            const treeWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, null);
-            let currentNode = treeWalker.currentNode as HTMLElement;
-            while (currentNode) {
-                allElements.push(currentNode);
-                currentNode = treeWalker.nextNode() as HTMLElement;
-            }
-            // 额外加上 document.documentElement
-            allElements.push(document.documentElement);
-
-            for (const element of allElements) {
-                if (this.listeners.has(element)) {
-                    const listenerList = this.listeners.get(element);
-                    if (listenerList && Array.isArray(listenerList)) {
-                        listenerList.forEach(({ event, fn, options }: { event: string; fn: (event?: Event) => void; options?: AddEventListenerOptions }) => {
-                            element.removeEventListener(event, fn, options);
-                        });
-                    }
-                    this.listeners.delete(element);
-                }
-            }
-        } catch (e) {
-            // 兜底：如果遍历失败，直接重置 WeakMap
-            this.listeners = new WeakMap();
+        // 移除所有监听器
+        for (const elementListeners of this.listeners) {
+            const { element, listeners } = elementListeners;
+            // 移除该元素上的所有监听器
+            listeners.forEach(({ event, fn, options }) => {
+                element.removeEventListener(event, fn, options);
+            });
         }
-
+        // 清空 listeners 数组
+        this.listeners = null;
+        // 重置检查标志
+        this.isCheckingListeners = false;
+        // 停止监听器检查定时器
+        this.stopListenerCheckInterval();
+        
         // 最后移除全局变量
         delete window.siyuan.jcsm;
 
@@ -1729,11 +1715,18 @@ export default class PluginSnippets extends Plugin {
      * 移除全局键盘事件监听
      */
     private destroyKeyDownHandler = () => {
-        const allElements = document.querySelectorAll(".b3-dialog--open[data-key*='jcsm-']");
-        if (allElements.length === 0 && !this.menu) {
+        if (!this.isDialogAndMenuOpen()) {
             // 窗口内没有打开的 Dialog 和菜单之后才移除事件监听
             this.removeListener(document.documentElement, "keydown", this.keyDownHandler);
         }
+    }
+
+    /**
+     * 是否存在打开的 Dialog 和菜单
+     * @returns 是否存在
+     */
+    private isDialogAndMenuOpen() {
+        return document.querySelectorAll(".b3-dialog--open[data-key*='jcsm-']").length > 0 || this.menu;
     }
 
 
@@ -1743,21 +1736,109 @@ export default class PluginSnippets extends Plugin {
      * 事件监听器的映射
      * 卸载插件的时候会移除所有插件添加的元素及其监听器，但元素有可能是上一个实例添加的，所以各个实例要共用一个 listeners 对象
      */
-    // TODO: WeakMap 没法遍历，需要修改结构，比如数组套对象
-    get listeners() {
+    get listeners(): ListenersArray {
         if (!window.siyuan.jcsm?.listeners) {
-            window.siyuan.jcsm.listeners = new WeakMap();
+            window.siyuan.jcsm.listeners = [] as ListenersArray;
         }
-        return window.siyuan.jcsm.listeners;
-        // 不能用下面这个，会报错：
-        // return window.siyuan.jcsm?.listeners ?? new WeakMap();
+        return window.siyuan.jcsm.listeners as ListenersArray;
     }
-    set listeners(value: WeakMap<HTMLElement, any[]>) { window.siyuan.jcsm.listeners = value; }
+    set listeners(value: ListenersArray | null) { 
+        window.siyuan.jcsm.listeners = value; 
+    }
 
-    // TODO: 执行 removeListener 之后，如果 listeners 里还有监听器，每隔一段时间检查一次元素是否在 DOM 中，如果不在则移除监听器。直到 listeners 里没有监听器为止才不需要间隔时间检查
+    /**
+     * 监听器检查定时器 ID
+     */
+    get listenerCheckIntervalId() { return window.siyuan.jcsm?.listenerCheckIntervalId ?? null; }
+    set listenerCheckIntervalId(value: number | null) { window.siyuan.jcsm.listenerCheckIntervalId = value; }
+
+    /**
+     * 是否正在检查监听器元素
+     */
+    get isCheckingListeners() { return window.siyuan.jcsm?.isCheckingListeners ?? false; }
+    set isCheckingListeners(value: boolean) { window.siyuan.jcsm.isCheckingListeners = value; }
+    // 执行 addListener 和 removeListener 之后，如果 listeners 里还有监听器，每隔一段时间检查一次元素是否在 DOM 中，如果不在则移除监听器。直到 listeners 里没有监听器为止才不需要间隔时间检查
     // 感觉有可能存在本插件外部移除 Dialog 的情况
-    // private checkListenerElement() {
-    // }
+
+    /**
+     * 检查监听器元素是否还在 DOM 中
+     * 如果元素不在 DOM 中，则移除对应的监听器
+     * 如果 listeners 中还有监听器，则每隔一段时间检查一次
+     * 直到 listeners 中没有监听器为止才停止检查
+     */
+    private checkListenerElement() {
+        // 如果已经在检查中，则不重复执行
+        if (this.isCheckingListeners) {
+            return;
+        }
+
+        // 如果没有监听器，不需要检查
+        if (!this.listeners || this.listeners.length === 0) {
+            return;
+        }
+
+        // 设置检查标志
+        this.isCheckingListeners = true;
+
+        console.log("checkListenerElement: 检查监听器元素", this.listeners);
+
+        // 如果窗口内没有打开的 Dialog 和菜单，则移除 Document 的监听器
+        if (!this.isDialogAndMenuOpen()) {
+            this.removeListener(document.documentElement);
+        }
+
+        // 检查每个元素的监听器
+        for (let i = this.listeners.length - 1; i >= 0; i--) {
+            const elementListeners = this.listeners[i];
+            const { element, listeners } = elementListeners;
+
+            // 检查元素是否还在 DOM 中
+            if (!document.contains(element)) {
+                // 元素不在 DOM 中，移除该元素的所有监听器
+                listeners.forEach(({ event, fn, options }) => {
+                    element.removeEventListener(event, fn, options);
+                });
+                // 从数组中移除该元素的记录
+                this.listeners.splice(i, 1);
+                console.warn("checkListenerElement: remove listener of element which is not in DOM", element);
+            }
+        }
+
+        // 如果还有监听器，则启动定期检查
+        if (this.listeners && this.listeners.length > 0) {
+            this.startListenerCheckInterval();
+        } else {
+            // 没有监听器了，重置检查标志并停止定时器
+            this.isCheckingListeners = false;
+            this.stopListenerCheckInterval();
+        }
+    }
+
+    /**
+     * 启动监听器检查定时器
+     */
+    private startListenerCheckInterval() {
+        // 如果已经有定时器在运行，则不重复启动
+        if (this.listenerCheckIntervalId) {
+            return;
+        }
+
+        // 每隔 30 秒检查一次
+        this.listenerCheckIntervalId = window.setInterval(() => {
+            this.isCheckingListeners = false; // 重置检查标志
+            this.checkListenerElement();
+        }, 30000);
+    }
+
+    /**
+     * 停止监听器检查定时器
+     */
+    private stopListenerCheckInterval() {
+        if (this.listenerCheckIntervalId) {
+            window.clearInterval(this.listenerCheckIntervalId);
+            this.listenerCheckIntervalId = null;
+        }
+    }
 
     /**
      * 添加事件监听器
@@ -1767,31 +1848,26 @@ export default class PluginSnippets extends Plugin {
      * @param options 监听器选项
      */
     private addListener(element: HTMLElement, event: string, fn: (event?: Event) => void, options?: AddEventListenerOptions) {
-        if (!this.listeners.has(element)) {
+        // 查找元素是否已存在监听器记录
+        let elementListeners = this.listeners.find(item => item.element === element);
+        if (!elementListeners) {
             // 创建该元素的监听器列表
-            this.listeners.set(element, []);
+            elementListeners = { element, listeners: [] };
+            this.listeners.push(elementListeners);
         }
 
-        const listenerList = this.listeners.get(element);
-
-
-        if (listenerList.some((item: { event: string; fn: (event?: Event) => void; options?: AddEventListenerOptions; }) => item.event === event && item.fn === fn && item.options === options)) {
-        // TODO: 确认一下下面的逻辑（AI写的）
-        // if (!listenerList) {
-        //     // 如果获取不到监听器列表，重新设置
-        //     this.listeners.set(element, []);
-        // }
-        
-        // const currentListenerList = this.listeners.get(element);
-        // if (currentListenerList.some((item: { event: string; fn: (event?: Event) => void; options?: AddEventListenerOptions; }) => item.event === event && item.fn === fn && item.options === options)) {
+        // 检查是否已存在相同的监听器
+        if (elementListeners.listeners.some(item => item.event === event && item.fn === fn && item.options === options)) {
             // 如果元素上已经存在相同的监听器，则不重复添加
             return;
         }
 
-        
         // 将监听器添加到列表中、注册监听器
-        this.listeners.get(element).push({ event, fn, options });
+        elementListeners.listeners.push({ event, fn, options });
         element.addEventListener(event, fn, options);
+        
+        // 启动监听器元素检查机制
+        this.checkListenerElement();
     }
 
     /**
@@ -1806,31 +1882,57 @@ export default class PluginSnippets extends Plugin {
             console.warn("removeListener: element is not found");
             return;
         }
-        if (!this.listeners.has(element)) return;
 
-        const listenerList = this.listeners.get(element);
-        if (!listenerList) {
-            // 未获取到 listenerList，有可能是重复调用了 removeListener，直接返回
-            console.warn("removeListener: listenerList is not found");
+        // 查找元素的监听器记录
+        const elementIndex = this.listeners.findIndex(item => item.element === element);
+        if (elementIndex === -1) return;
+
+        const elementListeners = this.listeners[elementIndex];
+        if (!elementListeners) {
+            // 未获取到 elementListeners，有可能是重复调用了 removeListener，直接返回
+            console.warn("removeListener: elementListeners is not found");
             return;
         }
 
-        if (event && fn) {
-            // 移除特定的监听器
-            element.removeEventListener(event, fn, options);
-            const index = listenerList.findIndex((item: { event: string; fn: (event?: Event) => void; options?: AddEventListenerOptions; }) =>
-                item.event === event && item.fn === fn && item.options === options
-            );
-            if (index > -1) {
-                listenerList.splice(index, 1);
+        if (event) {
+            if (fn) {
+                // 移除特定的监听器
+                element.removeEventListener(event, fn, options);
+                const index = elementListeners.listeners.findIndex(item =>
+                    item.event === event && item.fn === fn && item.options === options
+                );
+                if (index > -1) {
+                    elementListeners.listeners.splice(index, 1);
+                    // 如果移除后该元素没有任何监听器了，从数组中移除该元素的记录
+                    if (elementListeners.listeners.length === 0) {
+                        this.listeners.splice(elementIndex, 1);
+                    }
+                }
+            } else {
+                // 只移除该事件类型的所有监听器
+                // 先筛选出所有该事件类型的监听器
+                const toRemove = elementListeners.listeners.filter(item => item.event === event);
+                toRemove.forEach(({ event, fn, options }) => {
+                    element.removeEventListener(event, fn, options);
+                });
+                // 从监听器列表中移除所有该事件类型的监听器
+                elementListeners.listeners = elementListeners.listeners.filter(item => item.event !== event);
+                // 如果移除后该元素没有任何监听器了，从数组中移除该元素的记录
+                if (elementListeners.listeners.length === 0) {
+                    this.listeners.splice(elementIndex, 1);
+                }
             }
         } else {
-            // 移除所有监听器
-            listenerList.forEach(({ event, fn, options }: { event: string; fn: (event?: Event) => void; options?: AddEventListenerOptions }) => {
+            // 移除该元素的所有监听器
+            elementListeners.listeners.forEach(({ event, fn, options }) => {
                 element.removeEventListener(event, fn, options);
             });
-            this.listeners.delete(element);
+            // 从数组中移除该元素的记录
+            this.listeners.splice(elementIndex, 1);
         }
+            
+        // 启动监听器元素检查机制
+        this.checkListenerElement();
     }
 
 
