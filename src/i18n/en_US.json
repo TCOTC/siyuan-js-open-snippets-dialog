@@ -13,11 +13,18 @@
   "updateSnippetElementParamError": "Failed to update snippet element, missing snippet parameter",
   "unknownButtonType": "Unknown button type",
   "unNamed": "Unnamed",
+  "pluginConfig": "Plugin settings",
   "reloadUI": "Reload UI",
+  "add": "Add",
   "edit": "Edit",
   "delete": "Delete",
   "cancel": "Cancel",
+  "apply": "Apply",
   "save": "Save",
+  "new": "New",
+  "confirm": "Confirm",
+  "title": "Title",
+  "codeSnippet": "Code snippet",
   "openSnippetsPanel": "Open snippets panel",
   "deleteSnippet": "Delete snippet",
   "deleteSnippetConfirm": "Are you sure you want to delete snippet${x}?",
@@ -31,5 +38,7 @@
   "consoleDebugDescription": "Only for plugin's developers to debug, do not open unless necessary",
   "feedbackIssue": "Feedback issues",
   "feedbackIssueDescription": "Open plugin's repository page, welcome to click Star to support the author",
-  "feedbackIssueButton": "Open GitHub"
+  "feedbackIssueButton": "Open GitHub",
+  "attention": "Attention",
+  "attentionDescription": "JS snippets need to reload the interface to take effect, you can click the \"Reload UI\" button in the plugin's top bar menu, or bind the \"Reload UI\" button to a shortcut in [Settings - Shortcuts]"
 }

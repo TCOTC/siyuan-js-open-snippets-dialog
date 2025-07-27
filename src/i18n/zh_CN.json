@@ -13,11 +13,18 @@
   "updateSnippetElementParamError": "更新代码片段元素失败，缺少代码片段参数",
   "unknownButtonType": "未知的按钮类型",
   "unNamed": "未命名",
+  "pluginConfig": "插件设置",
   "reloadUI": "重新加载界面",
+  "add": "添加",
   "edit": "编辑",
   "delete": "删除",
   "cancel": "取消",
+  "apply": "应用",
   "save": "保存",
+  "new": "新建",
+  "confirm": "确定",
+  "title": "标题",
+  "codeSnippet": "代码片段",
   "openSnippetsPanel": "打开代码片段快捷面板",
   "deleteSnippet": "删除代码片段",
   "deleteSnippetConfirm": "确定要删除代码片段${x}吗？",
@@ -31,5 +38,7 @@
   "consoleDebugDescription": "仅供本插件的开发者调试，非必要请勿开启",
   "feedbackIssue": "反馈问题",
   "feedbackIssueDescription": "打开插件的仓库页面，欢迎点击 Star 支持作者",
-  "feedbackIssueButton": "打开 GitHub"
+  "feedbackIssueButton": "打开 GitHub",
+  "attention": "注意事项",
+  "attentionDescription": "JS 代码片段修改后需重新加载界面才能生效，可以在插件的顶栏菜单中点击“重新加载界面”按钮，或者在 [设置 - 快捷键] 中给“重新加载界面”按钮绑定快捷键"
 }
