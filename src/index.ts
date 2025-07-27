@@ -1,3 +1,4 @@
+import * as acorn from "acorn";
 import {
     Plugin,
     showMessage,
@@ -60,7 +61,7 @@ export default class PluginSnippets extends Plugin {
     /**
      * 启用插件（进行各种初始化）
      */
-    async onload() {
+    public async onload() {
         // 发布服务不启用插件
         if (window.siyuan.isPublish) {
             this.console.log(this.i18n.pluginDisplayName + this.i18n.pluginNotSupportedInPublish);
@@ -160,15 +161,16 @@ export default class PluginSnippets extends Plugin {
     /**
      * 布局加载完成
      */
-    onLayoutReady() {
+    public onLayoutReady() {
         // // 发布服务不启用插件
         // if (window.siyuan.isPublish) return;
     }
 
     /**
      * 禁用插件
+     * 插件更新会先执行 onunload 再执行 onload，不会执行 uninstall
      */
-    onunload() {
+    public onunload() {
         // 发布服务不启用插件
         if (window.siyuan.isPublish) return;
 
@@ -181,7 +183,7 @@ export default class PluginSnippets extends Plugin {
     /**
      * 卸载插件
      */
-    uninstall() {
+    public uninstall() {
         // 发布服务不启用插件
         if (window.siyuan.isPublish) return;
         // 移除配置文件
@@ -220,7 +222,7 @@ export default class PluginSnippets extends Plugin {
 
 
     // ================================ 插件设置 ================================
-    private setting: Setting;
+    public setting: Setting;
 
     /**
      * 配置文件版本（配置结构有变化时升级）
@@ -244,11 +246,12 @@ export default class PluginSnippets extends Plugin {
 
     // 配置项定义
     private readonly configItems: Array<{
-        key: string;
+        key?: string;
         description?: string;
-        type: 'boolean' | 'string' | 'number';
-        defaultValue: any;
+        type?: 'boolean' | 'string' | 'number' | 'createActionElement';
+        defaultValue?: any;
         direction?: 'row' | 'column';
+        createActionElement?: () => HTMLElement;
     }> = [
         {
             key: 'realTimeApply',
@@ -266,6 +269,28 @@ export default class PluginSnippets extends Plugin {
             description: 'consoleDebugDescription',
             type: 'boolean',
             defaultValue: false,
+        },
+        {
+            key: "feedbackIssue",
+            description: "feedbackIssueDescription",
+            type: "createActionElement",
+            createActionElement: () => {
+                const repoLink = "https://github.com/TCOTC/snippets";
+                return this.htmlToElement(
+                    `<a href="${repoLink}" target="_blank" rel="noopener noreferrer" class="b3-button b3-button--outline fn__flex-center fn__size200 ariaLabel" aria-label="${repoLink}" data-position="north"><svg><use xlink:href="#iconGithub"></use></svg>${this.i18n.feedbackIssueButton}</a>`
+                );
+            },
+        },
+        {
+            key: "notificationSwitch",
+            type: "boolean",
+            defaultValue: true,
+        },
+        {
+            key: "reloadUIAfterModifyJSNotice",
+            description: "reloadUIAfterModifyJSNoticeDescription",
+            type: "boolean",
+            defaultValue: true,
         }
     ];
 
@@ -310,6 +335,8 @@ export default class PluginSnippets extends Plugin {
                     return this.htmlToElement(
                         `<input class="b3-switch fn__flex-center" type="checkbox" data-type="${item.key}"${(window.siyuan.jcsm as any)[item.key] ? " checked" : ""}>`
                     );
+                } else if (item.type === 'createActionElement') {
+                    return item.createActionElement?.();
                 }
                 // 可以扩展其他类型的控件
             },
@@ -368,25 +395,24 @@ export default class PluginSnippets extends Plugin {
         });
 
         // 插件设置窗口中的非配置项
-        // 反馈问题
-        this.setting.addItem({
-            title: this.i18n.feedbackIssue,
-            description: this.i18n.feedbackIssueDescription,
-            direction: "column",
-            createActionElement: () => {
-                const repoLink = "https://github.com/TCOTC/snippets";
-                return this.htmlToElement(
-                    `<a href="${repoLink}" target="_blank" rel="noopener noreferrer" class="b3-button b3-button--outline fn__flex-center fn__size200 ariaLabel" aria-label="${repoLink}" data-position="north"><svg><use xlink:href="#iconGithub"></use></svg>${this.i18n.feedbackIssueButton}</a>`
-                );
-            },
-        });
+        // // 反馈问题
+        // this.setting.addItem({
+        //     title: this.i18n.feedbackIssue,
+        //     description: this.i18n.feedbackIssueDescription,
+        //     direction: "column",
+        //     createActionElement: () => {
+        //         const repoLink = "https://github.com/TCOTC/snippets";
+        //         return this.htmlToElement(
+        //             `<a href="${repoLink}" target="_blank" rel="noopener noreferrer" class="b3-button b3-button--outline fn__flex-center fn__size200 ariaLabel" aria-label="${repoLink}" data-position="north"><svg><use xlink:href="#iconGithub"></use></svg>${this.i18n.feedbackIssueButton}</a>`
+        //         );
+        //     },
+        // });
 
-        // 注意事项
-        this.setting.addItem({
-            title: this.i18n.attention,
-            description: this.i18n.attentionDescription,
-            // TODO: attentionDescription 中的 [设置 - 快捷键] 支持点击，点击后跳转到 [设置 - 快捷键] 页面，并滚动到插件的快捷键设置、展开插件的快捷键设置
-        });
+        // // 注意事项
+        // this.setting.addItem({
+        //     description: this.i18n.reloadUIAfterModifyJSNotice,
+        //     // TODO: attentionDescription 中的 [设置 - 快捷键] 支持点击，点击后跳转到 [设置 - 快捷键] 页面，并滚动到插件的快捷键设置、展开插件的快捷键设置
+        // });
     }
 
     /**
@@ -421,7 +447,7 @@ export default class PluginSnippets extends Plugin {
      * 打开插件设置窗口（参考原生代码 app/src/plugin/Setting.ts Setting.open 方法）
      * 方法名固定为 openSetting，支持通过菜单按钮打开、被思源调用打开
      */
-    openSetting() {
+    public openSetting() {
         // 生成设置对话框元素
         const dialog = new Dialog({
             title: this.i18n.pluginDisplayName,
@@ -486,10 +512,12 @@ export default class PluginSnippets extends Plugin {
 
             const target = event.target as HTMLElement;
             const tagName = target.tagName.toLowerCase();
+            const isScrim = target.classList.contains("b3-dialog__scrim");
             const isDispatch = typeof event.detail === "string";
-            if (tagName === "button" || isDispatch) {
+            if (tagName === "button" || isScrim || isDispatch) {
                 const type = target.dataset.type;
-                if (type === "cancel" || (isDispatch && event.detail=== "Escape")) {
+                if (type === "cancel" || isScrim || (isDispatch && event.detail=== "Escape")) {
+                    this.console.log("dialogClickHandler: cancel");
                     event.stopPropagation();
                     this.removeDialog(dialog.element);
                 } else if (type === "confirm" || (isDispatch && event.detail=== "Enter")) {
@@ -500,7 +528,7 @@ export default class PluginSnippets extends Plugin {
         }
 
         // 添加事件监听
-        this.addListener(dialog.element, "click", dialogClickHandler);
+        this.addListener(dialog.element, "click", dialogClickHandler, {capture: true});
         this.addListener(document.documentElement, "keydown", this.keyDownHandler);
         // TODO: 在菜单打开的情况下，桌面端无法滚轮滚动/移动端无法上下划动设置对话框的 .b3-dialog__content，看看能否通过阻止对应事件冒泡来解决
     }
@@ -760,6 +788,7 @@ export default class PluginSnippets extends Plugin {
                 // 切换全局开关只会影响已启用的代码片段，所以过滤出来
                 const filteredSnippets = this.snippetsList.filter((snippet: Snippet) => snippet.type === this.snippetsType && snippet.enabled === true);
                 this.console.log("filteredSnippets", filteredSnippets);
+                // TODO: 如果切换的包含内容不为空且不为空字符的 JS 片段，需要弹出消息提示
                 filteredSnippets.forEach((snippet: Snippet) => {
                     // enabled 为 true 时，snippet.enabled 也一定为 true
                     this.updateSnippetElement(snippet, enabled);
@@ -927,6 +956,7 @@ export default class PluginSnippets extends Plugin {
      */
     private async addOrUpdateSnippet(snippet: Snippet) {
         // 添加的代码片段有可能未启用，所以 updateSnippetElement() 不传入 enabled === true 的参数
+        // TODO: 如果更新的是内容不为空且不为空字符的 JS 片段，需要弹出消息提示
         this.updateSnippetElement(snippet);
         await this.updateSnippetsList();
         // 在 snippetsList 中查找是否存在该代码片段
@@ -1000,6 +1030,7 @@ export default class PluginSnippets extends Plugin {
             return;
         }
         // 删除的代码片段一定需要移除元素，所以 updateSnippetElement() 传入 enabled === false 的参数
+        // TODO: 如果切换的是内容不为空且不为空字符的 JS 片段，需要弹出消息提示
         this.updateSnippetElement(snippet, false);
         // getSnippetById() 方法刚刚执行过了，所以这里不需要再执行 updateSnippetsList()
         // await this.updateSnippetsList();
@@ -1060,8 +1091,8 @@ export default class PluginSnippets extends Plugin {
             snippet.enabled = enabled;
             this.putSnippetsList(this.snippetsList);
             // 更新代码片段元素
-            const shouldUpdate = (this.realTimeApply && snippet.type === "css") || 
-                (!this.realTimeApply && snippet.type === "js");
+            // TODO: 任何代码片段都切换，但如果切换的是内容不为空且不为空字符的 JS 片段，需要弹出消息提示。
+            // 直接在 updateSnippetElement() 中处理提示
             this.updateSnippetElement(snippet);
         }
 
@@ -1152,6 +1183,13 @@ export default class PluginSnippets extends Plugin {
 
         const elementId = `snippet${snippet.type === "css" ? "CSS" : "JS"}${snippet.id}`;
         const element = document.getElementById(elementId);
+
+        if (snippet.type === "js" && this.isValidJavaScript(snippet.content)) {
+            // TODO: 如果切换的是内容是有效的 JavaScript 代码片段，需要弹出消息提示
+            showMessage(this.i18n.reloadUIAfterModifyJS, undefined, "info");
+            // TODO: 高亮重新加载界面按钮
+        }
+
         if (!enabled) {
             // 禁用
             element?.remove();
@@ -1178,6 +1216,25 @@ export default class PluginSnippets extends Plugin {
             }
         }
     };
+
+    /**
+     * 检查内容是否为有效的 JavaScript 代码
+     * @param content 内容
+     * @returns 是否为有效的 JavaScript 代码
+     */
+    private isValidJavaScript(content: string) {
+        try {
+            // 检查是否全是空白字符
+            if (/^\s*$/.test(content)) {
+                return false;
+            }
+            // 使用 acorn 解析代码
+            acorn.parse(content, { ecmaVersion: "latest" });
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
 
 
     // ================================ 对话框相关 ================================
@@ -1298,19 +1355,20 @@ export default class PluginSnippets extends Plugin {
         const switchInput = dialog.element.querySelector("input[data-type='snippetSwitch']") as HTMLInputElement;
         // switchInput.checked = snippet.enabled; // genSnippetDialog 的时候已经添加了 enabled 属性，这里不需要重复设置
 
-        this.addListener(nameElement, "keydown", (event: KeyboardEvent) => {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                contentElement.focus();
+        this.addListener(dialog.element, "keydown", (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement;
+            if (target === nameElement) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    contentElement.focus();
+                }
+                // TODO: 按 Tab 键输入制表符或空格（根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置）
+            } else if (target === contentElement) {
+                // TODO: 按 Tab 键输入制表符或空格（根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置）
+                // TODO: 选中代码按 (Shift +) Tab 键，对选中的代码行，执行（反）缩进
+                // TODO: 按 Ctrl + Enter 键执行 “保存” 操作
             }
-            // TODO: 按 Tab 键输入制表符或空格（根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置）
-        });
-
-        this.addListener(contentElement, "keydown", (event: KeyboardEvent) => {
-            // TODO: 按 Tab 键输入制表符或空格（根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置）
-            // TODO: 选中代码按 (Shift +) Tab 键，对选中的代码行，执行（反）缩进
-            // TODO: 按 Ctrl + Enter 键执行 “保存” 操作
-        });
+        }, {capture: true});
 
         this.addListener(dialog.element, "wheel", (event) => {
             // 阻止冒泡，否则当菜单打开时，输入框无法使用鼠标滚轮滚动
@@ -1320,17 +1378,21 @@ export default class PluginSnippets extends Plugin {
         this.addListener(dialog.element, "mousedown", () => {
             // 点击 Dialog 时要显示在最上层
             this.bringElementToFront(dialog.element);
-
             // 移除菜单上的 b3-menu__item--current，否则 this.keyDownHandler() 会操作菜单
             this.unselectSnippet();
         });
 
-        let oldSnippet = {
+        let oldSnippetValues = {
             name: snippet.name,
             content: snippet.content,
             enabled: snippet.enabled,
         };
+        const closeElement = dialog.element.querySelector(".b3-dialog__close") as HTMLElement;
+        const scrimElement = dialog.element.querySelector(".b3-dialog__scrim") as HTMLElement;
+        // 代码片段编辑对话框的 .b3-dialog__scrim 元素只在桌面端被移除，移动端还是有的，所以要处理点击
+
         this.addListener(dialog.element, "click", async (event: Event) => {
+            this.console.log("dialogClickHandler: event", event);
             // 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭
             event.stopPropagation();
 
@@ -1370,21 +1432,21 @@ export default class PluginSnippets extends Plugin {
                         break;
                     case "apply":
                         // 应用代码片段
-                        const newSnippet = {
+                        const newSnippetValues = {
                             name: nameElement.value,
                             content: contentElement.value,
                             enabled: switchInput.checked,
                         };
                         // 比较对象属性值而不是对象引用
-                        const hasChanges = oldSnippet.name    !== newSnippet.name    ||
-                                           oldSnippet.content !== newSnippet.content ||
-                                           oldSnippet.enabled !== newSnippet.enabled;
+                        const hasChanges = oldSnippetValues.name    !== newSnippetValues.name    ||
+                                           oldSnippetValues.content !== newSnippetValues.content ||
+                                           oldSnippetValues.enabled !== newSnippetValues.enabled;
                         if (hasChanges) {
                             // 代码片段发生变更才推送更新，否则无操作
-                            oldSnippet = newSnippet;
-                            snippet.name = newSnippet.name;
-                            snippet.content = newSnippet.content;
-                            snippet.enabled = newSnippet.enabled;
+                            oldSnippetValues = newSnippetValues;
+                            snippet.name = newSnippetValues.name;
+                            snippet.content = newSnippetValues.content;
+                            snippet.enabled = newSnippetValues.enabled;
                             this.addOrUpdateSnippet(snippet);
                         }
                         break;
@@ -1398,16 +1460,12 @@ export default class PluginSnippets extends Plugin {
                         this.removeDialog(dialog.element);
                         break;
                 }
+            } else if (target === closeElement || target === scrimElement) {
+                this.removeDialog(dialog.element);
             }
             return;
-        });
-
-        const closeElement = dialog.element.querySelector(".b3-dialog__close") as HTMLElement;
-        this.addListener(closeElement, "click", (event: Event) => {
-            event.stopPropagation();
-            this.removeDialog(dialog.element);
-        }, {capture: true}); // 点击 .b3-dialog__close 时需要在捕获阶段阻止冒泡才行，因为原生在这个元素上有个监听器
-
+        }, {capture: true}); // 点击 .b3-dialog__close 和 .b3-dialog__scrim 时需要在捕获阶段阻止冒泡才行，因为原生在这两个元素上有监听器
+        
         return true;
 
         // 还能插入 Protyle 编辑器，以后说不定能用上
@@ -1476,7 +1534,10 @@ export default class PluginSnippets extends Plugin {
         });
         dialog.element.setAttribute("data-key", dataKey ?? "dialog-confirm"); // Constants.DIALOG_CONFIRM
 
-        dialog.element.addEventListener("click", (event) => {
+        const closeElement = dialog.element.querySelector(".b3-dialog__close") as HTMLElement;
+        const scrimElement = dialog.element.querySelector(".b3-dialog__scrim") as HTMLElement;
+
+        this.addListener(dialog.element, "click", (event: KeyboardEvent) => {
             this.console.log("confirmDialog click", event);
             // 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭
             event.stopPropagation();
@@ -1495,10 +1556,14 @@ export default class PluginSnippets extends Plugin {
                         confirm?.();
                         this.removeDialog(dialog.element);
                     break;
+                } else if (target === closeElement || target === scrimElement) {
+                    cancel?.();
+                    this.removeDialog(dialog.element);
+                    break;
                 }
                 target = target.parentElement;
             }
-        });
+        }, {capture: true});
     };
 
     /**
@@ -1506,21 +1571,10 @@ export default class PluginSnippets extends Plugin {
      * @param dialog 对话框
      */
     private removeDialog(dialogElement: HTMLElement) {
+        this.console.log("removeDialog: dialogElement", dialogElement);
         if (dialogElement) {
             // 移除事件监听器
-            const closeElement = dialogElement.querySelector(".b3-dialog__close") as HTMLElement;
-            if (closeElement) {
-                this.removeListener(closeElement);
-            }
             this.removeListener(dialogElement);
-            const nameElement = dialogElement.querySelector(".jcsm-dialog-name") as HTMLTextAreaElement;
-            if (nameElement) {
-                this.removeListener(nameElement);
-            }
-            const contentElement = dialogElement.querySelector(".jcsm-dialog-content") as HTMLTextAreaElement;
-            if (contentElement) {
-                this.removeListener(contentElement);
-            }
             // 关闭动画
             dialogElement.classList.remove("b3-dialog--open");
             setTimeout(() => {
@@ -2015,11 +2069,11 @@ export default class PluginSnippets extends Plugin {
             return;
         }
 
-        // 每隔 30 秒检查一次
+        // 每隔 30 秒检查一次（调试时每隔 2 秒检查一次）
         this.listenerCheckIntervalId = window.setInterval(() => {
             this.isCheckingListeners = false; // 重置检查标志
             this.checkListenerElement();
-        }, 30000);
+        }, this.consoleDebug ? 2000 : 30000);
     }
 
     /**
@@ -2070,6 +2124,7 @@ export default class PluginSnippets extends Plugin {
      * @param options 监听器选项
      */
     private removeListener(element: HTMLElement, event?: string, fn?: (event?: Event) => void, options?: AddEventListenerOptions) {
+        this.console.log("removeListener: element", element);
         if (!element) {
             this.console.warn("removeListener: element is not found");
             return;

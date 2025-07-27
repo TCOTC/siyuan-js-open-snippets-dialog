@@ -39,6 +39,8 @@
   "feedbackIssue": "反馈问题",
   "feedbackIssueDescription": "打开插件的仓库页面，欢迎点击 Star 支持作者",
   "feedbackIssueButton": "打开 GitHub",
-  "attention": "注意事项",
-  "attentionDescription": "JS 代码片段修改后需重新加载界面才能生效，可以在插件的顶栏菜单中点击“重新加载界面”按钮，或者在 [设置 - 快捷键] 中给“重新加载界面”按钮绑定快捷键"
+  "notificationSwitch": "通知总开关",
+  "reloadUIAfterModifyJSNotice": "通知：修改 JS 代码片段",
+  "reloadUIAfterModifyJSNoticeDescription": "修改 JS 代码片段后需重新加载界面才能保证生效，可以在插件的顶栏菜单中点击“重新加载界面”按钮，或者在 [设置 - 快捷键] 中给“重新加载界面”按钮绑定快捷键",
+  "reloadUIAfterModifyJS": "修改 JS 代码片段后需重新加载界面才能保证生效"
 }

@@ -175,6 +175,13 @@
   }
 }
 
+// 插件的所有对话框
+.b3-dialog--open[data-key*="jcsm-"] {
+  .b3-dialog__close use {
+    pointer-events: none;
+  }
+}
+
 // 预留给自定义页签
 // .jcsm {
 //   &__custom-tab {

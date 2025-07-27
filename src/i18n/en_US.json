@@ -39,6 +39,8 @@
   "feedbackIssue": "Feedback issues",
   "feedbackIssueDescription": "Open plugin's repository page, welcome to click Star to support the author",
   "feedbackIssueButton": "Open GitHub",
-  "attention": "Attention",
-  "attentionDescription": "JS snippets need to reload the interface to take effect, you can click the \"Reload UI\" button in the plugin's top bar menu, or bind the \"Reload UI\" button to a shortcut in [Settings - Shortcuts]"
+  "notificationSwitch": "Notification master switch",
+  "reloadUIAfterModifyJSNotice": "Notice: Modifying JS snippets",
+  "reloadUIAfterModifyJSNoticeDescription": "Modifying JS snippets requires reloading the interface to ensure that the changes take effect, you can click the \"Reload UI\" button in the plugin's top bar menu, or bind the \"Reload UI\" button to a shortcut in [Settings - Shortcuts]",
+  "reloadUIAfterModifyJS": "Modifying JS snippets requires reloading the interface to ensure that the changes take effect"
 }
