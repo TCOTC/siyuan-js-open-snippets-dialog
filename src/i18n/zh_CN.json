@@ -25,7 +25,10 @@
   "getPluginLogFailed": "获取插件日志失败",
   "writePluginLogFailed": "写入插件日志失败",
   "realTimeApply": "实时应用 CSS 代码片段的更改",
+  "realTimeApplyDescription": "启用后，当你在代码片段浮窗中修改 CSS 代码片段时，会实时应用到当前界面中",
   "newSnippetEnabled": "新建代码片段时默认启用",
+  "consoleDebug": "在开发者工具中输出插件日志",
+  "consoleDebugDescription": "仅供本插件的开发者调试，非必要请勿开启",
   "feedbackIssue": "反馈问题",
   "feedbackIssueDescription": "打开插件的仓库页面，欢迎点击 Star 支持作者",
   "feedbackIssueButton": "打开 GitHub"

@@ -25,7 +25,10 @@
   "getPluginLogFailed": "Failed to get plugin log",
   "writePluginLogFailed": "Failed to write plugin log",
   "realTimeApply": "Apply CSS snippets changes in real time",
+  "realTimeApplyDescription": "Enable this option, when you modify the CSS snippet in the snippet floating window, the changes will be applied to the current interface in real time",
   "newSnippetEnabled": "Enable new snippets by default",
+  "consoleDebug": "Output logs of the plugin in the developer tool",
+  "consoleDebugDescription": "Only for plugin's developers to debug, do not open unless necessary",
   "feedbackIssue": "Feedback issues",
   "feedbackIssueDescription": "Open plugin's repository page, welcome to click Star to support the author",
   "feedbackIssueButton": "Open GitHub"

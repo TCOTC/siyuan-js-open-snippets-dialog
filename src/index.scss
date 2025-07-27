@@ -158,6 +158,20 @@
   }
 }
 
+// 设置对话框
+#commonMenu[data-name="PluginSnippets"] {
+  // 移动端
+  &.b3-menu--fullscreen ~ div[data-key="jcsm-setting-dialog"] .b3-dialog__content {
+    padding: 4px;
+  }
+
+  // 桌面端
+  &:not(.b3-menu--fullscreen) ~ div[data-key="jcsm-setting-dialog"] .b3-dialog__content {
+    padding: 16px 14px 16px 24px;
+    scrollbar-gutter: stable;
+  }
+}
+
 // 预留给自定义页签
 // .jcsm {
 //   &__custom-tab {

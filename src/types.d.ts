@@ -35,6 +35,7 @@ declare global {
                 listeners?: ListenersArray | null;
                 isCheckingListeners?: boolean;
                 listenerCheckIntervalId?: number | null;
+                consoleDebug?: boolean;
             };
         };
     }
