@@ -712,8 +712,14 @@ export default class PluginSnippets extends Plugin {
                 const snippetElement = this.menuItems.querySelector(".b3-menu__item--current") as HTMLElement;
                 if (snippetElement) {
                     const input = snippetElement.querySelector("input[type='checkbox']") as HTMLInputElement;
-                    input.checked = !input.checked;
-                    this.setSnippetEnabled(snippetElement.dataset.id, input.checked, "menu");
+                    const snippet = await this.getSnippetById(snippetElement.dataset.id);
+                    if (input && snippet) {
+                        input.checked = !input.checked;
+                        // 在菜单上切换代码片段的开关状态要实时保存
+                        snippet.enabled = input.checked;
+                        this.saveSnippetsList(this.snippetsList);
+                        this.updateSnippetElement(snippet);
+                    }
                 }
             } else if (event.detail === "ArrowUp" || event.detail === "ArrowDown") {
                 // 按上下方向键切换代码片段选项
@@ -810,13 +816,9 @@ export default class PluginSnippets extends Plugin {
                         enabled: this.newSnippetEnabled,
                         content: "",
                     };
-                    if (snippet.type === "css" && this.realTimePreview) {
-                        // 如果开启了 CSS 代码片段实时预览，则这个时候就添加代码片段
-                        this.saveSnippet(snippet);
-                        this.openSnippetEditDialog(snippet, this.i18n.save, false);
-                    } else {
-                        this.openSnippetEditDialog(snippet, this.i18n.new, true);
-                    }
+                    // 不直接添加代码片段
+                    // this.saveSnippet(snippet);
+                    this.openSnippetEditDialog(snippet, this.i18n.new);
                 }
             }
         }
@@ -841,7 +843,7 @@ export default class PluginSnippets extends Plugin {
                 const buttonType = target.dataset.type;
                 if (buttonType === "edit") {
                     // 编辑代码片段，打开编辑对话框
-                    this.openSnippetEditDialog(snippet, undefined, false);
+                    this.openSnippetEditDialog(snippet);
                     // 给按钮添加背景色
                     this.setSnippetEditButtonActive(snippetMenuItem);
                     // TODO自定义页签: 编辑页签，等其他功能稳定之后再做
@@ -864,10 +866,15 @@ export default class PluginSnippets extends Plugin {
                     // 如果点击的不是 checkBox 就手工切换开关状态
                     checkBox.checked = !checkBox.checked;
                 }
-                const enabled = checkBox.checked;
-                this.setSnippetEnabled(snippetMenuItem.dataset.id, enabled, "menu");
+                const snippet = await this.getSnippetById(snippetMenuItem.dataset.id);
+                if (snippet) {
+                    // 在菜单上切换代码片段的开关状态要实时保存
+                    snippet.enabled = checkBox.checked;
+                    this.saveSnippetsList(this.snippetsList);
+                    this.updateSnippetElement(snippet);
+                }
                 if (this.isMobile) {
-                    // 移动端点击之后一直高亮不好看
+                    // 移动端点击之后一直高亮着选项不好看，所以清除选中状态
                     this.clearMenuSelection()
                 }
             }
@@ -1051,24 +1058,29 @@ export default class PluginSnippets extends Plugin {
 
         // 在 snippetsList 中查找是否存在该代码片段
         const oldSnippet = await this.getSnippetById(snippet.id);
+        let hasChanges = false;
         if (oldSnippet) {
             // 如果存在，则更新该代码片段
             // 比较对象属性值而不是对象引用
-            const hasChanges = oldSnippet.name    !== snippet.name    ||
-                               oldSnippet.content !== snippet.content ||
-                               oldSnippet.enabled !== snippet.enabled;
-            if (!hasChanges) {
-                // 代码片段发生变更才推送更新，否则无操作
-                return;
+            hasChanges = oldSnippet.name    !== snippet.name    ||
+                         oldSnippet.content !== snippet.content ||
+                         oldSnippet.enabled !== snippet.enabled;
+            if (hasChanges) {
+                this.snippetsList = this.snippetsList.map((s: Snippet) => s.id === snippet.id ? snippet : s);
             }
-            this.snippetsList = this.snippetsList.map((s: Snippet) => s.id === snippet.id ? snippet : s);
         } else {
             // 如果不存在或者 API 调用出错，则将 snippet 添加到 this.snippetsList 开头
             this.snippetsList.unshift(snippet);
+            hasChanges = true;
         }
-        this.saveSnippetsList(this.snippetsList);
+        if (hasChanges) {
+            // 代码片段发生变更才推送更新
+            this.saveSnippetsList(this.snippetsList);
+        }
         this.setMenuSnippetCount();
         // 添加的代码片段有可能未启用，所以 updateSnippetElement() 不传入 enabled === true 的参数
+        // 问题案例: 先禁用整体状态，再在对话框中启用，然后预览，然后保存。会在整体禁用的情况下启用代码片段，或者说没有移除预览时添加的元素
+        //  应该始终执行 updateSnippetElement
         this.updateSnippetElement(snippet);
         this.applySnippetUIChange(snippet, true);
     };
@@ -1174,56 +1186,61 @@ export default class PluginSnippets extends Plugin {
         }
     }
 
-    /**
-     * 设置代码片段启用状态
-     * @param snippetId 代码片段 ID
-     * @param enabled 是否启用
-     * @param type 不需要同步开关状态的类型
-     */
-    private async setSnippetEnabled(snippetId: string, enabled: boolean, type: string) {
-        if (!snippetId) {
-            this.showErrorMessage(this.i18n.toggleSnippetFailed);
-            return;
-        }
-        const snippet: Snippet | undefined | false = await this.getSnippetById(snippetId);
-        if (snippet) {
-            // 更新代码片段列表
-            snippet.enabled = enabled;
-            this.saveSnippetsList(this.snippetsList);
-            // 更新代码片段元素
-            // 直接在 updateSnippetElement() 中处理提示
-            this.updateSnippetElement(snippet);
+    // /**
+    //  * 设置代码片段启用状态
+    //  * @param snippetId 代码片段 ID
+    //  * @param enabled 是否启用
+    //  * @param type 不需要同步开关状态的类型
+    //  */
+    // // TODO: 这个方法集成到 updateSnippetElement() 中
+    // private async setSnippetEnabled(snippetId: string, enabled: boolean, type: string) {
+    //     if (!snippetId) {
+    //         this.showErrorMessage(this.i18n.toggleSnippetFailed);
+    //         return;
+    //     }
+    //     // 在菜单上切换代码片段的开关状态才实时保存
+    //     const snippet: Snippet | undefined | false = await this.getSnippetById(snippetId);
+    //     if (snippet) {
+    //         // // 更新代码片段列表
+    //         // snippet.enabled = enabled;
+    //         // this.saveSnippetsList(this.snippetsList);
+    //         // // 更新代码片段元素
+    //         // // 直接在 updateSnippetElement() 中处理提示
+    //         // this.updateSnippetElement(snippet);
 
-            // 如果当前的操作是开启代码片段、开启了菜单、菜单上显示的是这个类型的代码片段、这个类型的代码片段是关闭状态，则全局开关闪烁一下
-            if (snippet.enabled === true && this.menu && snippet.type === this.snippetsType && !this.isSnippetsTypeEnabled(snippet.type)) {
-                this.setSnippetsTypeSwitchBreathing();
-            }
+    //         // // 如果当前的操作是开启代码片段、开启了菜单、菜单上显示的是这个类型的代码片段、这个类型的代码片段是关闭状态，则全局开关闪烁一下
+    //         // if (snippet.enabled === true && this.menu && snippet.type === this.snippetsType && !this.isSnippetsTypeEnabled(snippet.type)) {
+    //         //     this.setSnippetsTypeSwitchBreathing();
+    //         // }
 
-            // 同步开关状态到其他地方（目前只有 menu 和 dialog，未来可能增加自定义页签）
-            // TODO: 真的需要在这里处理吗？感觉应该只有符合这个条件的才能调用 toggleSnippetEnabled 函数
-            if (type !== "menu" && !this.realTimePreview && snippet.type === "js") {
-                // 如果没有开启 CSS 代码片段实时预览，则不更新
-                return
-            }
-        }
-        if (type !== "menu") {
-            // 切换菜单上对应的代码片段的开关状态
-            const snippetElement = this.menuItems.querySelector(`div[data-id="${snippetId}"]`) as HTMLElement;
-            if (snippetElement) {
-                snippetElement.querySelector("input").checked = enabled;
-            }
-        }
-        if (type !== "dialog") {
-            // 切换对应的 Dialog 中的开关状态
-            const dialog = document.querySelector(`div[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippetId}"]`) as HTMLDivElement;
-            if (dialog) {
-                const switchInput = dialog.querySelector("input[data-type='snippetSwitch']") as HTMLInputElement;
-                if (switchInput) {
-                    switchInput.checked = enabled;
-                }
-            }
-        }
-    };
+    //         // // 同步开关状态到其他地方（目前只有 menu 和 dialog，未来可能增加自定义页签）
+    //         // // TODO: 真的需要在这里处理吗？感觉应该只有符合这个条件的才能调用 toggleSnippetEnabled 函数
+    //         // if (type !== "menu" && !this.realTimePreview && snippet.type === "js") {
+    //         //     // 如果没有开启 CSS 代码片段实时预览，则不更新
+    //         //     return
+    //         // }
+    //     }
+
+    //     // TODO笔记: 开关状态就不同步了，互相影响用起来有点奇怪
+    //     //  对话框保存时会将开关状态同步到菜单上，已经由 applySnippetUIChange 方法处理了
+    //     // if (type !== "menu") {
+    //     //     // 切换菜单上对应的代码片段的开关状态
+    //     //     const snippetElement = this.menuItems.querySelector(`div[data-id="${snippetId}"]`) as HTMLElement;
+    //     //     if (snippetElement) {
+    //     //         snippetElement.querySelector("input").checked = enabled;
+    //     //     }
+    //     // }
+    //     // if (type !== "dialog") {
+    //         // // 切换对应的 Dialog 中的开关状态
+    //         // const dialog = document.querySelector(`div[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippetId}"]`) as HTMLDivElement;
+    //         // if (dialog) {
+    //         //     const switchInput = dialog.querySelector("input[data-type='snippetSwitch']") as HTMLInputElement;
+    //         //     if (switchInput) {
+    //         //         switchInput.checked = enabled;
+    //         //     }
+    //         // }
+    //     // }
+    // };
 
     /**
      * 获取代码片段列表
@@ -1258,8 +1275,9 @@ export default class PluginSnippets extends Plugin {
      * 更新代码片段元素（添加、更新、删除、启用、禁用、全局启用、全局禁用）
      * @param snippet 代码片段
      * @param enabled 是否启用
+     * @param isPreview 是否是实时预览调用了本方法（比如点击“保存”就不算实时预览）
      */
-    private updateSnippetElement(snippet: Snippet, enabled?: boolean) {
+    private updateSnippetElement(snippet: Snippet, enabled?: boolean, isPreview?: boolean) {
         if (!snippet) {
             this.showErrorMessage(this.i18n.updateSnippetElementParamError);
             return;
@@ -1270,37 +1288,39 @@ export default class PluginSnippets extends Plugin {
         const element = document.getElementById(elementId);
 
         // ?? 空值合并运算符，当左侧值为 null 或 undefined 时返回右侧值，此处优先使用 enabled 的值
-        if (enabled ?? snippet.enabled) {
-            // 启用
-            if (element && element.innerHTML === snippet.content) {
-                // 内容无变更，无操作
-                this.console.log("updateSnippetElement: no change");
-                return;
-            } else {
-                // 内容有变更，移除旧元素
-                this.console.log("updateSnippetElement: remove old element");
-                element?.remove();
-            }
-            // 该代码片段对应的类型是启用状态，则添加新元素
-            if (this.isSnippetsTypeEnabled(snippet.type)) {
-                // 插入代码片段元素的方式与原生保持一致
-                if (snippet.type === "css") {
-                    this.console.log("updateSnippetElement: add new element");
-                    document.head.insertAdjacentHTML("beforeend", `<style id="${elementId}">${snippet.content}</style>`);
-                } else if (snippet.type === "js") {
-                    const jsElement = document.createElement("script");
-                    jsElement.type = "text/javascript";
-                    jsElement.text = snippet.content;
-                    jsElement.id = elementId;
-                    document.head.appendChild(jsElement);
-                }
-            } else {
-                // 如果对应类型的代码片段未启用，则不添加元素
-            }
-        } else {
-            // 禁用
-            this.console.log("updateSnippetElement: remove old element, because it's disabled");
+        const isEnabled = enabled ?? snippet.enabled;
+        const isSnippetsTypeEnabled = this.isSnippetsTypeEnabled(snippet.type);
+
+        this.console.log("updateSnippetElement: isEnabled", isEnabled);
+        this.console.log("updateSnippetElement: isSnippetsTypeEnabled", isSnippetsTypeEnabled);
+
+        // TODO: 问题案例：全局禁用 CSS，预览一个 CSS 片段，启用片段，在菜单禁用片段会导致预览元素被移除
+        if (!isEnabled || (element && element.innerHTML !== snippet.content) || !isSnippetsTypeEnabled) {
+            // 禁用，或内容有变更，或该代码片段对应的类型是禁用状态，则移除旧元素
             element?.remove();
+        }
+        
+        // 该代码片段对应的类型是启用状态，则添加新元素
+        // TODO: 放过预览元素，预览的元素不应该受 isSnippetsTypeEnabled 影响
+        if (isEnabled && (isSnippetsTypeEnabled || isPreview)) {
+            // 启用，并且该代码片段对应的类型是启用状态，则添加新元素
+            // 插入代码片段元素的方式与原生保持一致
+            if (snippet.type === "css") {
+                this.console.log("updateSnippetElement: add new element");
+                document.head.insertAdjacentHTML("beforeend", `<style id="${elementId}">${snippet.content}</style>`);
+            } else if (snippet.type === "js") {
+                const jsElement = document.createElement("script");
+                jsElement.type = "text/javascript";
+                jsElement.text = snippet.content;
+                jsElement.id = elementId;
+                document.head.appendChild(jsElement);
+            }
+        }
+
+        // TODO: 这个条件判断需要再确认一下，并且看看有没有办法简化
+        // 如果当前的操作是在非预览状态下、开启代码片段、开启了菜单、菜单上显示的是这个类型的代码片段、这个类型的代码片段是关闭状态，则全局开关闪烁一下
+        if (!isPreview && snippet.enabled === true && this.menu && snippet.type === this.snippetsType && !this.isSnippetsTypeEnabled(snippet.type)) {
+            this.setSnippetsTypeSwitchBreathing();
         }
 
         // 需要弹出消息提示的情况：
@@ -1380,7 +1400,7 @@ export default class PluginSnippets extends Plugin {
      * @param snippetId 代码片段 ID
      * @param confirmText 确认按钮的文案
      */
-    private async openSnippetEditDialog(snippet: Snippet, confirmText?: string, isNewSnippet?: boolean) {
+    private async openSnippetEditDialog(snippet: Snippet, confirmText?: string) {
         if (this.getDialogByDataKey("jcsm-setting-dialog")) {
             // 如果设置对话框打开，则不打开代码片段编辑对话框
             return;
@@ -1454,12 +1474,6 @@ export default class PluginSnippets extends Plugin {
         const switchInput = dialog.element.querySelector("input[data-type='snippetSwitch']") as HTMLInputElement;
         // switchInput.checked = snippet.enabled; // genSnippetDialog 的时候已经添加了 enabled 属性，这里不需要重复设置
 
-        if (!isNewSnippet) {
-            // 不是新建的代码片段才显示删除按钮
-            const deleteButton = dialog.element.querySelector("button[data-action='delete']") as HTMLButtonElement;
-            deleteButton?.classList.remove("fn__none");
-        }
-
         this.addListener(dialog.element, "keydown", (event: KeyboardEvent) => {
             const target = event.target as HTMLElement;
             if (target === nameElement) {
@@ -1505,8 +1519,6 @@ export default class PluginSnippets extends Plugin {
             if (tagName === "input" && target === switchInput) {
                 // 切换代码片段的开关状态
                 if (this.realTimePreview && snippet.type === "css") {
-                    // const enabled = switchInput.checked;
-                    // this.setSnippetEnabled(dialog.element.dataset.snippetId, enabled, "dialog");
                     realTimePreviewHandler();
                 }
             } else if (tagName === "button") {
@@ -1522,25 +1534,7 @@ export default class PluginSnippets extends Plugin {
                         break;
                     case "cancel":
                         // 取消
-                        const cancelHandler = () => {
-                            // 更新 CSS 代码片段元素，恢复预览 CSS 代码片段时的变更
-                            if (snippet.type === "css") {
-                                this.updateSnippetElement(snippet);
-                            }
-                            // 关闭 Dialog
-                            this.closeDialogByElement(dialog.element);
-                        }
-                        const hasChanged = snippet.name !== nameElement.value || snippet.content !== contentElement.value || snippet.enabled !== switchInput.checked;
-                        if (hasChanged) {
-                            // 有变更，弹窗提示确认
-                            this.openSnippetCancelDialog(snippet.name, () => {
-                                cancelHandler();
-                            }); // 取消后无操作
-                            return;
-                        } else {
-                            // 没有变更
-                            cancelHandler();
-                        }
+                        cancelHandler();
                         break;
                     case "preview":
                         // 预览代码片段
@@ -1559,11 +1553,34 @@ export default class PluginSnippets extends Plugin {
                         break;
                 }
             } else if (target === closeElement || target === scrimElement) {
-                this.closeDialogByElement(dialog.element);
+                cancelHandler();
             }
             return;
         }, {capture: true}); // 点击 .b3-dialog__close 和 .b3-dialog__scrim 时需要在捕获阶段阻止冒泡才行，因为原生在这两个元素上有监听器
         
+        // 取消编辑代码片段
+        const cancelHandler = () => {
+            const cancel = () => {
+                // 更新 CSS 代码片段元素，恢复预览 CSS 代码片段时的变更
+                if (snippet.type === "css") {
+                    this.updateSnippetElement(snippet);
+                }
+                // 关闭 Dialog
+                this.closeDialogByElement(dialog.element);
+            }
+
+            const hasChanged = snippet.name !== nameElement.value || snippet.content !== contentElement.value || snippet.enabled !== switchInput.checked;
+            if (hasChanged) {
+                // 有变更，弹窗提示确认
+                this.openSnippetCancelDialog(snippet.name, () => {
+                    cancel();
+                }); // 取消后无操作
+                return;
+            } else {
+                // 没有变更
+                cancel();
+            }
+        }
         // CSS 代码片段实时预览
         const realTimePreviewHandler = () => {
             this.console.log("realTimePreviewCSS");
@@ -1580,10 +1597,15 @@ export default class PluginSnippets extends Plugin {
             };
             // 只更新代码片段元素，不保存代码片段
             // this.saveSnippet(snippet);
-            this.updateSnippetElement(previewSnippet);
+            this.updateSnippetElement(previewSnippet, undefined, true);
         }
 
         if (snippet.type === "css") {
+            // 打开对话框时先执行一次预览
+            if (this.realTimePreview) {
+                realTimePreviewHandler();
+            }
+            // 监听输入框内容变化，实时预览
             this.addListener(dialog.element, "input", () => {
                 if (this.realTimePreview) {
                     realTimePreviewHandler();
@@ -1604,7 +1626,8 @@ export default class PluginSnippets extends Plugin {
      * @param confirm 确认回调
      * @param cancel 取消回调
      */
-    private openSnippetDeleteDialog(snippetName: string, confirm?: () => void, cancel?: () => void) {
+    private openSnippetDeleteDialog(snippetName: string, confirm?: () => void) {
+        // TODO: 实现了代码片段回收站之后，增加一个“不再提示”按钮，点击之后修改配置项、弹出消息说明可以在插件设置中开关
         this.openConfirmDialog(
             this.i18n.deleteSnippet,
             this.i18n.deleteSnippetConfirm.replace("${x}", snippetName ? " <b>" + snippetName + "</b> " : ""),
@@ -1612,10 +1635,6 @@ export default class PluginSnippets extends Plugin {
             () => {
                 // 删除代码片段
                 confirm?.();
-            },
-            () => {
-                // 不删除代码片段（无操作）
-                cancel?.();
             }
         );
 
@@ -1629,7 +1648,7 @@ export default class PluginSnippets extends Plugin {
      * @param confirm 确认回调
      * @param cancel 取消回调
      */
-    private openSnippetCancelDialog(snippetName: string, confirm?: () => void, cancel?: () => void) {
+    private openSnippetCancelDialog(snippetName: string, confirm?: () => void) {
         this.openConfirmDialog(
             this.i18n.cancelSnippet,
             this.i18n.cancelSnippetConfirm.replace("${x}", snippetName ? " <b>" + snippetName + "</b> " : ""),
@@ -1637,15 +1656,8 @@ export default class PluginSnippets extends Plugin {
             () => {
                 // 取消编辑代码片段
                 confirm?.();
-            },
-            () => {
-                // 不取消编辑代码片段（无操作）
-                cancel?.();
             }
         );
-
-        // 不需要移除菜单上的 b3-menu__item--current，方便判断点击的是哪个代码片段
-        // this.unselectSnippet();
     };
 
     /**
