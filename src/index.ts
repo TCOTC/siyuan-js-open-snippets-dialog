@@ -950,63 +950,36 @@ export default class PluginSnippets extends Plugin {
      */
     private async addOrUpdateSnippet(snippet: Snippet) {
         this.console.log("addOrUpdateSnippet: snippet", snippet);
-        // 添加的代码片段有可能未启用，所以 updateSnippetElement() 不传入 enabled === true 的参数
-        this.updateSnippetElement(snippet);
-        await this.updateSnippetsList();
+
+        // TODO: 考虑在调用 addOrUpdateSnippet 之前使用 updateSnippetsList
+        // await this.updateSnippetsList();
+
+        if (this.isUpdateSnippetsList === false) {
+            // 在执行 getSnippetById() 和 this.snippetsList 变更前执行
+            await this.updateSnippetsList();
+        }
         // 在 snippetsList 中查找是否存在该代码片段
-        const existedSnippet = this.snippetsList.find((s: Snippet) => s.id === snippet.id);
-        if (existedSnippet) {
+        const oldSnippet = await this.getSnippetById(snippet.id);
+        if (oldSnippet) {
             // 如果存在，则更新该代码片段
+            // 比较对象属性值而不是对象引用
+            const hasChanges = oldSnippet.name    !== snippet.name    ||
+                               oldSnippet.content !== snippet.content ||
+                               oldSnippet.enabled !== snippet.enabled;
+            if (!hasChanges) {
+                // 代码片段发生变更才推送更新，否则无操作
+                return;
+            }
             this.snippetsList = this.snippetsList.map((s: Snippet) => s.id === snippet.id ? snippet : s);
-            this.putSnippetsList(this.snippetsList);
         } else {
             // 如果不存在，则将 snippet 添加到 snippetsList 开头
             this.snippetsList.unshift(snippet);
-            this.putSnippetsList(this.snippetsList);
         }
+        this.putSnippetsList(this.snippetsList);
         this.updateSnippetCount();
-
-        // 修改相关的元素
-        // TODO: 重复的代码比较多，单独提取为一个 applySnippetChange 方法，然后 addOrUpdateSnippet 和 deleteSnippet 调用时传递一个参数
-        // 更新菜单
-        const snippetMenuItem = this.menuItems.querySelector(`.jcsm-snippet-item[data-id="${snippet.id}"]`) as HTMLElement;
-        if (snippetMenuItem) {
-            // 如果菜单中存在该代码片段，则更新该代码片段
-            const nameElement = snippetMenuItem.querySelector(".jcsm-snippet-name") as HTMLElement;
-            if (nameElement) {
-                nameElement.textContent = snippet.name;
-            }
-            const switchElement = snippetMenuItem.querySelector("input") as HTMLInputElement;
-            if (switchElement) {
-                switchElement.checked = snippet.enabled;
-            }
-        } else {
-            // 如果菜单中没有该代码片段，则将代码片段添加到菜单顶部
-            const snippetsHtml = this.genSnippetsHtml([snippet]);
-            this.menuItems.querySelector(".jcsm-top-container")?.insertAdjacentHTML("afterend", snippetsHtml);
-        }
-        // 修改对应的 Dialog
-        // TODO: getDialogByDataId 方法
-        const dialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippet.id}"]`) as HTMLDivElement;
-        if (dialog) {
-            this.console.log("addOrUpdateSnippet: dialog", dialog);
-            // 显示删除按钮
-            const deleteButton = dialog.querySelector(`.jcsm-dialog .jcsm-dialog-container button[data-action="delete"]`) as HTMLButtonElement;
-            if (deleteButton) {
-                this.console.log("addOrUpdateSnippet: deleteButton", deleteButton);
-                deleteButton.classList.remove("fn__none");
-            }
-            // 显示“应用”按钮
-            const applyButton = dialog.querySelector(`.jcsm-dialog .b3-dialog__action button[data-action="apply"]`) as HTMLButtonElement;
-            if (applyButton) {
-                applyButton.classList.remove("fn__none");
-            }
-            // 将“新建”按钮的文案改为“保存”
-            const confirmButton = dialog.querySelector(`.jcsm-dialog .b3-dialog__action button[data-action="confirm"]`) as HTMLButtonElement;
-            if (confirmButton) {
-                confirmButton.textContent = this.i18n.save;
-            }
-        }
+        // 添加的代码片段有可能未启用，所以 updateSnippetElement() 不传入 enabled === true 的参数
+        this.updateSnippetElement(snippet);
+        this.applySnippetChange(snippet, true);
     };
 
     /**
@@ -1020,50 +993,76 @@ export default class PluginSnippets extends Plugin {
             this.showErrorMessage(this.i18n.deleteSnippetFailed);
             return;
         }
+        if (this.isUpdateSnippetsList === false) {
+            await this.updateSnippetsList();
+        }
         const snippet = await this.getSnippetById(id);
         if (!snippet) {
             this.showErrorMessage(this.i18n.getSnippetFailed);
             return;
         }
-        // 删除的代码片段一定需要移除元素，所以 updateSnippetElement() 传入 enabled === false 的参数
-        this.updateSnippetElement(snippet, false);
-        // getSnippetById() 方法刚刚执行过了，所以这里不需要再执行 updateSnippetsList()
-        // await this.updateSnippetsList();
         // TODO: getSnippetById 需要使用旧的 this.snippetsList，所以下面才修改 this.snippetsList ？
         this.snippetsList = this.snippetsList.filter((snippet: Snippet) => snippet.id !== id);
         this.putSnippetsList(this.snippetsList);
         this.updateSnippetCount();
-
-        // 修改相关的元素
-        // 移除菜单项
-        const snippetMenuItem = this.menuItems.querySelector(`.jcsm-snippet-item[data-id="${id}"]`) as HTMLElement;
-        snippetMenuItem?.remove();
-        // 修改对应的 Dialog
-        const dialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippet.id}"]`) as HTMLDivElement;
-        if (dialog) {
-            // 隐藏删除按钮
-            const deleteButton = dialog.querySelector(`.jcsm-dialog .jcsm-dialog-container button[data-action="delete"]`) as HTMLButtonElement;
-            if (deleteButton) {
-                deleteButton.classList.add("fn__none");
-            }
-            // 隐藏“应用”按钮
-            const applyButton = dialog.querySelector(`.jcsm-dialog .b3-dialog__action button[data-action="apply"]`) as HTMLButtonElement;
-            if (applyButton) {
-                applyButton.classList.add("fn__none");
-            }
-            // 将“保存”按钮的文案改为“新建”
-            const confirmButton = dialog.querySelector(`.jcsm-dialog .b3-dialog__action button[data-action="confirm"]`) as HTMLButtonElement;
-            if (confirmButton) {
-                confirmButton.textContent = this.i18n.new;
-            }
-        }
+        // 删除的代码片段一定需要移除元素，所以 updateSnippetElement() 传入 enabled === false 的参数
+        this.updateSnippetElement(snippet, false);
+        this.applySnippetChange(snippet, false);
     };
 
     /**
      * 应用代码片段变更
      */
-    private applySnippetChange() {
-        // TODO: 应用代码片段变更
+    private applySnippetChange(snippet: Snippet, isAddOrUpdate: boolean) {
+        const snippetMenuItem = this.menuItems.querySelector(`.jcsm-snippet-item[data-id="${snippet.id}"]`) as HTMLElement;
+        const dialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippet.id}"]`) as HTMLDivElement;
+        let deleteButton, applyButton, confirmButton;
+        if (dialog) {
+            deleteButton = dialog.querySelector(`.jcsm-dialog .jcsm-dialog-container button[data-action="delete"]`) as HTMLButtonElement;
+            applyButton = dialog.querySelector(`.jcsm-dialog .b3-dialog__action button[data-action="apply"]`) as HTMLButtonElement;
+            confirmButton = dialog.querySelector(`.jcsm-dialog .b3-dialog__action button[data-action="confirm"]`) as HTMLButtonElement;
+        }
+        // 应用代码片段变更，修改相关的元素
+        if (isAddOrUpdate) {
+            if (snippetMenuItem) {
+                // 更新菜单项
+                const nameElement = snippetMenuItem.querySelector(".jcsm-snippet-name") as HTMLElement;
+                if (nameElement) {
+                    nameElement.textContent = snippet.name;
+                }
+                const switchElement = snippetMenuItem.querySelector("input") as HTMLInputElement;
+                if (switchElement) {
+                    switchElement.checked = snippet.enabled;
+                }
+            } else {
+                // 添加菜单项
+                const snippetsHtml = this.genSnippetsHtml([snippet]);
+                this.menuItems.querySelector(".jcsm-top-container")?.insertAdjacentHTML("afterend", snippetsHtml);
+            }
+
+            // 修改对应的 Dialog
+            // 显示删除按钮
+            deleteButton?.classList.remove("fn__none");
+            // 显示“应用”按钮
+            applyButton?.classList.remove("fn__none");
+            if (confirmButton) {
+                // 将“新建”按钮的文案改为“保存”
+                confirmButton.textContent = this.i18n.save;
+            }
+        } else {
+            // 移除菜单项
+            snippetMenuItem?.remove();
+
+            // 修改对应的 Dialog
+            // 隐藏删除按钮
+            deleteButton?.classList.add("fn__none");
+            // 隐藏“应用”按钮
+            applyButton?.classList.add("fn__none");
+            if (confirmButton) {
+                // 将“保存”按钮的文案改为“新建”
+                confirmButton.textContent = this.i18n.new;
+            }
+        }
     }
 
     /**
@@ -1072,7 +1071,6 @@ export default class PluginSnippets extends Plugin {
      * @returns 代码片段
      */
     private async getSnippetById(id: string) {
-        await this.updateSnippetsList();
         return this.snippetsList.find((snippet: Snippet) => snippet.id === id);
     }
 
@@ -1122,12 +1120,14 @@ export default class PluginSnippets extends Plugin {
         }
     };
 
+    private isUpdateSnippetsList: boolean = false;
 
     /**
      * 更新代码片段列表
      */
     private async updateSnippetsList() {
         const snippetsList = await this.getSnippetsList();
+        // TODO: 这里是直接比较引用就行还是得遍历比较值？
         if (snippetsList && this.snippetsList !== snippetsList) {
             // 有可能会不同，比如其他插件修改了代码片段，所以需要处理更新
             // TODO: 通过对比相同 ID 的代码片段，查询出现差异的代码片段，然后处理对应的差异
@@ -1136,7 +1136,74 @@ export default class PluginSnippets extends Plugin {
             // 3. 开关状态：切换代码片段的开关状态，如果是关闭的 JS 片段但是在 DOM 中找到了对应的元素，要移除元素然后弹出消息提示用户重载界面（如果这个消息的开关打开的话）
             // 4. 标题：查找对应的代码片段编辑对话框更新标题
             // TODO: 感觉可以调用 addOrUpdateSnippet 和 deleteSnippet 方法来处理差异，所以不应该直接执行下面的 this.snippetsList = snippetsList; 来更新变量
-            this.snippetsList = snippetsList;
+
+            this.isUpdateSnippetsList = true;
+            
+            // 遍历处理
+            // 仅处理新增 → 执行 addOrUpdateSnippet()
+            
+            // 创建新旧代码片段的 Map，方便快速查找
+            const oldSnippetsMap = new Map<string, Snippet>();
+            const newSnippetsMap = new Map<string, Snippet>();
+            
+            // 构建旧代码片段 Map
+            this.snippetsList.forEach(snippet => {
+                if (snippet.id) {
+                    oldSnippetsMap.set(snippet.id, snippet);
+                }
+            });
+            
+            // 构建新代码片段 Map
+            snippetsList.forEach(snippet => {
+                if (snippet.id) {
+                    newSnippetsMap.set(snippet.id, snippet);
+                }
+            });
+            
+            // 处理新增和变更的代码片段
+            for (const [id, newSnippet] of newSnippetsMap) {
+                const oldSnippet = oldSnippetsMap.get(id);
+                if (!oldSnippet) {
+                    // 新增的代码片段
+                    this.console.log("检测到新增代码片段:", newSnippet.name);
+                    await this.addOrUpdateSnippet(newSnippet);
+                } else {
+                    // 检查是否有变更
+                    const hasChanges = oldSnippet.name !== newSnippet.name ||
+                                     oldSnippet.content !== newSnippet.content ||
+                                     oldSnippet.enabled !== newSnippet.enabled ||
+                                     oldSnippet.type !== newSnippet.type;
+                    
+                    if (hasChanges) {
+                        // 检查类型变更（异常情况）
+                        if (oldSnippet.type !== newSnippet.type) {
+                            this.console.warn("检测到代码片段类型变更，这是异常情况:", {
+                                id: id,
+                                oldType: oldSnippet.type,
+                                newType: newSnippet.type
+                            });
+                            // 类型变更时，先删除旧的，再添加新的
+                            await this.deleteSnippet(id, oldSnippet.type);
+                            await this.addOrUpdateSnippet(newSnippet);
+                        } else {
+                            // 正常的内容或状态变更
+                            this.console.log("检测到代码片段变更:", newSnippet.name);
+                            await this.addOrUpdateSnippet(newSnippet);
+                        }
+                    }
+                }
+            }
+            
+            // 处理移除的代码片段
+            for (const [id, oldSnippet] of oldSnippetsMap) {
+                if (!newSnippetsMap.has(id)) {
+                    // 移除的代码片段
+                    this.console.log("检测到移除代码片段:", oldSnippet.name);
+                    await this.deleteSnippet(id, oldSnippet.type);
+                }
+            }
+            
+            this.isUpdateSnippetsList = false;
         }
     }
 
@@ -1197,9 +1264,12 @@ export default class PluginSnippets extends Plugin {
             element?.remove();
         } else {
             // 启用
-            // 移除旧元素
-            if (element && element.innerHTML !== snippet.content) {
-                element.remove();
+            if (element && element.innerHTML === snippet.content) {
+                // 内容无变更，无操作
+                return;
+            } else {
+                // 内容有变更，移除旧元素
+                element?.remove();
             }
             // 添加新元素
             if (!this.isSnippetsTypeEnabled(snippet.type)) {
@@ -1394,11 +1464,6 @@ export default class PluginSnippets extends Plugin {
             this.unselectSnippet();
         });
 
-        let oldSnippetValues = {
-            name: snippet.name,
-            content: snippet.content,
-            enabled: snippet.enabled,
-        };
         const closeElement = dialog.element.querySelector(".b3-dialog__close") as HTMLElement;
         const scrimElement = dialog.element.querySelector(".b3-dialog__scrim") as HTMLElement;
         // 代码片段编辑对话框的 .b3-dialog__scrim 元素只在桌面端被移除，移动端还是有的，所以要处理点击
@@ -1437,23 +1502,10 @@ export default class PluginSnippets extends Plugin {
                         break;
                     case "apply":
                         // 应用代码片段
-                        const newSnippetValues = {
-                            name: nameElement.value,
-                            content: contentElement.value,
-                            enabled: switchInput.checked,
-                        };
-                        // 比较对象属性值而不是对象引用
-                        const hasChanges = oldSnippetValues.name    !== newSnippetValues.name    ||
-                                           oldSnippetValues.content !== newSnippetValues.content ||
-                                           oldSnippetValues.enabled !== newSnippetValues.enabled;
-                        if (hasChanges) {
-                            // 代码片段发生变更才推送更新，否则无操作
-                            oldSnippetValues = newSnippetValues;
-                            snippet.name = newSnippetValues.name;
-                            snippet.content = newSnippetValues.content;
-                            snippet.enabled = newSnippetValues.enabled;
-                            this.addOrUpdateSnippet(snippet);
-                        }
+                        snippet.name = nameElement.value;
+                        snippet.content = contentElement.value;
+                        snippet.enabled = switchInput.checked;
+                        this.addOrUpdateSnippet(snippet);
                         break;
                     case "confirm":
                         // 新建/更新代码片段
