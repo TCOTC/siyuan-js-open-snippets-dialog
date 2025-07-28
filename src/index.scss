@@ -205,3 +205,61 @@
 //     padding: 2px 8px;
 //   }
 // }
+
+:root {
+  --jcsm-breathing-color: color-mix(in srgb, var(--b3-theme-primary) 20%, transparent);
+}
+
+// 呼吸动画
+.jcsm-breathing {
+  animation: breathing 3s ease-in-out infinite;
+}
+
+@keyframes breathing {
+  0% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: var(--jcsm-breathing-color);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.jcsm-active {
+  background-color: var(--jcsm-breathing-color);
+}
+
+// 开关按钮呼吸动画一次
+input[type="checkbox"].jcsm-input-breathing--once:not(:checked) {
+  animation: input-breathing 1s ease-in-out 1;
+
+  &::after {
+    animation: input-breathing-after 1s ease-in-out 1;
+  }
+}
+
+@keyframes input-breathing {
+  0% {
+    background-color: var(--b3-switch-background);
+  }
+  50% {
+    background-color: var(--b3-switch-checked-background);
+  }
+  100% {
+    background-color: var(--b3-switch-background);
+  }
+}
+
+@keyframes input-breathing-after {
+  0% {
+    background-color: var(--b3-switch-border);
+  }
+  50% {
+    background-color: var(--b3-switch-checked);
+  }
+  100% {
+    background-color: var(--b3-switch-border);
+  }
+}

@@ -11,12 +11,12 @@
     "all"
   ],
   "displayName": {
-    "default": "Snippets Manager",
+    "default": "Code Snippets Manager",
     "zh_CN": "代码片段管理器"
   },
   "description": {
-    "default": "Add a button to the top bar to quickly manage snippets",
-    "zh_CN": "在顶栏添加按钮，快捷管理代码片段"
+    "default": "The best plugin to manage and edit code snippets",
+    "zh_CN": "管理与编辑代码片段最好用的插件"
   },
   "readme": {
     "default": "README.md",
@@ -28,6 +28,7 @@
     ]
   },
   "keywords": [
+    "Code Snippets",
     "Open Snippets Dialog",
     "Open Snippets Panel",
     "View Snippets",

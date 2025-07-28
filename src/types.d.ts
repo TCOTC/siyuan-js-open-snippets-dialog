@@ -38,6 +38,7 @@ declare global {
                 consoleDebug?: boolean;
                 notificationSwitch?: boolean;
                 reloadUIAfterModifyJS?: boolean;
+                isReloadUIButtonBreathing?: boolean;
             };
         };
     }
