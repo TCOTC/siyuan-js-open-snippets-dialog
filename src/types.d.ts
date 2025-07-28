@@ -30,7 +30,7 @@ declare global {
                 isMobile?: boolean;
                 snippetsType?: string;
                 snippetsList?: Snippet[];
-                realTimeApply?: boolean;
+                realTimePreview?: boolean;
                 newSnippetEnabled?: boolean;
                 listeners?: ListenersArray | null;
                 isCheckingListeners?: boolean;

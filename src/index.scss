@@ -231,12 +231,22 @@
   background-color: var(--jcsm-breathing-color);
 }
 
+.jcsm-switch {
+  background-color: var(--b3-switch-background);
+  border-color: var(--b3-switch-border);
+
+  &:checked {
+    background-color: var(--b3-switch-checked-background);
+    border-color: transparent;
+  }
+}
+
 // 开关按钮呼吸动画一次
-input[type="checkbox"].jcsm-input-breathing--once:not(:checked) {
-  animation: input-breathing 1s ease-in-out 1;
+.jcsm-switch.jcsm-input-breathing--once:not(:checked) {
+  animation: input-breathing .7s ease-in-out 1;
 
   &::after {
-    animation: input-breathing-after 1s ease-in-out 1;
+    animation: input-breathing-after .7s ease-in-out 1;
   }
 }
 
