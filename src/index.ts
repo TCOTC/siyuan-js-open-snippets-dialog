@@ -837,7 +837,7 @@ export default class PluginSnippets extends Plugin {
                     };
                     // 不直接添加代码片段
                     // this.saveSnippet(snippet);
-                    this.openSnippetEditDialog(snippet, this.i18n.new);
+                    this.openSnippetEditDialog(snippet, true);
                 }
             }
         }
@@ -1463,7 +1463,7 @@ export default class PluginSnippets extends Plugin {
      * @param snippetId 代码片段 ID
      * @param confirmText 确认按钮的文案
      */
-    private async openSnippetEditDialog(snippet: Snippet, confirmText?: string) {
+    private async openSnippetEditDialog(snippet: Snippet, isNew?: boolean) {
         if (this.getDialogByDataKey("jcsm-setting-dialog")) {
             // 如果设置对话框打开，则不打开代码片段编辑对话框
             return;
@@ -1485,19 +1485,6 @@ export default class PluginSnippets extends Plugin {
             this.showErrorMessage(this.i18n.snippetDialogParamError + "[" + paramError.join(", ") + "]");
             return false;
         }
-
-        // 重置 Dialog 样式
-        const resetDialogRootStyle = (dialogRootElement: HTMLElement) => {
-            dialogRootElement.style.zIndex = (++window.siyuan.zIndex).toString();
-            dialogRootElement.querySelector(".b3-dialog__scrim")?.remove();
-            const dialogElement = dialogRootElement.querySelector(".b3-dialog") as HTMLElement;
-            dialogElement.style.width = "0";
-            dialogElement.style.height = "0";
-            dialogElement.style.left = "50vw";
-            dialogElement.style.top = "50vh";
-            const dialogContainer = dialogElement.querySelector(".b3-dialog__container") as HTMLElement;
-            dialogContainer.style.position = "fixed";
-        }
         
         // 如果已经有打开的对应 snippetId 的 Dialog，则激活它
         const existedDialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippet.id}"]`) as HTMLDivElement;
@@ -1511,12 +1498,30 @@ export default class PluginSnippets extends Plugin {
 
         // 创建 Dialog
         const dialog = new Dialog({
-            content: this.genSnippetEditDialog(snippet, confirmText),
+            content: this.genSnippetEditDialog(snippet, isNew ? this.i18n.new : undefined),
             width: this.isMobile ? "92vw" : "70vw",
             height: "80vh",
             hideCloseIcon: this.isMobile,
         });
         // 备注：dialog.destroy() 方法会导致菜单被关闭，需要时使用重新实现的 removeDialog()
+
+        if (!isNew) {
+            const deleteButton = dialog.element.querySelector("button[data-action='delete']") as HTMLButtonElement;
+            deleteButton.classList.remove("fn__none");
+        }
+
+        // 重置 Dialog 样式
+        const resetDialogRootStyle = (dialogRootElement: HTMLElement) => {
+            dialogRootElement.style.zIndex = (++window.siyuan.zIndex).toString();
+            dialogRootElement.querySelector(".b3-dialog__scrim")?.remove();
+            const dialogElement = dialogRootElement.querySelector(".b3-dialog") as HTMLElement;
+            dialogElement.style.width = "0";
+            dialogElement.style.height = "0";
+            dialogElement.style.left = "50vw";
+            dialogElement.style.top = "50vh";
+            const dialogContainer = dialogElement.querySelector(".b3-dialog__container") as HTMLElement;
+            dialogContainer.style.position = "fixed";
+        }
 
         if (!this.isMobile) {
             // 桌面端支持同时打开多个 Dialog，需要修改样式
@@ -1634,11 +1639,18 @@ export default class PluginSnippets extends Plugin {
 
             const currentSnippet = await this.getSnippetById(snippet.id);
             if (currentSnippet === undefined) {
-                // 如果当前代码片段不存在，说明是在取消新建代码片段
-                this.openSnippetCancelDialog(snippet.name, () => {
+                // TODO: 如果当前代码片段不存在，说明是在“取消新建代码片段”
+                // 如果没有填任何内容，则直接关闭 Dialog
+                if (nameElement.value === "" && contentElement.value === "") {
                     cancel();
-                });
-                return;
+                    return;
+                } else {
+                    // 如果填了内容，则弹窗提示确认
+                    this.openSnippetCancelDialog(snippet.name, () => {
+                        cancel();
+                    });
+                    return;
+                }
             } else if (currentSnippet === false) {
                 // API 调用失败，无法确认是否存在更改，直接关闭 Dialog
                 cancel();
@@ -1728,11 +1740,22 @@ export default class PluginSnippets extends Plugin {
      * @param confirm 确认回调
      * @param cancel 取消回调
      */
-    private openSnippetCancelDialog(snippetName: string, confirm?: () => void) {
-        this.openConfirmDialog(
-            this.i18n.cancelSnippet,
-            this.i18n.cancelSnippetConfirm.replace("${x}", snippetName ? " <b>" + snippetName + "</b> " : ""),
+    private openSnippetCancelDialog(snippetName: string, confirm?: () => void, isNew?: boolean) {
+        // TODO: 修改文案
+        // 取消操作确认
+        // [XX的修改未保存/有未保存的修改]，确定要[取消编辑/退出新建]代码片段吗？
+        // 继续编辑  放弃修改<红色>
+        let text: string;
+        if (isNew) {
             // TODO: 把“有未保存的修改”改成具体的“标题修改未保存”“内容修改未保存”“标题和内容修改未保存”“开关状态修改未保存”...
+            text = this.i18n.cancelConfirmNewSnippet.replace("${y}", snippetName ? " <b>" + snippetName + "</b> " : "");
+        } else {
+            text = this.i18n.cancelConfirmEditSnippet.replace("${y}", snippetName ? " <b>" + snippetName + "</b> " : "")
+        }
+
+        this.openConfirmDialog(
+            this.i18n.cancelConfirm,
+            text,
             "jcsm-snippet-cancel",
             () => {
                 // 取消编辑代码片段
@@ -2016,6 +2039,8 @@ export default class PluginSnippets extends Plugin {
      * 重新加载界面
      */
     private reloadUI() {
+        // TODO: 方案1：获取界面上所有打开的代码片段编辑对话框，判断是否存在未保存的变更，如果有的话需要弹窗确认再重载界面
+        // TODO: 方案2：获取界面上所有打开的代码片段编辑对话框（包括相关内联样式），重载界面之后恢复对话框的位置、大小、内容...
         fetchPost("/api/ui/reloadUI", (response: any) => {
             if (response.status !== 200) {
                 this.showErrorMessage(this.i18n.reloadUIFailed);
