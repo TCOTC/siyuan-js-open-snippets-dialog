@@ -1026,7 +1026,6 @@ export default class PluginSnippets extends Plugin {
      */
     private setAllSnippetsEditButtonActive() {
         const dialogs = document.querySelectorAll(`.b3-dialog--open[data-key="jcsm-snippet-dialog"]`);
-        this.console.log("setAllSnippetsEditButtonActive", dialogs);
         if (!dialogs) return;
 
         dialogs.forEach((dialog: HTMLElement) => {
@@ -1043,12 +1042,10 @@ export default class PluginSnippets extends Plugin {
      * @param snippetId 代码片段 ID
      */
     private removeSnippetEditButtonActive(snippetId: string) {
-        this.console.log("removeSnippetEditButtonActive", snippetId);
         if (!snippetId) return;
-
-        const snippetMenuItem = this.menuItems.querySelector(`.jcsm-snippet-item[data-id='${snippetId}']`) as HTMLElement;
-        const editButton = snippetMenuItem?.querySelector("button[data-type='edit']") as HTMLButtonElement;
+        const editButton = this.menuItems.querySelector(`.jcsm-snippet-item[data-id='${snippetId}'] button.jcsm-active[data-type='edit']`) as HTMLButtonElement;
         if (editButton) {
+            this.console.log("remove edit button active:", editButton);
             editButton.classList.remove("jcsm-active");
         }
     }
@@ -1191,7 +1188,7 @@ export default class PluginSnippets extends Plugin {
     }
 
     /**
-     * 根据 ID 获取代码片段
+     * 根据 ID 获取代码片段（副作用是更新 this.snippetsList ）
      * @param id 代码片段 ID
      * @returns 代码片段
      */
@@ -1204,62 +1201,6 @@ export default class PluginSnippets extends Plugin {
             return false;
         }
     }
-
-    // /**
-    //  * 设置代码片段启用状态
-    //  * @param snippetId 代码片段 ID
-    //  * @param enabled 是否启用
-    //  * @param type 不需要同步开关状态的类型
-    //  */
-    // // TODO: 这个方法集成到 updateSnippetElement() 中
-    // private async setSnippetEnabled(snippetId: string, enabled: boolean, type: string) {
-    //     if (!snippetId) {
-    //         this.showErrorMessage(this.i18n.toggleSnippetFailed);
-    //         return;
-    //     }
-    //     // 在菜单上切换代码片段的开关状态才实时保存
-    //     const snippet: Snippet | undefined | false = await this.getSnippetById(snippetId);
-    //     if (snippet) {
-    //         // // 更新代码片段列表
-    //         // snippet.enabled = enabled;
-    //         // this.saveSnippetsList(this.snippetsList);
-    //         // // 更新代码片段元素
-    //         // // 直接在 updateSnippetElement() 中处理提示
-    //         // this.updateSnippetElement(snippet);
-
-    //         // // 如果当前的操作是开启代码片段、开启了菜单、菜单上显示的是这个类型的代码片段、这个类型的代码片段是关闭状态，则全局开关闪烁一下
-    //         // if (snippet.enabled === true && this.menu && snippet.type === this.snippetsType && !this.isSnippetsTypeEnabled(snippet.type)) {
-    //         //     this.setSnippetsTypeSwitchBreathing();
-    //         // }
-
-    //         // // 同步开关状态到其他地方（目前只有 menu 和 dialog，未来可能增加自定义页签）
-    //         // // TODO: 真的需要在这里处理吗？感觉应该只有符合这个条件的才能调用 toggleSnippetEnabled 函数
-    //         // if (type !== "menu" && !this.realTimePreview && snippet.type === "js") {
-    //         //     // 如果没有开启 CSS 代码片段实时预览，则不更新
-    //         //     return
-    //         // }
-    //     }
-
-    //     // TODO笔记: 开关状态就不同步了，互相影响用起来有点奇怪
-    //     //  对话框保存时会将开关状态同步到菜单上，已经由 applySnippetUIChange 方法处理了
-    //     // if (type !== "menu") {
-    //     //     // 切换菜单上对应的代码片段的开关状态
-    //     //     const snippetElement = this.menuItems.querySelector(`div[data-id="${snippetId}"]`) as HTMLElement;
-    //     //     if (snippetElement) {
-    //     //         snippetElement.querySelector("input").checked = enabled;
-    //     //     }
-    //     // }
-    //     // if (type !== "dialog") {
-    //         // // 切换对应的 Dialog 中的开关状态
-    //         // const dialog = document.querySelector(`div[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippetId}"]`) as HTMLDivElement;
-    //         // if (dialog) {
-    //         //     const switchInput = dialog.querySelector("input[data-type='snippetSwitch']") as HTMLInputElement;
-    //         //     if (switchInput) {
-    //         //         switchInput.checked = enabled;
-    //         //     }
-    //         // }
-    //     // }
-    // };
 
     /**
      * 获取代码片段列表
@@ -1294,21 +1235,17 @@ export default class PluginSnippets extends Plugin {
      * 更新代码片段元素（添加、更新、删除、启用、禁用、全局启用、全局禁用）
      * @param snippet 代码片段
      * @param enabled 是否启用
-     * @param previewState 为 true 时是实时预览操作；为 false 时是退出预览操作，需要恢复元素
+     * @param previewState 为 true 时是预览操作；为 false 时是退出预览操作，需要恢复原始元素
      */
     private updateSnippetElement(snippet: Snippet, enabled?: boolean, previewState?: boolean) {
         if (!snippet) {
             this.showErrorMessage(this.i18n.updateSnippetElementParamError);
             return;
         }
-        this.console.log("updateSnippetElement: snippet", snippet);
-
-        const elementId = `snippet${snippet.type === "css" ? "CSS" : "JS"}${snippet.id}`;
-        const element = document.getElementById(elementId);
-
-        // ?? 空值合并运算符，当左侧值为 null 或 undefined 时返回右侧值，此处优先使用 enabled 的值
-        const isEnabled = enabled ?? snippet.enabled;
-        const isSnippetsTypeEnabled = this.isSnippetsTypeEnabled(snippet.type);
+        this.console.log("updateSnippetElement:");
+        this.console.log("snippet:", snippet);
+        this.console.log("enabled:", enabled);
+        this.console.log("previewState:", previewState);
         
         // 问题案例：全局禁用 CSS，预览一个 CSS 片段，启用片段，在菜单禁用片段会导致预览元素被移除
         //  这是因为从菜单关闭时没有 previewState 参数，此时需要通过是否有实时预览中的代码片段对话框来判断
@@ -1318,17 +1255,17 @@ export default class PluginSnippets extends Plugin {
             const snippetDialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippet.id}"]`);
             if (snippetDialog) {
                 // 这种情况可以直接返回，元素不能发生变更所以不需要处理
-                this.console.log("updateSnippetElement:", snippetDialog);
+                this.console.log("updateSnippetElement: snippetDialog", snippetDialog);
                 return;
-                // previewState = true;
-                // const snippetSwitch = snippetDialog.querySelector("input[data-type='snippetSwitch']") as HTMLInputElement;
-                // if (snippetSwitch) {
-                //     // 以代码片段编辑对话框中的开关状态为准
-                //     isEnabled = snippetSwitch.checked;
-                // }
             }
         }
-        this.console.log("updateSnippetElement: previewState", previewState);
+
+        const elementId = `snippet${snippet.type === "css" ? "CSS" : "JS"}${snippet.id}`;
+        const element = document.getElementById(elementId);
+
+        // ?? 空值合并运算符，当左侧值为 null 或 undefined 时返回右侧值，此处优先使用 enabled 的值
+        const isEnabled = enabled ?? snippet.enabled;
+        const isSnippetsTypeEnabled = this.isSnippetsTypeEnabled(snippet.type);
 
         if (isEnabled && (isSnippetsTypeEnabled || previewState)) {
             // 该代码片段对应的类型是启用状态，则添加新元素
@@ -1336,10 +1273,10 @@ export default class PluginSnippets extends Plugin {
             if (element && element.innerHTML === snippet.content) {
                 // 如果要添加的代码片段与原来的一样，就忽略
             } else {
+                this.console.log("remove old element:", element);
                 element?.remove();
                 // 插入代码片段元素的方式与原生保持一致
                 if (snippet.type === "css") {
-                    this.console.log("updateSnippetElement: add new element");
                     document.head.insertAdjacentHTML("beforeend", `<style id="${elementId}">${snippet.content}</style>`);
                 } else if (snippet.type === "js") {
                     const jsElement = document.createElement("script");
@@ -1348,17 +1285,18 @@ export default class PluginSnippets extends Plugin {
                     jsElement.id = elementId;
                     document.head.appendChild(jsElement);
                 }
+                this.console.log("add new element:", document.getElementById(elementId));
             }
         } else {
             // else 分支等效于 !isEnabled || (!isSnippetsTypeEnabled && !previewState)
-            // 禁用，或全局禁用并且不是预览元素
-                // 禁用，或内容有变更，或该代码片段对应的类型是禁用状态，则移除旧元素
-                element?.remove();
+            // 禁用，或全局禁用并且不是正在预览，则移除旧元素
+            this.console.log("remove old element:", element);
+            element?.remove();
         }
 
-        // TODO: 这个条件判断需要再确认一下，并且看看有没有办法简化
-        // 如果当前的操作是在非预览状态下、开启代码片段、开启了菜单、菜单上显示的是这个类型的代码片段、这个类型的代码片段是关闭状态，则全局开关闪烁一下
-        if (!previewState && snippet.enabled === true && this.menu && snippet.type === this.snippetsType && !this.isSnippetsTypeEnabled(snippet.type)) {
+        // 如果当前的操作是在非预览状态下、开启代码片段、开启了菜单、菜单上显示的是这个类型的代码片段、这个类型的代码片段是关闭状态
+        if (previewState === undefined && isEnabled && this.menu && snippet.type === this.snippetsType && !this.isSnippetsTypeEnabled(snippet.type)) {
+            // 全局开关闪烁一下
             this.setSnippetsTypeSwitchBreathing();
         }
 
@@ -1381,12 +1319,20 @@ export default class PluginSnippets extends Plugin {
      * @returns 是否为有效的 JavaScript 代码
      */
     private isValidJavaScriptCode(code: string) {
+        code = code.trim();
+        if (code === "") {
+            return false;
+        }
         try {
             // https://github.com/acornjs/acorn/tree/master/acorn/
             const ast = acornParse(code, { ecmaVersion: 'latest' }) as any;
+            const length = ast.body.length;
+            if (length === 0) {
+                return false;
+            }
             if (
-                ast.body.length === 1 &&                       // 代码只包含一个顶级语句或表达式
-                ast.body[0].type === 'ExpressionStatement'  // 代码是一行表达式
+                length === 1 &&                            // 代码只包含一个顶级语句或表达式
+                ast.body[0].type === 'ExpressionStatement' // 代码是一行表达式
             ) {
                 const type = ast.body[0].expression.type;
                 if (
@@ -1674,7 +1620,7 @@ export default class PluginSnippets extends Plugin {
         const previewHandler = () => {
             // TODO: 关闭实时预览之后，要点击两次预览按钮才能从 DOM 中移除元素 → style 元素重复添加了一次 → 点击按钮也会触发 input 事件，可能需要过滤一下
             //  会重复添加，说明重复执行 updateSnippetElement 没有移除旧元素
-            this.console.log("previewHandler: CSS");
+            this.console.log("Handle CSS preview");
             if (snippet.type !== "css") {
                 this.showErrorMessage(this.i18n.realTimePreviewHandlerFunctionError);
                 return;
@@ -1809,10 +1755,6 @@ export default class PluginSnippets extends Plugin {
             let target = event.target as HTMLElement;
             const isDispatch = typeof event.detail === "string";
             while (target && target !== dialog.element || isDispatch) {
-                this.console.log("target", target);
-                this.console.log("target.dataset.type", target.dataset.type);
-                this.console.log("isDispatch", isDispatch);
-                this.console.log("event.detail", event.detail);
                 if (target.dataset.type === "cancel" || (isDispatch && event.detail=== "Escape")) {
                         cancel?.();
                         this.closeDialogByElement(dialog.element);
@@ -2120,37 +2062,64 @@ export default class PluginSnippets extends Plugin {
     /**
      * 控制台调试输出
      */
-    private console = {
+    private console = (() => {
+        // 是否启用日志编号功能
+        const enableLogNumbering = true;
+        // 日志编号计数器，从 1 开始
+        let logCounter = 1;
+
         /**
-         * 输出调试日志
-         * @param args 日志内容
+         * 获取当前编号字符串，格式为 3 位数字（如 001、002）
          */
-        log: (...args: any[]) => {
-            if (this.consoleDebug) {
-                console.log(...args);
+        const getLogNumber = () => {
+            const num = logCounter.toString().padStart(3, "0");
+            logCounter++;
+            return num;
+        };
+
+        return {
+            /**
+             * 输出调试日志
+             * @param args 日志内容
+             */
+            log: (...args: any[]) => {
+                if (this.consoleDebug) {
+                    if (enableLogNumbering) {
+                        // 在日志前加上编号
+                        console.log(`[${getLogNumber()}]`, ...args);
+                    } else {
+                        console.log(...args);
+                    }
+                }
+            },
+            /**
+             * 输出警告日志
+             * @param args 日志内容
+             */
+            warn: (...args: any[]) => {
+                // 目前始终输出警告日志
+                if (enableLogNumbering) {
+                    // 在警告日志前加上编号
+                    console.warn(`[${getLogNumber()}]`, ...args);
+                } else {
+                    console.warn(...args);
+                }
+            },
+            /**
+             * 输出错误日志
+             * @param args 日志内容
+             */
+            error: (...args: any[]) => {
+                // 目前始终输出错误日志
+                if (enableLogNumbering) {
+                    // 在错误日志前加上编号
+                    console.error(`[${getLogNumber()}]`, ...args);
+                } else {
+                    console.error(...args);
+                }
             }
-        },
-        /**
-         * 输出警告日志
-         * @param args 日志内容
-         */
-        warn: (...args: any[]) => {
-            // 目前始终输出警告日志
-            // if (this.consoleDebug) {
-                console.warn(...args);
-            // }
-        },
-        /**
-         * 输出错误日志
-         * @param args 日志内容
-         */
-        error: (...args: any[]) => {
-            // 目前始终输出错误日志
-            // if (this.consoleDebug) {
-                console.error(...args);
-            // }
-        }
-    }
+        };
+    })();
 
     /**
      * 使对话框或菜单元素显示在最上层（设置 zIndex）
@@ -2309,7 +2278,7 @@ export default class PluginSnippets extends Plugin {
         // 设置检查标志
         this.isCheckingListeners = true;
 
-        this.console.log("checkListenerElement: 检查监听器元素", this.listeners);
+        this.console.log("check Listener:", this.listeners);
 
         // 如果窗口内没有打开的 Dialog 和菜单，则移除 Document 的监听器
         if (!this.isDialogAndMenuOpen()) {
@@ -2352,7 +2321,7 @@ export default class PluginSnippets extends Plugin {
             return;
         }
 
-        // 每隔 30 秒检查一次（调试时每隔 2 秒检查一次）
+        // 每隔 30 秒检查一次（调试时每隔 20 秒检查一次）
         this.listenerCheckIntervalId = window.setInterval(() => {
             this.isCheckingListeners = false; // 重置检查标志
             this.checkListenerElement();
@@ -2407,7 +2376,7 @@ export default class PluginSnippets extends Plugin {
      * @param options 监听器选项
      */
     private removeListener(element: HTMLElement, event?: string, fn?: (event?: Event) => void, options?: AddEventListenerOptions) {
-        this.console.log("removeListener: element", element);
+        this.console.log("removeListener:", element);
         if (!element) {
             this.console.warn("removeListener: element is not found");
             return;
