@@ -417,9 +417,8 @@ export default class PluginSnippets extends Plugin {
                                     if (previewButton) {
                                         previewButton.classList.add("fn__none");
                                     }
-                                    // 启用 realTimePreview 设置之后，查询所有 CSS 代码片段编辑对话框触发一次 input 事件，会由 input 事件触发预览
-                                    // 直接触发 Dialog 元素的 input 事件，不需要冒泡
-                                    cssDialog.dispatchEvent(new Event("input"));
+                                    // 启用 realTimePreview 设置之后，查询所有 CSS 代码片段编辑对话框触发一次 input 事件（不需要冒泡），由 input 事件监听器触发一次预览
+                                    cssDialog.dispatchEvent(new CustomEvent("input", {detail: "realTimePreview"}));
                             });
                         } else {
                             cssDialogs.forEach(cssDialog => {
@@ -1618,8 +1617,6 @@ export default class PluginSnippets extends Plugin {
         }
         // CSS 代码片段预览
         const previewHandler = () => {
-            // TODO: 关闭实时预览之后，要点击两次预览按钮才能从 DOM 中移除元素 → style 元素重复添加了一次 → 点击按钮也会触发 input 事件，可能需要过滤一下
-            //  会重复添加，说明重复执行 updateSnippetElement 没有移除旧元素
             this.console.log("Handle CSS preview");
             if (snippet.type !== "css") {
                 this.showErrorMessage(this.i18n.realTimePreviewHandlerFunctionError);
@@ -1643,10 +1640,14 @@ export default class PluginSnippets extends Plugin {
                 previewHandler();
             }
             // 监听输入框内容变化，实时预览
-            this.addListener(dialog.element, "input", (event: Event) => {
-                this.console.log("snippetEditDialog input", event);
+            this.addListener(dialog.element, "input", (event: Event | CustomEvent) => {
                 if (this.realTimePreview) {
-                    previewHandler();
+                    const isDispatch = typeof (event as CustomEvent).detail === "string";
+                    if (event.target === contentElement || (isDispatch && (event as CustomEvent).detail === "realTimePreview")) {
+                        // 点击开关按钮也会触发 input 事件，这里过滤一下
+                        this.console.log("snippetEditDialog input");
+                        previewHandler();
+                    }
                 }
             });
         }
