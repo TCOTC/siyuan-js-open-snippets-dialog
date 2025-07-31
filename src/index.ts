@@ -623,6 +623,9 @@ export default class PluginSnippets extends Plugin {
             <span class="fn__space"></span>
             <input class="jcsm-switch jcsm-all-snippets-switch b3-switch fn__flex-center" type="checkbox">
         `;
+
+        // TODO: 实现代码片段搜索：搜索按钮（和搜索框）
+
         const radio = menuTop.querySelector(`[data-snippet-type="${this.snippetsType}"]`) as HTMLInputElement;
         radio.checked = true;
         const settingsButton = menuTop.querySelector("button[data-type='config']") as HTMLButtonElement;
@@ -866,8 +869,6 @@ export default class PluginSnippets extends Plugin {
                     // TODO自定义页签: 编辑页签，等其他功能稳定之后再做
                 } else if (buttonType === "delete") {
                     // 删除代码片段
-                    // // TODO: 取消选中代码片段选项，否则打开 Dialog 之后按回车会触发 menuItem 导致 menu 被移除。这个方法好像还是有问题？需要单独用一个方法来监听按键操作，统一处理
-                    // this.unselectSnippet();
                     this.openSnippetDeleteDialog(snippet.name, () => {
                         // 弹窗确定后删除代码片段
                         this.deleteSnippet(snippet.id, snippet.type);
@@ -1432,8 +1433,6 @@ export default class PluginSnippets extends Plugin {
         if (existedDialog) {
             // 激活它
             this.moveElementToTop(existedDialog);
-            // TODO: 重置位置 → 这个实际上不会改变位置，并且好像没有必要执行这个操作
-            // resetDialogRootStyle(existedDialog);
             return;
         }
 
@@ -1451,8 +1450,8 @@ export default class PluginSnippets extends Plugin {
             deleteButton.classList.remove("fn__none");
         }
 
-        // 重置 Dialog 样式
-        const resetDialogRootStyle = (dialogRootElement: HTMLElement) => {
+        // 设置 Dialog 样式
+        const setDialogRootStyle = (dialogRootElement: HTMLElement) => {
             dialogRootElement.style.zIndex = (++window.siyuan.zIndex).toString();
             dialogRootElement.querySelector(".b3-dialog__scrim")?.remove();
             const dialogElement = dialogRootElement.querySelector(".b3-dialog") as HTMLElement;
@@ -1466,7 +1465,7 @@ export default class PluginSnippets extends Plugin {
 
         if (!this.isMobile) {
             // 桌面端支持同时打开多个 Dialog，需要修改样式
-            resetDialogRootStyle(dialog.element);
+            setDialogRootStyle(dialog.element);
         }
 
         // 设置 Dialog 属性
@@ -1580,7 +1579,7 @@ export default class PluginSnippets extends Plugin {
 
             const currentSnippet = await this.getSnippetById(snippet.id);
             if (currentSnippet === undefined) {
-                // TODO: 如果当前代码片段不存在，说明是在“取消新建代码片段”
+                // 如果当前代码片段不存在，说明是在“取消新建代码片段”
                 // 如果没有填任何内容，则直接关闭 Dialog
                 if (nameElement.value === "" && contentElement.value === "") {
                     cancel();
