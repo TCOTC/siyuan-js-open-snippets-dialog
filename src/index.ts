@@ -41,6 +41,8 @@ import {
 const PLUGIN_NAME = "snippets";            // 插件名
 const STORAGE_NAME = "plugin-config.json"; // 配置文件名
 const LOG_NAME = "plugin-snippets.log";    // 日志文件名
+// 模态对话框集合：设置对话框、删除对话框、取消对话框
+const MODAL_DIALOG_KEYS = ["jcsm-setting-dialog", "jcsm-snippet-delete", "jcsm-snippet-cancel"];
 // const TAB_TYPE = "custom-tab"; // 自定义标签页
 
 export default class PluginSnippets extends Plugin {
@@ -97,10 +99,7 @@ export default class PluginSnippets extends Plugin {
 
         // 顶栏按钮点击回调：打开代码片段管理器
         const openSnippetsManager = () => {
-            if (this.getDialogByDataKey("jcsm-setting-dialog")) {
-                // 如果设置对话框打开，则不打开菜单
-                return;
-            }
+            if (this.getAllModalDialogElements().length > 0) return;
 
             if (this.isMobile) {
                 this.openMenu();
@@ -1350,7 +1349,7 @@ export default class PluginSnippets extends Plugin {
                     type === 'BinaryExpression' ||
                     type === 'LogicalExpression' ||
                     type === 'ConditionalExpression' ||
-                    type === 'CallExpression' ||
+                    // 立即执行函数是这个类型，需要排除 type === 'CallExpression' ||
                     type === 'NewExpression' ||
                     type === 'SequenceExpression'
                 ) {
@@ -1409,10 +1408,7 @@ export default class PluginSnippets extends Plugin {
      * @param confirmText 确认按钮的文案
      */
     private async openSnippetEditDialog(snippet: Snippet, isNew?: boolean) {
-        if (this.getDialogByDataKey("jcsm-setting-dialog")) {
-            // 如果设置对话框打开，则不打开代码片段编辑对话框
-            return;
-        }
+        if (this.getAllModalDialogElements().length > 0) return;
 
         // 检查参数
         const paramError: string[] = [];
@@ -1591,7 +1587,7 @@ export default class PluginSnippets extends Plugin {
                     return;
                 } else {
                     // 如果填了内容，则弹窗提示确认
-                    this.openSnippetCancelDialog(snippet.name, () => {
+                    this.openSnippetCancelDialog(snippet, true, undefined, () => {
                         cancel();
                     });
                     return;
@@ -1602,11 +1598,21 @@ export default class PluginSnippets extends Plugin {
                 return;
             }
 
+            let changes = [];
             // 用当前实际的状态来跟对话框中的内容来对比，而不是用对话框的初始 snippet 对象（比如在菜单修改了开关，但对话框的初始 snippet 对象不会同步更新）
-            const hasChanged = currentSnippet.name !== nameElement.value || currentSnippet.content !== contentElement.value || currentSnippet.enabled !== switchInput.checked;
-            if (hasChanged) {
+            if (currentSnippet.name !== nameElement.value) {
+                changes.push(this.i18n.snippetName);
+            }
+            if (currentSnippet.content !== contentElement.value) {
+                changes.push(this.i18n.snippetContent);
+            }
+            if (currentSnippet.enabled !== switchInput.checked) {
+                changes.push(this.i18n.snippetEnabled);
+            }
+
+            if (changes.length > 0) {
                 // 有变更，弹窗提示确认
-                this.openSnippetCancelDialog(snippet.name, () => {
+                this.openSnippetCancelDialog(snippet, false, changes, () => {
                     cancel();
                 }); // 取消后无操作
                 return;
@@ -1663,14 +1669,15 @@ export default class PluginSnippets extends Plugin {
      * 打开代码片段删除对话框
      * @param snippetName 代码片段名称
      * @param confirm 确认回调
-     * @param cancel 取消回调
      */
     private openSnippetDeleteDialog(snippetName: string, confirm?: () => void) {
         // TODO: 实现了代码片段回收站之后，增加一个“不再提示”按钮，点击之后修改配置项、弹出消息说明可以在插件设置中开关
         this.openConfirmDialog(
-            this.i18n.deleteSnippet,
-            this.i18n.deleteSnippetConfirm.replace("${x}", snippetName ? " <b>" + snippetName + "</b> " : ""),
+            this.i18n.deleteConfirm,
+            this.i18n.deleteConfirmDescription.replace("${x}", snippetName ? " <b>" + snippetName + "</b> " : ""),
             "jcsm-snippet-delete",
+            undefined,
+            this.i18n.delete,
             () => {
                 // 删除代码片段
                 confirm?.();
@@ -1683,27 +1690,31 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 打开代码片段取消对话框
-     * @param snippetName 代码片段名称
+     * @param snippet 代码片段
+     * @param isNew 是否是新建代码片段
+     * @param changes 变更内容
      * @param confirm 确认回调
-     * @param cancel 取消回调
      */
-    private openSnippetCancelDialog(snippetName: string, confirm?: () => void, isNew?: boolean) {
-        // TODO: 修改文案
-        // 取消操作确认
-        // [XX的修改未保存/有未保存的修改]，确定要[取消编辑/退出新建]代码片段吗？
-        // 继续编辑  放弃修改<红色>
+    private openSnippetCancelDialog(snippet: Snippet, isNew?: boolean, changes?: string[], confirm?: () => void) {
         let text: string;
+        const snippetName = snippet.name.trim();
         if (isNew) {
-            // TODO: 把“有未保存的修改”改成具体的“标题修改未保存”“内容修改未保存”“标题和内容修改未保存”“开关状态修改未保存”...
-            text = this.i18n.cancelConfirmNewSnippet.replace("${y}", snippetName ? " <b>" + snippetName + "</b> " : "");
+            text = this.i18n.cancelConfirmNewSnippet
+                .replace("${y}", snippetName ? " <b>" + snippetName + "</b> " : "");
         } else {
-            text = this.i18n.cancelConfirmEditSnippet.replace("${y}", snippetName ? " <b>" + snippetName + "</b> " : "")
+            // 将每个 change 用 <b> 标签包裹
+            const changesText = changes?.map(change => `<b>${change}</b>`).join(", ") ?? "";
+            text = this.i18n.cancelConfirmEditSnippet
+                .replace("${x}", changesText)
+                .replace("${y}", snippetName ? " <b>" + snippetName + "</b> " : "");
         }
 
         this.openConfirmDialog(
             this.i18n.cancelConfirm,
             text,
             "jcsm-snippet-cancel",
+            this.i18n.continueEdit,
+            this.i18n.giveUpEdit,
             () => {
                 // 取消编辑代码片段
                 confirm?.();
@@ -1715,15 +1726,19 @@ export default class PluginSnippets extends Plugin {
      * 打开确认对话框（参考原生代码 app/src/dialog/confirmDialog.ts ）
      * @param title 对话框标题
      * @param text 对话框内容
-     * @param isDelete 是否是删除对话框
+     * @param dataKey 对话框元素的 data-key 属性值
+     * @param cancelText 取消按钮文本
+     * @param confirmText 确认按钮文本
      * @param confirm 确认回调
-     * @param cancel 取消回调
      */
-    private openConfirmDialog(title: string, text: string, dataKey?: string, confirm?: () => void, cancel?: () => void) {
+    private openConfirmDialog(title: string, text: string, dataKey?: string, cancelText?: string, confirmText?: string, confirm?: () => void, cancel?: () => void) {
         if (!text && !title) {
             confirm();
             return;
         }
+
+        const redButton = dataKey === "jcsm-snippet-delete" || dataKey === "jcsm-snippet-cancel";
+
         const dialog = new Dialog({
             title,
             content: `
@@ -1731,15 +1746,9 @@ export default class PluginSnippets extends Plugin {
                     <div class="ft__breakword">${text}</div>
                 </div>
                 <div class="b3-dialog__action">
-                    <button class="b3-button b3-button--cancel" data-type="cancel">${this.i18n.cancel}</button>
+                    <button class="b3-button b3-button--cancel" data-type="cancel">${ cancelText ?? this.i18n.cancel }</button>
                     <div class="fn__space"></div>
-                    ${(() => {
-                        if (dataKey === "jcsm-snippet-delete") {
-                            return `<button class="b3-button b3-button--remove" data-type="confirm">${this.i18n.delete}</button>`;
-                        } else {
-                            return `<button class="b3-button b3-button--text" data-type="confirm">${this.i18n.confirm}</button>`;
-                        }
-                    })()}
+                    <button class="b3-button ${ redButton ? "b3-button--remove" : "b3-button--text"}" data-type="confirm">${ confirmText ?? this.i18n.confirm}</button>
                 </div>
             `,
             width: this.isMobile ? "92vw" : "520px",
@@ -1800,14 +1809,17 @@ export default class PluginSnippets extends Plugin {
     }
 
     /**
-     * 通过 data-key 获取对话框
-     * @param dataKey 对话框元素的 data-key 属性值
+     * 模态对话框选择器
+     */
+    private modalDialogSelector: string = `body > :is(${MODAL_DIALOG_KEYS.map(key => `.b3-dialog--open[data-key="${key}"]`).join(", ")})`;
+
+    /**
+     * 获取所有模态对话框元素
      * @returns 对话框元素
      */
-    private getDialogByDataKey(dataKey: string) {
-        // 设置和删除对话框打开时，不允许操作菜单和代码片段编辑对话框，否则 this.globalKeyDownHandler() 判断不了 Escape 和 Enter 按键是对哪个元素的操作
-        const dialogElement = document.querySelector(`.b3-dialog--open[data-key="${dataKey}"]`) as HTMLElement;
-        return dialogElement;
+    private getAllModalDialogElements() {
+        // 模态对话框打开时，不允许打开或操作菜单和代码片段编辑对话框，否则 this.globalKeyDownHandler() 判断不了 Escape 和 Enter 按键是对哪个元素的操作
+        return Array.from(document.querySelectorAll(this.modalDialogSelector)) as HTMLElement[];
     }
 
     // ================================ 消息处理 ================================
@@ -2159,31 +2171,22 @@ export default class PluginSnippets extends Plugin {
      * @param event 键盘事件
      */
     private globalKeyDownHandler = (event: KeyboardEvent) => {
-        // 设置对话框操作（优先查找设置对话框，因为设置对话框的元素一定在最顶上）
-        const settingDialogElement = this.getDialogByDataKey("jcsm-setting-dialog");
-        if (settingDialogElement) {
-            // 阻止冒泡，避免触发原生监听器导致菜单关闭？
-            // event.stopPropagation();
-            // 如果按 Esc 时焦点在输入框里，移除焦点
-            if (event.key === "Escape" && this.isInputElementActive()) {
-                (document.activeElement as HTMLElement).blur();
-                return;
-            }
-            // 触发 Dialog 的 click 事件，传递按键（参考原生方法：https://github.com/siyuan-note/siyuan/blob/c88f99646c4c1139bcfc551b4f24b7cbea151751/app/src/boot/globalEvent/keydown.ts#L1394-L1406 ）
-            settingDialogElement.dispatchEvent(new CustomEvent("click", {detail: event.key}));
-            return;
-        }
-
-        // 删除对话框操作
-        const snippetDeleteDialogElement = this.getDialogByDataKey("jcsm-snippet-delete");
-        if (snippetDeleteDialogElement) {
+        // 获取所有打开的插件模态对话框，倒序遍历（从 DOM 最下方，也就是最顶层的对话框开始处理）
+        const dialogElements = this.getAllModalDialogElements();
+        for (let i = dialogElements.length - 1; i >= 0; i--) {
+            const dialogElement = dialogElements[i];
+            // // 如果按 Esc 时焦点在输入框里，移除焦点
+            // if (event.key === "Escape" && this.isInputElementActive()) {
+            //     (document.activeElement as HTMLElement).blur();
+            //     return;
+            // }
             // 阻止冒泡，避免触发原生监听器导致菜单关闭
             event.stopPropagation();
-            snippetDeleteDialogElement.dispatchEvent(new CustomEvent("click", {detail: event.key}));
+            // 触发 Dialog 的 click 事件，传递按键（参考原生方法：https://github.com/siyuan-note/siyuan/blob/c88f99646c4c1139bcfc551b4f24b7cbea151751/app/src/boot/globalEvent/keydown.ts#L1394-L1406 ）
+            dialogElement.dispatchEvent(new CustomEvent("click", {detail: event.key}));
             return;
+            // 无法判断是在操作哪个代码片段编辑对话框，此处忽略代码片段编辑对话框 jcsm-snippet-dialog 的操作
         }
-
-        // 无法判断是在操作哪个代码片段编辑对话框，此处忽略代码片段编辑对话框操作
 
         // 菜单操作
         if (this.menu) {
@@ -2191,7 +2194,7 @@ export default class PluginSnippets extends Plugin {
             // 1. 触发原生监听器导致实际上会操作菜单选项，因此无法在输入框中使用方向键移动光标
             // 2. 按 Enter 之后默认会关闭整个菜单
             // 打开插件设置时无法按 Alt+P 打开思源设置菜单，只要不是按 Enter 或方向键就放过事件冒泡
-            if (event.key === "Enter" || event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "ArrowLeft" || event.key === "ArrowRight") {
+            if (["Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
                 event.stopPropagation();
             }
             // 如果当前在输入框中使用键盘，则不处理菜单按键事件
