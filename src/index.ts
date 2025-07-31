@@ -638,10 +638,11 @@ export default class PluginSnippets extends Plugin {
         
         this.menuItems.append(menuTop);
 
-
+        const snippetsContainer = document.createElement("div");
+        snippetsContainer.className = "jcsm-snippets-container";
         // TODO测试: this.snippetsList 没有代码片段的情况需要测试一下看看
-        const snippetsHtml = this.genMenuSnippetsItems(this.snippetsList);
-        this.menuItems.insertAdjacentHTML("beforeend", snippetsHtml);
+        snippetsContainer.insertAdjacentHTML("beforeend", this.genMenuSnippetsItems(this.snippetsList));
+        this.menuItems.append(snippetsContainer);
 
         this.setMenuSnippetCount();
         this.setMenuSnippetsType(this.snippetsType);
@@ -752,6 +753,8 @@ export default class PluginSnippets extends Plugin {
                 } else if (menuItems.length > 1) {
                     // 获取当前选中项的索引，如果没有选中项则设为 -1
                     const currentIndex = currentMenuItem ? menuItems.indexOf(currentMenuItem) : -1;
+
+                    // TODO: 代码片段很多，出现滚动条的时候，按上下键切换代码片段时不会自动滚动，导致看不见选中的代码片段
                     
                     // 根据按键方向计算新的索引
                     let newIndex: number;
