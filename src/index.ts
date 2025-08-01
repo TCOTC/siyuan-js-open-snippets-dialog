@@ -1161,7 +1161,7 @@ export default class PluginSnippets extends Plugin {
             } else {
                 // 添加菜单项
                 const snippetsHtml = this.genMenuSnippetsItems([snippet]);
-                this.menuItems.querySelector(".jcsm-top-container")?.insertAdjacentHTML("afterend", snippetsHtml);
+                this.menuItems.querySelector(".jcsm-snippets-container")?.insertAdjacentHTML("afterbegin", snippetsHtml);
             }
 
             // 修改对应的 Dialog
@@ -2191,7 +2191,7 @@ export default class PluginSnippets extends Plugin {
         }
 
         // 菜单操作
-        if (this.menu) {
+        if (this.menu && document.activeElement === document.body) {
             // 阻止冒泡，避免：
             // 1. 触发原生监听器导致实际上会操作菜单选项，因此无法在输入框中使用方向键移动光标
             // 2. 按 Enter 之后默认会关闭整个菜单
