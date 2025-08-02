@@ -853,6 +853,42 @@ export default class PluginSnippets extends Plugin {
     };
 
     /**
+     * 滚动到指定的菜单项，确保其在滚动容器中可见
+     * @param menuItem 要滚动到的菜单项
+     */
+    private scrollToMenuItem(menuItem: HTMLElement) {
+        // 获取滚动容器
+        const scrollContainer = this.menuItems.querySelector(".jcsm-snippets-container") as HTMLElement;
+        if (!scrollContainer) return;
+
+        // 使用 requestAnimationFrame 确保元素完全渲染后再获取位置信息
+        requestAnimationFrame(() => {
+            // 获取菜单项相对于滚动容器的位置信息
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const itemRect = menuItem.getBoundingClientRect();
+
+            // 检查位置信息是否有效（高度不为0）
+            if (containerRect.height === 0 || itemRect.height === 0) {
+                // 如果位置信息无效，再次尝试
+                requestAnimationFrame(() => this.scrollToMenuItem(menuItem));
+                return;
+            }
+
+            // 计算菜单项是否在可视区域内
+            const isAbove = itemRect.top < containerRect.top;
+            const isBelow = itemRect.bottom > containerRect.bottom;
+
+            if (isAbove) {
+                // 菜单项在可视区域上方，滚动到菜单项顶部
+                scrollContainer.scrollTop -= (containerRect.top - itemRect.top);
+            } else if (isBelow) {
+                // 菜单项在可视区域下方，滚动到菜单项底部
+                scrollContainer.scrollTop += (itemRect.bottom - containerRect.bottom);
+            }
+        });
+    }
+
+    /**
      * 菜单点击事件处理
      * @param event 鼠标事件
      */
@@ -898,8 +934,6 @@ export default class PluginSnippets extends Plugin {
                 } else if (menuItems.length > 1) {
                     // 获取当前选中项的索引，如果没有选中项则设为 -1
                     const currentIndex = currentMenuItem ? menuItems.indexOf(currentMenuItem) : -1;
-
-                    // TODO: 代码片段很多，出现滚动条的时候，按上下键切换代码片段时不会自动滚动，导致看不见选中的代码片段
                     
                     // 根据按键方向计算新的索引
                     let newIndex: number;
@@ -915,6 +949,9 @@ export default class PluginSnippets extends Plugin {
                     currentMenuItem?.classList.remove("b3-menu__item--current");
                     // 添加新的选中状态
                     menuItems[newIndex].classList.add("b3-menu__item--current");
+                    
+                    // 确保选中的代码片段在滚动容器中可见
+                    this.scrollToMenuItem(menuItems[newIndex]);
                 }
             } else if (event.detail === "ArrowLeft" || event.detail === "ArrowRight") {
                 // 按左右方向键切换代码片段类型
@@ -1143,7 +1180,11 @@ export default class PluginSnippets extends Plugin {
         this.clearMenuSelection();
         // 给首个该类型的选项添加 .b3-menu__item--current 类名；搜索时排除的选项会添加 .fn__none 类名
         const firstMenuItem = this.menuItems.querySelector(`.b3-menu__item[data-type="${snippetType}"]:not(.fn__none)`) as HTMLElement;
-        firstMenuItem?.classList.add("b3-menu__item--current");
+        if (firstMenuItem) {
+            firstMenuItem.classList.add("b3-menu__item--current");
+            // 确保选中的代码片段在滚动容器中可见
+            this.scrollToMenuItem(firstMenuItem);
+        }
     }
 
     /**
@@ -2012,13 +2053,8 @@ export default class PluginSnippets extends Plugin {
                 // 在代码编辑器中按键
                 if (isOnlyCtrl(event) && event.key === "Enter") {
                     // 按 Ctrl + Enter 键执行“保存”操作
-                    // TODO: 把“保存”操作提取为一个函数，重复使用
                     event.preventDefault();
-                    snippet.name = nameElement.value;
-                    snippet.content = codeMirrorView.state.doc.toString();
-                    snippet.enabled = switchInput.checked;
-                    this.saveSnippet(snippet);
-                    this.closeDialogByElement(dialog.element);
+                    saveHandler();
                 }
             }
         }, {capture: true}); // 需要在捕获阶段阻止冒泡，否则按 Enter 键会先输入一个换行
@@ -2082,19 +2118,14 @@ export default class PluginSnippets extends Plugin {
                         cancelHandler();
                         break;
                     case "preview":
-                        // 预览代码片段
+                        // 预览 CSS 代码片段
                         if (snippet.type === "css") {
                             previewHandler();
                         }
                         break;
                     case "confirm":
                         // 新建/更新代码片段
-                        snippet.name = nameElement.value;
-                        snippet.content = codeMirrorView.state.doc.toString();
-                        snippet.enabled = switchInput.checked;
-                        // 如果已经删除了对应 ID 的代码片段而 Dialog 还在，此时点击“新建”按钮会自动新建代码片段
-                        this.saveSnippet(snippet);
-                        this.closeDialogByElement(dialog.element);
+                        saveHandler();
                         break;
                 }
             } else if (target === closeElement || target === scrimElement) {
@@ -2174,6 +2205,14 @@ export default class PluginSnippets extends Plugin {
             };
             // 只更新代码片段元素，不保存代码片段 this.saveSnippet(snippet);
             this.updateSnippetElement(previewSnippet, undefined, true);
+        }
+        // 保存或更新代码片段
+        const saveHandler = () => {
+            snippet.name = nameElement.value;
+            snippet.content = codeMirrorView.state.doc.toString();
+            snippet.enabled = switchInput.checked;
+            this.saveSnippet(snippet);
+            this.closeDialogByElement(dialog.element);
         }
 
         if (snippet.type === "css") {
