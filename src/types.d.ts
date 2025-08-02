@@ -39,6 +39,7 @@ declare global {
                 notificationSwitch?: boolean;
                 reloadUIAfterModifyJS?: boolean;
                 isReloadUIButtonBreathing?: boolean;
+                themeObserver?: MutationObserver;
             };
         };
     }

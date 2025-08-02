@@ -36,6 +36,7 @@
   "cancelConfirmNewSnippet": "有未保存的修改，确定要退出新建代码片段${y}吗？",
   "continueEdit": "继续编辑",
   "giveUpEdit": "放弃修改",
+  "deleteSnippet": "删除代码片段",
   "deleteSnippetFailed": "删除代码片段失败，缺少参数 ID 或类型",
   "getPluginLogFailed": "获取插件日志失败",
   "writePluginLogFailed": "写入插件日志失败",

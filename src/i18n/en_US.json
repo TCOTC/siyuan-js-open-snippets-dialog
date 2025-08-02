@@ -36,6 +36,7 @@
   "cancelConfirmNewSnippet": "There are unsaved modifications, are you sure you want to exit the newly created snippet${y}?",
   "continueEdit": "Continue edit",
   "giveUpEdit": "Give up edit",
+  "deleteSnippet": "Delete snippet",
   "deleteSnippetFailed": "Failed to delete snippet, missing parameter ID or type",
   "getPluginLogFailed": "Failed to get plugin log",
   "writePluginLogFailed": "Failed to write plugin log",

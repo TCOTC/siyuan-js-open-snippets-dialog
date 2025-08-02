@@ -34,7 +34,7 @@
     user-select: none;
     padding: 0 6px 0 0;
     margin-bottom: 5px;
-  
+    
     // 代码片段类型切换
     .jcsm-tabs {
       display: flex;
@@ -121,24 +121,24 @@
 
   .jcsm-snippets-container {
     overflow: auto;
-
-  // 代码片段列表选项
-  .jcsm-snippet-item {
+    
+    // 代码片段列表选项
+    .jcsm-snippet-item {
       padding: 0 6px;
-  
-    .jcsm-snippet-name {
-      &:empty::before {
-        content: attr(placeholder);
-        color: var(--b3-theme-on-surface-light);
-      }
-  
-      &::-webkit-scrollbar {
-        // 被截断的代码片段名称，在桌面端可以按住 Shift 滚动鼠标滚轮来查看，在移动端可以直接按住左右划动查看
-        height: 0;
+    
+      .jcsm-snippet-name {
+        &:empty::before {
+          content: attr(placeholder);
+          color: var(--b3-theme-on-surface-light);
+        }
+    
+        &::-webkit-scrollbar {
+          // 被截断的代码片段名称，在桌面端可以按住 Shift 滚动鼠标滚轮来查看，在移动端可以直接按住左右划动查看
+          height: 0;
+        }
       }
     }
   }
-}
 }
 
 // 代码片段编辑对话框，.jcsm-dialog 是 .b3-dialog__body 的子元素
@@ -146,6 +146,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  height: 100%; // 确保对话框占满高度
 
   button {
     margin: 2px;
@@ -166,7 +167,9 @@
     padding: 0 24px;
     display: flex;
     flex-direction: column;
-
+    flex: 1; // 让容器占据剩余空间
+    min-height: 0; // 允许容器收缩
+    overflow: hidden; // 防止内容溢出
   }
 
   .b3-dialog__action {
@@ -194,6 +197,60 @@
 .b3-dialog--open[data-key*="jcsm-"] {
   .b3-dialog__close use {
     pointer-events: none;
+  }
+}
+
+// 代码片段编辑对话框
+.b3-dialog--open[data-key="jcsm-snippet-dialog"] {
+  // 确保对话框内容区域不会溢出
+  .jcsm-dialog-content {
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .jcsm-dialog-name {
+    box-shadow: unset !important;
+    border: 1px solid var(--b3-border-color);
+  }
+
+  // 编辑器容器样式
+  .jcsm-dialog-content {
+    border: 1px solid var(--b3-border-color);
+    border-radius: var(--b3-border-radius);
+    font-family: var(--b3-font-family-code);
+    flex: 1; // 让编辑器容器占据剩余空间
+    overflow: hidden; // 防止编辑器内容溢出
+    
+    // CodeMirror 编辑器样式
+    .cm-editor {
+      height: 100%; // 强制编辑器高度为 100%
+
+      // 编辑器字体
+      .cm-scroller {
+        font-family: var(--b3-font-family-code);
+      }
+      
+      // 行号样式
+      .cm-gutters {
+        background-color: var(--b3-theme-surface);
+        color: var(--b3-theme-on-surface);
+        border-right: 1px solid var(--b3-border-color);
+      }
+      
+      // 代码折叠图标
+      .cm-foldGutter {
+        .cm-gutterElement {
+          padding: 0 2px;
+        }
+      }
+      
+      // 占位符样式
+      .cm-placeholder {
+        color: var(--b3-theme-on-surface-light);
+      }
+    }
   }
 }
 

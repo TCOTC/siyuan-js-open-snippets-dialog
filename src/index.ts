@@ -13,6 +13,17 @@ import {
     Constants
 } from "siyuan";
 
+// CodeMirror 6 导入
+import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete'
+import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
+import { javascript } from '@codemirror/lang-javascript'
+import { css } from '@codemirror/lang-css'
+import { syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldGutter, foldKeymap, indentOnInput, indentUnit } from '@codemirror/language'
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
+import { EditorState } from '@codemirror/state'
+import { crosshairCursor, drawSelection, dropCursor, EditorView, highlightActiveLine, highlightSpecialChars, keymap, lineNumbers, placeholder, rectangularSelection } from '@codemirror/view'
+import { vscodeLight, vscodeDark } from '@uiw/codemirror-theme-vscode'
+
 // 未使用的导入
 // import {
 //     Custom,
@@ -172,6 +183,12 @@ export default class PluginSnippets extends Plugin {
         // 发布服务不启用插件
         if (window.siyuan.isPublish) return;
 
+        // 清理主题监听器
+        if (window.siyuan.jcsm?.themeObserver) {
+            window.siyuan.jcsm.themeObserver.disconnect();
+            delete window.siyuan.jcsm.themeObserver;
+        }
+
         // 移除菜单
         this.menu?.close();
 
@@ -196,6 +213,12 @@ export default class PluginSnippets extends Plugin {
         this.menu?.close();
 
         // TODO自定义页签: 移除所有自定义页签
+
+        // 清理主题监听器
+        if (window.siyuan.jcsm?.themeObserver) {
+            window.siyuan.jcsm.themeObserver.disconnect();
+            delete window.siyuan.jcsm.themeObserver;
+        }
 
         // 移除所有监听器
         this.destroyListeners();
@@ -1381,7 +1404,7 @@ export default class PluginSnippets extends Plugin {
         return `
             <div class="jcsm-dialog">
                 <div class="jcsm-dialog-header resize__move"></div>
-                <div class="jcsm-dialog-container fn__flex-1">
+                <div class="jcsm-dialog-container">
                     <div class="fn__flex">
                         <input class="jcsm-dialog-name fn__flex-1 b3-text-field" spellcheck="false" placeholder="${this.i18n.title}"}">
                         <div class="fn__space"></div>
@@ -1392,7 +1415,7 @@ export default class PluginSnippets extends Plugin {
                         <input data-type="snippetSwitch" class="b3-switch fn__flex-center" type="checkbox"${snippet.enabled ? " checked" : ""}>
                     </div>
                     <div class="fn__hr"></div>
-                    <textarea class="jcsm-dialog-content fn__flex-1 b3-text-field" spellcheck="false" placeholder="${this.i18n.codeSnippet}" style="resize:none; font-family:var(--b3-font-family-code)"></textarea>
+                    <div class="jcsm-dialog-content"></div>
                     <div class="fn__hr--b"></div>
                 </div>
                 <div class="b3-dialog__action">
@@ -1405,6 +1428,262 @@ export default class PluginSnippets extends Plugin {
             </div>
         `;
     };
+
+    /**
+     * 创建编辑器扩展配置
+     * @param theme 主题配置
+     * @param language 语言类型
+     * @returns 编辑器扩展数组
+     */
+    private createEditorExtensions(theme: any, language: string) {
+        // 根据语言类型选择相应的语言支持
+        const languageSupport = language === "js" ? javascript() : css();
+        
+        return [
+            // 显示行号
+            lineNumbers(),
+            // 标记特殊字符（不可打印或其他令人困惑的字符）
+            highlightSpecialChars(),
+            // 占位符
+            placeholder(this.i18n.codeSnippet),
+            // 启用撤销/重做历史记录
+            history(),
+            // 显示代码折叠图标
+            foldGutter(),
+            // 绘制文本选择区域
+            drawSelection(),
+            // 显示拖拽光标（从其他地方拖入编辑器）
+            dropCursor(),
+            // 允许多重选择
+            EditorState.allowMultipleSelections.of(true),
+            // 输入时自动缩进
+            indentOnInput(),
+            // 启用语法高亮，使用默认高亮样式
+            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            // 高亮匹配的括号
+            bracketMatching(),
+            // 自动闭合括号
+            closeBrackets(),
+            // 启用自动完成功能
+            // TODO: 默认的补全关键词太少了，还不如没有。等之后再手工添加补全关键词
+            // autocompletion(),
+            // 启用矩形选择模式
+            rectangularSelection(),
+            // 显示十字光标
+            crosshairCursor(),
+            // 高亮当前活动行
+            highlightActiveLine(),
+            // 高亮所有匹配的选中文本
+            highlightSelectionMatches(),
+            // 设置缩进单位为两个空格
+            // TODO: 根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置
+            indentUnit.of('  '),
+            // 配置快捷键映射
+            keymap.of([
+                // 括号闭合快捷键
+                ...closeBracketsKeymap,
+                // 默认快捷键（复制、粘贴、删除等）
+                ...defaultKeymap,
+                // 搜索快捷键
+                ...searchKeymap,
+                // 历史记录快捷键（撤销、重做）
+                ...historyKeymap,
+                // 代码折叠快捷键
+                ...foldKeymap,
+                // 自动完成快捷键
+                // ...completionKeymap,
+                // Tab 键缩进快捷键
+                indentWithTab,
+            ]),
+            // 启用语言支持
+            languageSupport,
+            // 应用主题
+            theme,
+        ];
+    }
+
+    private createCodeMirrorEditor(container: HTMLElement, content: string, language: string): EditorView {
+        const theme = window.siyuan.config.appearance.mode === 0 ? vscodeLight : vscodeDark;
+        
+        // 创建编辑器状态
+        const state = EditorState.create({
+            doc: content,
+            extensions: this.createEditorExtensions(theme, language),
+        });
+
+        // 创建编辑器视图
+        const view = new EditorView({
+            state,
+            parent: container
+        });
+        
+        // 将编辑器实例存储到 DOM 元素上，以便后续主题切换时能够找到
+        const editorElement = container.querySelector('.cm-editor');
+        if (editorElement) {
+            (editorElement as any).cmView = view;
+        }
+
+        return view;
+    }
+
+    /**
+     * 启动主题模式监听
+     */
+    private startThemeModeWatch() {
+        // 如果已经启动了监听，则不重复启动
+        if (window.siyuan.jcsm?.themeObserver) {
+            return;
+        }
+
+        // 存储上一次的主题模式，用于比较是否有变化
+        let lastThemeMode = window.siyuan.config.appearance.mode;
+        
+        // 使用 MutationObserver 监听 :root 元素的 data-theme-mode 属性变化
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme-mode') {
+                    this.console.log("themeModeChangeHandler: mutation", mutation);
+                    
+                    // 检查主题模式是否有变化
+                    const currentThemeMode = window.siyuan.config.appearance.mode;
+                    if (currentThemeMode !== lastThemeMode) {
+                        this.console.log(`Theme mode changed: ${lastThemeMode} -> ${currentThemeMode}`);
+                        lastThemeMode = currentThemeMode;
+                        
+                        // 更新所有打开的代码片段编辑对话框中的编辑器主题
+                        this.updateAllEditorThemes();
+                    }
+                }
+            });
+        });
+        
+        // 开始监听 :root 元素的属性变化
+        const rootElement = document.querySelector(":root");
+        if (rootElement) {
+            observer.observe(rootElement, {
+                attributes: true,
+                attributeFilter: ['data-theme-mode']
+            });
+            
+            // 将 observer 存储到全局变量中
+            if (!window.siyuan.jcsm) window.siyuan.jcsm = {};
+            window.siyuan.jcsm.themeObserver = observer;
+            
+            this.console.log("Theme mode watch started");
+        }
+    }
+
+    /**
+     * 停止主题模式监听
+     */
+    private stopThemeModeWatch() {
+        if (window.siyuan.jcsm?.themeObserver) {
+            window.siyuan.jcsm.themeObserver.disconnect();
+            delete window.siyuan.jcsm.themeObserver;
+            this.console.log("Theme mode watch stopped");
+        }
+    }
+
+    /**
+     * 检查是否有编辑器对话框打开
+     */
+    private hasEditorDialogsOpen(): boolean {
+        return document.querySelectorAll('.b3-dialog--open[data-key="jcsm-snippet-dialog"]').length > 0;
+    }
+
+    /**
+     * 检查并管理主题模式监听状态
+     */
+    private checkAndManageThemeWatch(hasOpen: boolean = false) {
+        hasOpen = hasOpen || this.hasEditorDialogsOpen();
+        const hasObserver = !!window.siyuan.jcsm?.themeObserver;
+        this.console.log("checkAndManageThemeWatch: hasDialogs", hasOpen, ", hasObserver", hasObserver);
+
+        if (hasOpen && !hasObserver) {
+            // 有对话框但没有监听器，启动监听
+            this.startThemeModeWatch();
+        } else if (!hasOpen && hasObserver) {
+            // 没有对话框但有监听器，停止监听
+            this.stopThemeModeWatch();
+        }
+    }
+
+    /**
+     * 更新所有打开的代码片段编辑对话框中的编辑器主题
+     */
+    private updateAllEditorThemes() {
+        // 获取所有打开的代码片段编辑对话框
+        const snippetDialogs = document.querySelectorAll('.b3-dialog--open[data-key="jcsm-snippet-dialog"]');
+        
+        snippetDialogs.forEach((dialogElement) => {
+            const contentContainer = dialogElement.querySelector('.jcsm-dialog-content') as HTMLElement;
+            if (!contentContainer) return;
+            
+            // 查找现有的 CodeMirror 编辑器 DOM 元素
+            const existingEditorElement = contentContainer.querySelector('.cm-editor');
+            if (!existingEditorElement) return;
+            
+            // 获取当前编辑器实例 - 通过 DOM 元素查找对应的 EditorView
+            const editorView = (existingEditorElement as any).cmView as EditorView;
+            if (!editorView) {
+                this.console.log('EditorView not found, recreating editor');
+                this.recreateEditor(dialogElement, contentContainer);
+                return;
+            }
+            
+            // 获取当前主题模式
+            const currentThemeMode = window.siyuan.config.appearance.mode;
+            const newTheme = currentThemeMode === 0 ? vscodeLight : vscodeDark;
+            
+            // 获取当前编辑器状态
+            const currentState = editorView.state;
+            
+            // 创建新的编辑器状态，保留文档内容和选择状态
+            const snippetType = dialogElement.getAttribute('data-snippet-type') || 'css';
+            const newState = EditorState.create({
+                doc: currentState.doc,
+                extensions: this.createEditorExtensions(newTheme, snippetType),
+            });
+            
+            // 更新编辑器状态，保留滚动位置和光标位置
+            editorView.setState(newState);
+            
+            this.console.log(`Editor theme updated: ${dialogElement}`);
+        });
+    }
+    
+    /**
+     * 重新创建编辑器（当无法找到 EditorView 实例时使用）
+     * @param dialogElement 对话框元素
+     * @param contentContainer 内容容器
+     */
+    private recreateEditor(dialogElement: Element, contentContainer: HTMLElement) {
+        // 获取当前编辑器内容
+        const existingEditorElement = contentContainer.querySelector('.cm-editor');
+        if (!existingEditorElement) return;
+        
+        const codeLines = existingEditorElement.querySelectorAll('.cm-line');
+        let currentContent = '';
+        if (codeLines.length > 0) {
+            // 从 CodeMirror 的 DOM 结构中提取文本内容
+            currentContent = Array.from(codeLines)
+                .map(line => line.textContent || '')
+                .join('\n');
+        } else {
+            // 备用方案：直接获取 textContent
+            currentContent = existingEditorElement.textContent || '';
+        }
+        
+        const snippetType = dialogElement.getAttribute('data-snippet-type') || 'css';
+        
+        // 清空容器
+        contentContainer.innerHTML = '';
+        
+        // 重新创建编辑器
+        this.createCodeMirrorEditor(contentContainer, currentContent, snippetType);
+        
+        this.console.log(`Editor recreated: ${dialogElement}`);
+    }
 
     /**
      * 打开代码片段编辑对话框
@@ -1476,33 +1755,57 @@ export default class PluginSnippets extends Plugin {
         dialog.element.setAttribute("data-snippet-id", snippet.id);
         dialog.element.setAttribute("data-snippet-type", snippet.type);
 
+        // 检查并启动主题模式监听（在第一个编辑器对话框打开时）
+        this.checkAndManageThemeWatch(true);
+
         // 设置代码片段标题和内容
         const nameElement = dialog.element.querySelector(".jcsm-dialog-name") as HTMLInputElement; // 标题不允许输入换行，所以得用 input 元素，textarea 元素没法在操作能 Ctrl+Z 撤回的前提下阻止用户换行
         nameElement.value = snippet.name;
         nameElement.focus();
-        const contentElement = dialog.element.querySelector(".jcsm-dialog-content") as HTMLTextAreaElement;
-        contentElement.value = snippet.content;
+        
+        // 创建 CodeMirror 编辑器
+        const contentContainer = dialog.element.querySelector(".jcsm-dialog-content") as HTMLElement;
+        const codeMirrorView = this.createCodeMirrorEditor(contentContainer, snippet.content, snippet.type);
+        this.console.log("codeMirrorView", codeMirrorView);
+        
         const switchInput = dialog.element.querySelector("input[data-type='snippetSwitch']") as HTMLInputElement;
         // switchInput.checked = snippet.enabled; // genSnippetDialog 的时候已经添加了 enabled 属性，这里不需要重复设置
+
+        const isOnlyCtrl = (event: KeyboardEvent) => event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey;
 
         this.addListener(dialog.element, "keydown", (event: KeyboardEvent) => {
             const target = event.target as HTMLElement;
             if (target === nameElement) {
-                if (event.key === "Enter") {
+                // 在标题中按键
+                if (event.key === "Enter" || event.key === "Tab") {
                     event.preventDefault();
-                    contentElement.focus();
+                    codeMirrorView.contentDOM.focus();
                 }
-                // TODO: 按 Tab 键输入制表符或空格（根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置）
-
-                // TODO: 直接添加一个代码编辑器组件来管理按键操作，体验更好而且不需要处理复杂按键
-
-
-            } else if (target === contentElement) {
-                // TODO: 按 Tab 键输入制表符或空格（根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置）
-                // TODO: 选中代码按 (Shift +) Tab 键，对选中的代码行，执行（反）缩进
-                // TODO: 按 Ctrl + Enter 键执行 “保存” 操作
+            } else if (target === codeMirrorView.contentDOM) {
+                // 在代码编辑器中按键
+                if (isOnlyCtrl(event) && event.key === "Enter") {
+                    // 按 Ctrl + Enter 键执行“保存”操作
+                    // TODO: 把“保存”操作提取为一个函数，重复使用
+                    event.preventDefault();
+                    snippet.name = nameElement.value;
+                    snippet.content = codeMirrorView.state.doc.toString();
+                    snippet.enabled = switchInput.checked;
+                    this.saveSnippet(snippet);
+                    this.closeDialogByElement(dialog.element);
+                }
             }
-        }, {capture: true});
+        }, {capture: true}); // 需要在捕获阶段阻止冒泡，否则按 Enter 键会先输入一个换行
+
+        this.addListener(dialog.element, "keydown", (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement;
+            if (target === codeMirrorView.contentDOM) {
+                // 在代码编辑器中按键
+                if (isOnlyCtrl(event) && event.key === "f") {
+                    // 按 Ctrl+F 搜索时阻止冒泡，否则会呼出思源的搜索
+                    event.stopPropagation();
+                }
+            }
+        });
 
         this.addListener(dialog.element, "wheel", (event) => {
             // 阻止冒泡，否则当菜单打开时，输入框无法使用鼠标滚轮滚动
@@ -1522,10 +1825,12 @@ export default class PluginSnippets extends Plugin {
 
         this.addListener(dialog.element, "click", async (event: Event) => {
             this.console.log("dialogClickHandler: event", event);
-            // 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭
-            event.stopPropagation();
-
             const target = event.target as HTMLElement;
+            if (!target.closest(".jcsm-dialog-content")) {
+                // 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭
+                // 点击编辑器的时候不能阻止，否则编辑器不能正常使用，所以点击编辑器的时候允许关闭菜单
+                event.stopPropagation();
+            }
             const tagName = target.tagName.toLowerCase();
             if (tagName === "input" && target === switchInput) {
                 // 切换代码片段的开关状态
@@ -1556,7 +1861,7 @@ export default class PluginSnippets extends Plugin {
                     case "confirm":
                         // 新建/更新代码片段
                         snippet.name = nameElement.value;
-                        snippet.content = contentElement.value;
+                        snippet.content = codeMirrorView.state.doc.toString();
                         snippet.enabled = switchInput.checked;
                         // 如果已经删除了对应 ID 的代码片段而 Dialog 还在，此时点击“新建”按钮会自动新建代码片段
                         this.saveSnippet(snippet);
@@ -1584,7 +1889,7 @@ export default class PluginSnippets extends Plugin {
             if (currentSnippet === undefined) {
                 // 如果当前代码片段不存在，说明是在“取消新建代码片段”
                 // 如果没有填任何内容，则直接关闭 Dialog
-                if (nameElement.value === "" && contentElement.value === "") {
+                if (nameElement.value.trim() === "" && codeMirrorView.state.doc.toString().trim() === "") {
                     cancel();
                     return;
                 } else {
@@ -1605,7 +1910,7 @@ export default class PluginSnippets extends Plugin {
             if (currentSnippet.name !== nameElement.value) {
                 changes.push(this.i18n.snippetName);
             }
-            if (currentSnippet.content !== contentElement.value) {
+            if (currentSnippet.content !== codeMirrorView.state.doc.toString()) {
                 changes.push(this.i18n.snippetContent);
             }
             if (currentSnippet.enabled !== switchInput.checked) {
@@ -1635,7 +1940,7 @@ export default class PluginSnippets extends Plugin {
                 name: "",
                 type: "css",
                 enabled: switchInput.checked,
-                content: contentElement.value,
+                content: codeMirrorView.state.doc.toString(),
             };
             // 只更新代码片段元素，不保存代码片段
             // this.saveSnippet(snippet);
@@ -1651,7 +1956,7 @@ export default class PluginSnippets extends Plugin {
             this.addListener(dialog.element, "input", (event: Event | CustomEvent) => {
                 if (this.realTimePreview) {
                     const isDispatch = typeof (event as CustomEvent).detail === "string";
-                    if (event.target === contentElement || (isDispatch && (event as CustomEvent).detail === "realTimePreview")) {
+                    if (event.target === codeMirrorView.dom || (isDispatch && (event as CustomEvent).detail === "realTimePreview")) {
                         // 点击开关按钮也会触发 input 事件，这里过滤一下
                         this.console.log("snippetEditDialog input");
                         previewHandler();
@@ -1806,6 +2111,9 @@ export default class PluginSnippets extends Plugin {
                 dialogElement?.remove();
                 // Dialog 移除之后再移除全局键盘事件监听，因为需要判断窗口中是否还存在菜单和 Dialog
                 this.destroyGlobalKeyDownHandler();
+                
+                // 检查并停止主题模式监听（在最后一个编辑器对话框关闭时）
+                this.checkAndManageThemeWatch();
             }, Constants.TIMEOUT_DBLCLICK ?? 190);
         }
     }
@@ -2276,13 +2584,17 @@ export default class PluginSnippets extends Plugin {
             return;
         }
 
-        // 如果没有监听器，不需要检查
-        if (!this.listeners || this.listeners.length === 0) {
-            return;
-        }
-
         // 设置检查标志
         this.isCheckingListeners = true;
+
+        // 检查主题监听状态
+        this.checkAndManageThemeWatch();
+
+        // 如果没有监听器，不需要检查
+        if (!this.listeners || this.listeners.length === 0) {
+            this.isCheckingListeners = false;
+            return;
+        }
 
         this.console.log("check Listener:", this.listeners);
 
