@@ -294,34 +294,6 @@ export default class PluginSnippets extends Plugin {
             ],
         },
         {
-            key: 'consoleDebug',
-            description: 'consoleDebugDescription',
-            type: 'boolean',
-            defaultValue: false,
-        },
-        {
-            key: "feedbackIssue",
-            description: "feedbackIssueDescription",
-            type: "createActionElement",
-            createActionElement: () => {
-                const repoLink = "https://github.com/TCOTC/snippets";
-                return this.htmlToElement(
-                    `<a href="${repoLink}" target="_blank" rel="noopener noreferrer" class="b3-button b3-button--outline fn__flex-center fn__size200 ariaLabel" aria-label="${repoLink}" data-position="north"><svg><use xlink:href="#iconGithub"></use></svg>${this.i18n.feedbackIssueButton}</a>`
-                );
-            },
-        },
-        // {
-        //     key: "notificationSwitch", // 通知总开关，通知数量多了再添加
-        //     type: "boolean",
-        //     defaultValue: true,
-        // },
-        {
-            key: "reloadUIAfterModifyJSNotice",
-            description: "reloadUIAfterModifyJSNoticeDescription",
-            type: "boolean", // TODO: description 中的 [设置 - 快捷键] 支持点击，点击后跳转到 [设置 - 快捷键] 页面，并滚动到插件的快捷键设置、展开插件的快捷键设置
-            defaultValue: true,
-        },
-        {
             key: "editorIndentUnit",
             description: "editorIndentUnitDescription",
             type: "select",
@@ -339,6 +311,34 @@ export default class PluginSnippets extends Plugin {
                 { value: "space7", text: "editorIndentUnitSpace7" },
                 { value: "space8", text: "editorIndentUnitSpace8" }
             ],
+        },
+        {
+            key: "feedbackIssue",
+            description: "feedbackIssueDescription",
+            type: "createActionElement",
+            createActionElement: () => {
+                const repoLink = "https://github.com/TCOTC/snippets";
+                return this.htmlToElement(
+                    `<a href="${repoLink}" target="_blank" rel="noopener noreferrer" class="b3-button b3-button--outline fn__flex-center fn__size200 ariaLabel" aria-label="${repoLink}" data-position="north"><svg><use xlink:href="#iconGithub"></use></svg>${this.i18n.feedbackIssueButton}</a>`
+                );
+            },
+        },
+        {
+            key: 'consoleDebug',
+            description: 'consoleDebugDescription',
+            type: 'boolean',
+            defaultValue: false,
+        },
+        // {
+        //     key: "notificationSwitch", // 通知总开关，通知数量多了再添加
+        //     type: "boolean",
+        //     defaultValue: true,
+        // },
+        {
+            key: "reloadUIAfterModifyJSNotice",
+            description: "reloadUIAfterModifyJSNoticeDescription",
+            type: "boolean", // TODO: description 中的 [设置 - 快捷键] 支持点击，点击后跳转到 [设置 - 快捷键] 页面，并滚动到插件的快捷键设置、展开插件的快捷键设置
+            defaultValue: true,
         }
     ];
 
@@ -1663,17 +1663,18 @@ export default class PluginSnippets extends Plugin {
     };
 
     /**
+     * 编辑器缩进单位
+     */
+    declare editorIndentUnit: string;
+
+    /**
      * 获取编辑器缩进单位
      * @returns 缩进单位字符串
      */
     private getEditorIndentUnit(): string {
-        const indentUnitConfig = (window.siyuan.jcsm as any)?.editorIndentUnit ?? "followSiyuan";
-        console.log("getEditorIndentUnit: indentUnitConfig", indentUnitConfig);
+        const indentUnitConfig = this.editorIndentUnit;
         
-        if (indentUnitConfig === "followSiyuan") {
-            // 跟随思源设置
-            return window.siyuan.config.editor.codeTabSpaces === 0 ? "\t" : " ".repeat(window.siyuan.config.editor.codeTabSpaces);
-        } else if (indentUnitConfig.startsWith("tab")) {
+        if (indentUnitConfig.startsWith("tab")) {
             // 制表符配置
             const tabCount = parseInt(indentUnitConfig.replace("tab", ""));
             return "\t".repeat(tabCount);
@@ -1681,10 +1682,17 @@ export default class PluginSnippets extends Plugin {
             // 空格配置
             const spaceCount = parseInt(indentUnitConfig.replace("space", ""));
             return " ".repeat(spaceCount);
+        } else {
+            // indentUnitConfig === "followSiyuan" 或者 indentUnitConfig 是其他值
+            const SiyuanCodeTabSpaces = window.siyuan.config.editor.codeTabSpaces;
+            if (SiyuanCodeTabSpaces && typeof SiyuanCodeTabSpaces === "number" && SiyuanCodeTabSpaces >= 0) {
+                // 跟随思源设置
+                return SiyuanCodeTabSpaces === 0 ? "\t" : " ".repeat(SiyuanCodeTabSpaces);
+            } else {
+                // 默认缩进单位为两个空格
+                return " ".repeat(2);
+            }
         }
-        
-        // 默认返回思源设置
-        return window.siyuan.config.editor.codeTabSpaces === 0 ? "\t" : " ".repeat(window.siyuan.config.editor.codeTabSpaces);
     }
 
     /**
