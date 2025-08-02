@@ -474,7 +474,8 @@ export default class PluginSnippets extends Plugin {
                                             previewButton.classList.add("fn__none");
                                         }
                                         // 启用 realTimePreview 设置之后，查询所有 CSS 代码片段编辑对话框触发一次 input 事件（不需要冒泡），由 input 事件监听器触发一次预览
-                                        cssDialog.dispatchEvent(new CustomEvent("input", {detail: "realTimePreview"}));
+                                        // cssDialog.dispatchEvent(new CustomEvent("input", {detail: "realTimePreview"}));
+                                        cssDialog.dispatchEvent(new CustomEvent("keydown", {detail: "realTimePreview"}));
                                 });
                             } else {
                                 cssDialogs.forEach(cssDialog => {
@@ -712,8 +713,6 @@ export default class PluginSnippets extends Plugin {
             <input class="jcsm-switch jcsm-all-snippets-switch b3-switch fn__flex-center" type="checkbox">
         `;
 
-        // TODO: 实现代码片段搜索：搜索按钮（和搜索框）
-
         const radio = menuTop.querySelector(`[data-snippet-type="${this.snippetsType}"]`) as HTMLInputElement;
         radio.checked = true;
         const settingsButton = menuTop.querySelector("button[data-type='config']") as HTMLButtonElement;
@@ -764,8 +763,11 @@ export default class PluginSnippets extends Plugin {
                         item.classList.remove("fn__none");
                     });
                 }
-                // 设置当前选中项
-                this.setMenuSnippetsTypeCurrent(this.snippetsType);
+
+                if (!this.isMobile) {
+                    // 设置当前选中项
+                    this.setMenuSnippetsTypeCurrent(this.snippetsType);
+                }
             }
         });
         
@@ -1003,8 +1005,6 @@ export default class PluginSnippets extends Plugin {
                 if (buttonType === "edit") {
                     // 编辑代码片段，打开编辑对话框
                     this.openSnippetEditDialog(snippet);
-                    // 给按钮添加背景色
-                    this.setSnippetEditButtonActive(snippetMenuItem);
                     // TODO自定义页签: 编辑页签，等其他功能稳定之后再做
                 } else if (buttonType === "delete") {
                     // 删除代码片段
@@ -1202,11 +1202,10 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 设置代码片段菜单项编辑按钮高亮
-     * @param snippetMenuItem 代码片段菜单项
+     * @param snippetId 代码片段 ID
      */
-    private setSnippetEditButtonActive(snippetMenuItem: HTMLElement) {
-        this.console.log("setSnippetEditButtonActive", snippetMenuItem);
-        const editButton = snippetMenuItem?.querySelector("button[data-type='edit']") as HTMLButtonElement;
+    private setSnippetEditButtonActive(snippetId: string) {
+        const editButton = this.menuItems.querySelector(`.jcsm-snippet-item[data-id='${snippetId}'] button[data-type='edit']`) as HTMLButtonElement;
         if (editButton) {
             editButton.classList.add("jcsm-active");
         }
@@ -1223,8 +1222,7 @@ export default class PluginSnippets extends Plugin {
             const snippetId = dialog.dataset.snippetId;
             if (!snippetId) return;
 
-            const snippetMenuItem = this.menuItems.querySelector(`.jcsm-snippet-item[data-id='${snippetId}']`) as HTMLElement;
-            this.setSnippetEditButtonActive(snippetMenuItem);
+            this.setSnippetEditButtonActive(snippetId);
         });
     }
 
@@ -1312,7 +1310,6 @@ export default class PluginSnippets extends Plugin {
         } else if (snippet === false) {
             return;
         }
-        // TODO: getSnippetById 需要使用旧的 this.snippetsList，所以下面才修改 this.snippetsList ？
         this.snippetsList = this.snippetsList.filter((snippet: Snippet) => snippet.id !== id);
         this.saveSnippetsList(this.snippetsList);
         this.setMenuSnippetCount();
@@ -1605,6 +1602,10 @@ export default class PluginSnippets extends Plugin {
         // 根据语言类型选择相应的语言支持
         const placeholderText = language === "js" ? this.i18n.codeSnippetJS : this.i18n.codeSnippetCSS;
         const languageSupport = language === "js" ? javascript() : css();
+
+        // window.siyuan.config.editor.codeTabSpaces 是数字，为 0 时对应一个制表符，为其他正数时对应数量的空格
+        // TODO: 根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置
+        const indentUnitText = window.siyuan.config.editor.codeTabSpaces === 0 ? "\t" : " ".repeat(window.siyuan.config.editor.codeTabSpaces);
         
         return [
             // 显示行号
@@ -1632,7 +1633,7 @@ export default class PluginSnippets extends Plugin {
             // 自动闭合括号
             closeBrackets(),
             // 启用自动完成功能
-            // TODO: 默认的补全关键词太少了，还不如没有。等之后再手工添加补全关键词
+            // TODO考虑: 默认的补全关键词太少了，还不如没有。等之后再手工添加补全关键词
             // autocompletion(),
             // 启用矩形选择模式
             rectangularSelection(),
@@ -1643,8 +1644,7 @@ export default class PluginSnippets extends Plugin {
             // 高亮所有匹配的选中文本
             highlightSelectionMatches(),
             // 设置缩进单位为两个空格
-            // TODO: 根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置
-            indentUnit.of('  '),
+            indentUnit.of(indentUnitText),
             // 配置快捷键映射
             keymap.of([
                 // 括号闭合快捷键
@@ -1876,6 +1876,9 @@ export default class PluginSnippets extends Plugin {
             this.showErrorMessage(this.i18n.snippetDialogParamError + "[" + paramError.join(", ") + "]");
             return false;
         }
+
+        // 给对应的菜单项的编辑按钮添加背景色
+        this.setSnippetEditButtonActive(snippet.id);
         
         // 如果已经有打开的对应 snippetId 的 Dialog，则激活它
         const existedDialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippet.id}"]`) as HTMLDivElement;
@@ -1933,14 +1936,16 @@ export default class PluginSnippets extends Plugin {
         // 创建 CodeMirror 编辑器
         const contentContainer = dialog.element.querySelector(".jcsm-dialog-content") as HTMLElement;
         const codeMirrorView = this.createCodeMirrorEditor(contentContainer, snippet.content, snippet.type);
-        this.console.log("codeMirrorView", codeMirrorView);
+        // codeMirrorView.contentDOM.focus();
         
         const switchInput = dialog.element.querySelector("input[data-type='snippetSwitch']") as HTMLInputElement;
         // switchInput.checked = snippet.enabled; // genSnippetDialog 的时候已经添加了 enabled 属性，这里不需要重复设置
 
         const isOnlyCtrl = (event: KeyboardEvent) => event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey;
 
+        // 处理标题区跳转和 Ctrl+Enter 保存
         this.addListener(dialog.element, "keydown", (event: KeyboardEvent) => {
+            this.console.log("snippetEditDialog keydown", event);
             const target = event.target as HTMLElement;
             if (target === nameElement) {
                 // 在标题中按键
@@ -1990,14 +1995,16 @@ export default class PluginSnippets extends Plugin {
         const scrimElement = dialog.element.querySelector(".b3-dialog__scrim") as HTMLElement;
         // 代码片段编辑对话框的 .b3-dialog__scrim 元素只在桌面端被移除，移动端还是有的，所以要处理点击
 
+        // 在菜单打开的情况下，移动端无法上下划动对话框中的编辑器，需要阻止事件冒泡
+        this.addListener(dialog.element, "touchmove", (event: TouchEvent) => {
+            event.stopPropagation();
+        }, {passive: true});
+
         this.addListener(dialog.element, "click", async (event: Event) => {
             this.console.log("dialogClickHandler: event", event);
             const target = event.target as HTMLElement;
-            if (!target.closest(".jcsm-dialog-content")) {
-                // 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭
-                // 点击编辑器的时候不能阻止，否则编辑器不能正常使用，所以点击编辑器的时候允许关闭菜单
-                event.stopPropagation();
-            }
+            // 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭
+            event.stopPropagation();
             const tagName = target.tagName.toLowerCase();
             if (tagName === "input" && target === switchInput) {
                 // 切换代码片段的开关状态
@@ -2102,6 +2109,7 @@ export default class PluginSnippets extends Plugin {
                 this.showErrorMessage(this.i18n.realTimePreviewHandlerFunctionError);
                 return;
             }
+            this.console.log("previewHandler: codeMirrorView.state.doc.toString()", codeMirrorView.state.doc.toString());
             const previewSnippet: Snippet = {
                 id: snippet.id,
                 name: "",
@@ -2109,8 +2117,7 @@ export default class PluginSnippets extends Plugin {
                 enabled: switchInput.checked,
                 content: codeMirrorView.state.doc.toString(),
             };
-            // 只更新代码片段元素，不保存代码片段
-            // this.saveSnippet(snippet);
+            // 只更新代码片段元素，不保存代码片段 this.saveSnippet(snippet);
             this.updateSnippetElement(previewSnippet, undefined, true);
         }
 
@@ -2120,17 +2127,22 @@ export default class PluginSnippets extends Plugin {
                 previewHandler();
             }
             // 监听输入框内容变化，实时预览
-            this.addListener(dialog.element, "input", (event: Event | CustomEvent) => {
+            // 用了代码编辑器之后，按 Backspace、Ctrl+X 等操作都监听不到 input 事件，所以改成监听 keydown 事件
+            this.addListener(dialog.element, "keydown", (event: KeyboardEvent | CustomEvent) => {
                 if (this.realTimePreview) {
+                    const target = event.target as HTMLElement;
                     const isDispatch = typeof (event as CustomEvent).detail === "string";
-                    if (event.target === codeMirrorView.dom || (isDispatch && (event as CustomEvent).detail === "realTimePreview")) {
-                        // 点击开关按钮也会触发 input 事件，这里过滤一下
-                        this.console.log("snippetEditDialog input");
-                        previewHandler();
+                    // 仅在代码编辑器区域或自定义事件触发时处理实时预览
+                    if (target === codeMirrorView.contentDOM || (isDispatch && (event as CustomEvent).detail === "realTimePreview")) {
+                        this.console.log("snippetEditDialog keydown: previewHandler");
+                        setTimeout(() => {
+                            previewHandler();
+                        }, 0); // 等待符号键入完成
                     }
                 }
-            });
+            }); // 不能在捕获阶段处理，否则 codeMirrorView.state.doc.toString() 会获取到编辑之前的内容
         }
+
         return true;
 
         // 还能插入 Protyle 编辑器，以后说不定能用上
@@ -2228,9 +2240,18 @@ export default class PluginSnippets extends Plugin {
             width: this.isMobile ? "92vw" : "520px",
         });
         dialog.element.setAttribute("data-key", dataKey ?? "dialog-confirm"); // Constants.DIALOG_CONFIRM
+        const container = dialog.element.querySelector(".b3-dialog__container") as HTMLElement;
+        if (container) {
+            container.style.maxHeight = "90vh";
+        }
 
         const closeElement = dialog.element.querySelector(".b3-dialog__close") as HTMLElement;
         const scrimElement = dialog.element.querySelector(".b3-dialog__scrim") as HTMLElement;
+
+        // 在菜单打开的情况下，移动端无法上下划动对话框中的滚动容器，需要阻止事件冒泡
+        this.addListener(dialog.element, "touchmove", (event: TouchEvent) => {
+            event.stopPropagation();
+        }, {passive: true});
 
         this.addListener(dialog.element, "click", (event: KeyboardEvent) => {
             this.console.log("confirmDialog click", event);

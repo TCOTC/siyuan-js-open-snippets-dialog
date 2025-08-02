@@ -11,12 +11,23 @@
       padding: 0 0 0 10px;
     }
 
+    .jcsm-snippets-search {
+      margin: 0 10px 4px 0;
+    }
+
     .jcsm-top-container {
       padding: 0 16px 0 0;
     }
 
     .jcsm-snippets-container {
       scrollbar-gutter: stable; // 出现滚动条的时候列表不会偏移
+    }
+  }
+
+  // 移动端
+  &.b3-menu--fullscreen {
+    .jcsm-snippets-search {
+      margin: 0 5px 4px 5px;
     }
   }
 
@@ -117,10 +128,6 @@
     &[data-type="js"] ~ .jcsm-snippets-container .jcsm-snippet-item[data-type="css"] {
       display: none !important;
     }
-  }
-
-  .jcsm-snippets-search {
-    margin: 0 10px 4px 0;
   }
 
   .jcsm-snippets-container {
@@ -283,6 +290,7 @@
 // }
 
 :root {
+  // --jcsm-breathing-color: var(--b3-theme-primary-lightest);
   --jcsm-breathing-color: color-mix(in srgb, var(--b3-theme-primary) 20%, transparent);
 }
 

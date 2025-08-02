@@ -1,6 +1,6 @@
 [中文](https://github.com/TCOTC/snippets/blob/main/README_zh_CN.md)
 
-#### Snippets Management Menu
+#### Code Snippets Management Menu
 
 How to open:
 
@@ -9,11 +9,11 @@ How to open:
 
 Features:
 
-- Add, edit, delete, enable, disable, search (TODO) snippets
+- Add, edit, delete, enable, disable, search snippets
 - Reload UI
 - Open plugin settings
 
-#### Snippet Edit Dialog
+#### Code Snippets Editor
 
 How to open:
 
