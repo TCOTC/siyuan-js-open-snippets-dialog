@@ -15,6 +15,7 @@
   "unNamed": "Unnamed",
   "pluginConfig": "Plugin settings",
   "reloadUI": "Reload UI",
+  "search": "Search",
   "add": "Add",
   "edit": "Edit",
   "delete": "Delete",
@@ -25,6 +26,8 @@
   "confirm": "Confirm",
   "title": "Title",
   "codeSnippet": "Code snippet",
+  "codeSnippetCSS": "CSS code snippet",
+  "codeSnippetJS": "JavaScript code snippet",
   "openSnippetsPanel": "Open snippets panel",
   "deleteConfirm": "⚠️ Delete operation confirmation",
   "deleteConfirmDescription": "Are you sure you want to delete snippet${x}?",
@@ -53,5 +56,11 @@
   "couldCloseNoticeInPluginSettings": "<span class='ariaLabel' aria-label='this notice can be closed in plugin settings'>${x}</span>",
   "reloadUIAfterModifyJS": "Modifying JS snippets requires reloading the interface to ensure that the changes take effect",
   "reloadUIAfterModifyJSNotice": "Notice: Modifying JS snippets",
-  "reloadUIAfterModifyJSNoticeDescription": "Modifying JS snippets requires reloading the interface to ensure that the changes take effect, you can click the \"Reload UI\" button in the plugin's top bar menu, or bind the \"Reload UI\" button to a shortcut in [Settings - Shortcuts]"
+  "reloadUIAfterModifyJSNoticeDescription": "Modifying JS snippets requires reloading the interface to ensure that the changes take effect, you can click the \"Reload UI\" button in the plugin's top bar menu, or bind the \"Reload UI\" button to a shortcut in [Settings - Shortcuts]",
+  "snippetSearchType": "Snippet search",
+  "snippetSearchTypeDescription": "Search snippets by title or content",
+  "snippetSearchTypeDisabled": "Disabled",
+  "snippetSearchTypeName": "Search title",
+  "snippetSearchTypeContent": "Search content",
+  "snippetSearchTypeNameAndContent": "Search name and content"
 }

@@ -40,6 +40,7 @@ declare global {
                 reloadUIAfterModifyJS?: boolean;
                 isReloadUIButtonBreathing?: boolean;
                 themeObserver?: MutationObserver;
+                snippetSearchType?: number;
             };
         };
     }

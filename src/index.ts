@@ -14,7 +14,8 @@ import {
 } from "siyuan";
 
 // CodeMirror 6 导入
-import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete'
+import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
+// import { autocompletion, completionKeymap } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { javascript } from '@codemirror/lang-javascript'
 import { css } from '@codemirror/lang-css'
@@ -280,6 +281,21 @@ export default class PluginSnippets extends Plugin {
             defaultValue: true,
         },
         {
+            key: "snippetSearchType",
+            description: "snippetSearchTypeDescription",
+            type: "number",
+            defaultValue: 1,
+            createActionElement: () => {
+                // 创建代码片段搜索类型下拉框
+                return this.genSelectElement("snippetSearchType", [
+                    { value: "0", text: this.i18n.snippetSearchTypeDisabled },
+                    { value: "1", text: this.i18n.snippetSearchTypeName },
+                    { value: "2", text: this.i18n.snippetSearchTypeContent },
+                    { value: "3", text: this.i18n.snippetSearchTypeNameAndContent }
+                ]);
+            },
+        },
+        {
             key: 'consoleDebug',
             description: 'consoleDebugDescription',
             type: 'boolean',
@@ -308,6 +324,23 @@ export default class PluginSnippets extends Plugin {
             defaultValue: true,
         }
     ];
+
+    /**
+     * 创建通用的下拉框元素
+     * @param key 配置项的 key
+     * @param options 选项数组，每个选项包含 value 和 text
+     * @returns 下拉框 HTML 元素
+     */
+    private genSelectElement(key: string, options: Array<{ value: string; text: string }>): HTMLElement {
+        const currentValue = (window.siyuan.jcsm as any)[key] ?? this.configItems.find(item => item.key === key)?.defaultValue;
+        const optionsHtml = options.map(option => 
+            `<option value="${option.value}"${currentValue === parseInt(option.value) ? " selected" : ""}>${option.text}</option>`
+        ).join("");
+        
+        return this.htmlToElement(
+            `<select class="b3-select fn__flex-center" data-type="${key}">${optionsHtml}</select>`
+        );
+    }
 
     /**
      * 创建配置 getter
@@ -357,7 +390,7 @@ export default class PluginSnippets extends Plugin {
                     return this.htmlToElement(
                         `<input class="b3-switch fn__flex-center" type="checkbox" data-type="${item.key}"${(window.siyuan.jcsm as any)[item.key] ? " checked" : ""}>`
                     );
-                } else if (item.type === 'createActionElement') {
+                } else if (item.type === 'createActionElement' || item.createActionElement) {
                     return item.createActionElement?.();
                 }
                 // 还可以扩展其他类型的控件
@@ -424,34 +457,65 @@ export default class PluginSnippets extends Plugin {
     private applySetting(dialogElement: HTMLElement) {
         // 应用设置
         this.configItems.forEach(item => {
-            const element = dialogElement.querySelector(`input[data-type='${item.key}']`) as HTMLInputElement;
-            if (element && item.type === 'boolean') {
-                const newValue = element.checked;
-                if ((window.siyuan.jcsm as any)[item.key] !== newValue) {
-                    (window.siyuan.jcsm as any)[item.key] = newValue;
+            if (item.type === 'boolean') {
+                const element = dialogElement.querySelector(`input[data-type='${item.key}']`) as HTMLInputElement;
+                if (element) {
+                    const newValue = element.checked;
+                    if ((window.siyuan.jcsm as any)[item.key] !== newValue) {
+                        (window.siyuan.jcsm as any)[item.key] = newValue;
 
-                    if (item.key === "realTimePreview") {
-                        const cssDialogs = document.querySelectorAll(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-type="css"]`);
-                        // 修改 realTimePreview 设置之后查询所有对话框按钮修改预览按钮的 fn__none
-                        if (newValue === true) {
-                            cssDialogs.forEach(cssDialog => {
+                        if (item.key === "realTimePreview") {
+                            const cssDialogs = document.querySelectorAll(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-type="css"]`);
+                            // 修改 realTimePreview 设置之后查询所有对话框按钮修改预览按钮的 fn__none
+                            if (newValue === true) {
+                                cssDialogs.forEach(cssDialog => {
+                                        const previewButton = cssDialog.querySelector("button[data-action='preview']") as HTMLButtonElement;
+                                        if (previewButton) {
+                                            previewButton.classList.add("fn__none");
+                                        }
+                                        // 启用 realTimePreview 设置之后，查询所有 CSS 代码片段编辑对话框触发一次 input 事件（不需要冒泡），由 input 事件监听器触发一次预览
+                                        cssDialog.dispatchEvent(new CustomEvent("input", {detail: "realTimePreview"}));
+                                });
+                            } else {
+                                cssDialogs.forEach(cssDialog => {
                                     const previewButton = cssDialog.querySelector("button[data-action='preview']") as HTMLButtonElement;
                                     if (previewButton) {
-                                        previewButton.classList.add("fn__none");
+                                        previewButton.classList.remove("fn__none");
                                     }
-                                    // 启用 realTimePreview 设置之后，查询所有 CSS 代码片段编辑对话框触发一次 input 事件（不需要冒泡），由 input 事件监听器触发一次预览
-                                    cssDialog.dispatchEvent(new CustomEvent("input", {detail: "realTimePreview"}));
-                            });
-                        } else {
-                            cssDialogs.forEach(cssDialog => {
-                                const previewButton = cssDialog.querySelector("button[data-action='preview']") as HTMLButtonElement;
-                                if (previewButton) {
-                                    previewButton.classList.remove("fn__none");
-                                }
-                            });
+                                });
+                            }
                         }
                     }
                 }
+            } else if (item.type === 'number') {
+                const element = dialogElement.querySelector(`select[data-type='${item.key}']`) as HTMLSelectElement;
+                if (element) {
+                    const newValue = parseInt(element.value);
+                    if ((window.siyuan.jcsm as any)[item.key] !== newValue) {
+                        (window.siyuan.jcsm as any)[item.key] = newValue;
+
+                        if (item.key === "snippetSearchType") {
+                            // 修改代码片段搜索类型时，隐藏或显示搜索按钮（和搜索输入框）
+                            if (newValue === 0) {
+                                const searchButton = this.menuItems.querySelector(".jcsm-top-container button[data-type='search']") as HTMLButtonElement;
+                                if (searchButton) {
+                                    searchButton.classList.add("fn__none");
+                                    searchButton.classList.remove("jcsm-active");
+                                }
+                                const searchInput = this.menuItems.querySelector("input[data-action='search']") as HTMLInputElement;
+                                if (searchInput) {
+                                    searchInput.classList.add("fn__none");
+                                    searchInput.value = "";
+                                    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+                                }
+                            } else {
+                                this.menuItems.querySelector(".jcsm-top-container button[data-type='search']")?.classList.remove("fn__none");
+                            }
+                        }
+                    }
+                }
+            // } else if (item.createActionElement) {
+            //     // 处理特定的自定义控件
             }
         });
 
@@ -640,6 +704,7 @@ export default class PluginSnippets extends Plugin {
                 <span class="jcsm-glider"></span>
             </div>
             <span class="fn__flex-1"></span>
+            <button class="block__icon block__icon--show fn__flex-center ariaLabel${this.snippetSearchType === 0 ? " fn__none" : ""}" data-type="search" data-position="north" aria-label="${this.i18n.search}"><svg><use xlink:href="#iconSearch"></use></svg></button>
             <button class="block__icon block__icon--show fn__flex-center ariaLabel" data-type="config" data-position="north"><svg><use xlink:href="#iconSettings"></use></svg></button>
             <button class="block__icon block__icon--show fn__flex-center ariaLabel${this.isReloadUIButtonBreathing ? " jcsm-breathing" : ""}" data-type="reload" data-position="north"><svg><use xlink:href="#iconRefresh"></use></svg></button>
             <button class="block__icon block__icon--show fn__flex-center ariaLabel" data-type="new" data-position="north"><svg><use xlink:href="#iconAdd"></use></svg></button>
@@ -660,7 +725,12 @@ export default class PluginSnippets extends Plugin {
         reloadUIButton.setAttribute("aria-label", (!this.isMobile && reloadUIKeymap) ? this.i18n.reloadUI + " " + this.getHotkeyDisplayText(reloadUIKeymap) : this.i18n.reloadUI);
         
         this.menuItems.append(menuTop);
+        
+        // 插入搜索输入框
+        const searchInput = '<input class="jcsm-snippets-search b3-text-field fn__none" data-action="search" type="text">';
+        this.menuItems.insertAdjacentHTML("beforeend", searchInput);
 
+        // 插入代码片段列表容器
         const snippetsContainer = document.createElement("div");
         snippetsContainer.className = "jcsm-snippets-container";
         // TODO测试: this.snippetsList 没有代码片段的情况需要测试一下看看
@@ -674,6 +744,30 @@ export default class PluginSnippets extends Plugin {
         // 事件监听
         this.addListener(this.menu.element, "click", this.menuClickHandler);
         this.addListener(this.menu.element, "mousedown", this.menuMousedownHandler);
+        this.addListener(this.menu.element, "input", (event: InputEvent) => {
+            const target = event.target as HTMLInputElement;
+            const tagName = target.tagName.toLowerCase();
+            if (tagName === "input" && target.dataset.action === "search") {
+                // 筛选代码片段
+                const filterSnippetsIds = this.filterSnippetsIds(target.value);
+                if (filterSnippetsIds) {
+                    const filterSnippetsSelector = ".jcsm-snippet-item:is(" + filterSnippetsIds.map((id: string) => `[data-id="${id}"]`).join(", ") + ")";
+                    this.console.log("filterSnippetsSelector:", filterSnippetsSelector);
+                    this.menuItems.querySelectorAll(".jcsm-snippet-item").forEach((item: HTMLElement) => {
+                        item.classList.add("fn__none");
+                    });
+                    this.menuItems.querySelectorAll(filterSnippetsSelector).forEach((item: HTMLElement) => {
+                        item.classList.remove("fn__none");
+                    });
+                } else {
+                    this.menuItems.querySelectorAll(".jcsm-snippet-item").forEach((item: HTMLElement) => {
+                        item.classList.remove("fn__none");
+                    });
+                }
+                // 设置当前选中项
+                this.setMenuSnippetsTypeCurrent(this.snippetsType);
+            }
+        });
         
         //  因为是在 document 上监听，所以只要其他地方阻止按键冒泡就行了
         this.addListener(document.documentElement, "keydown", this.globalKeyDownHandler);
@@ -739,11 +833,8 @@ export default class PluginSnippets extends Plugin {
         const target = event.target as HTMLElement;
         const tagName = target.tagName.toLowerCase();
 
-        // if ((tagName === "button" || tagName === "input") && document.activeElement === target) {
-        //     (document.activeElement as HTMLElement).blur();
-        // }
-        // 移除按钮上的焦点，避免后续回车还会触发按钮（不知道开关会不会有影响，顺便加上了）
-        target.blur();
+        // 移除按钮上的焦点，避免后续回车还会触发按钮。但不移除搜索输入框的焦点，让用户可以正常输入
+        if (tagName === "button") target.blur();
 
         // 键盘操作
         if (typeof event.detail === "string") {
@@ -847,7 +938,29 @@ export default class PluginSnippets extends Plugin {
                 const button = target as HTMLButtonElement;
                 const type = button.dataset.type;
     
-                if (type === "config") {
+                if (type === "search") {
+                    // 显示或隐藏搜索输入框
+                    const searchInput = this.menuItems.querySelector("input[data-action='search']") as HTMLInputElement;
+                    if (this.snippetSearchType !== 0 && searchInput) {
+                        const isOpen = !searchInput.classList.contains("fn__none");
+                        if (isOpen) {
+                            // 隐藏搜索输入框
+                            target.classList.remove("jcsm-active");
+                            searchInput.classList.add("fn__none");
+                            searchInput.value = "";
+                            // 触发冒泡的 input 事件，清空搜索结果
+                            searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+                        } else {
+                            // 显示搜索输入框
+                            target.classList.add("jcsm-active");
+                            const placeholderText = this.snippetSearchType === 0 ? this.i18n.search : 
+                                this.i18n[["snippetSearchTypeName", "snippetSearchTypeContent", "snippetSearchTypeNameAndContent"][this.snippetSearchType - 1]];
+                            searchInput.setAttribute("placeholder", placeholderText);
+                            searchInput.classList.remove("fn__none");
+                            searchInput.focus();
+                        }
+                    }
+                } else if (type === "config") {
                     // 打开设置对话框
                     this.openSetting();
                 } else if (type === "reload") {
@@ -926,6 +1039,51 @@ export default class PluginSnippets extends Plugin {
     };
 
     /**
+     * 代码片段搜索类型
+     * 0: 不搜索
+     * 1: 按标题搜索
+     * 2: 按代码内容搜索
+     * 3: 按标题和代码内容搜索
+     */
+    declare snippetSearchType: number;
+
+    /**
+     * 筛选代码片段（不区分大小写）
+     * @param searchText 搜索文本
+     * @returns 筛选后的代码片段列表
+     */
+    private filterSnippetsIds(searchText: string): string[] | false {
+        // 如果禁用搜索或搜索文本为空，返回 false，表示不搜索
+        if (this.snippetSearchType === 0 || !searchText || searchText.trim() === "") {
+            return false;
+        }
+
+        const normalizedSearchText = searchText.toLowerCase().trim();
+
+        return this.snippetsList
+            .filter((snippet: Snippet) => {
+                switch (this.snippetSearchType) {
+                    case 1:
+                        // 按标题筛选
+                        return snippet.name.toLowerCase().includes(normalizedSearchText);
+                    case 2:
+                        // 按代码内容筛选
+                        return snippet.content.toLowerCase().includes(normalizedSearchText);
+                    case 3:
+                        // 按标题和代码内容筛选
+                        return (
+                            snippet.name.toLowerCase().includes(normalizedSearchText) ||
+                            snippet.content.toLowerCase().includes(normalizedSearchText)
+                        );
+                    default:
+                        // 不支持的搜索类型，直接跳过
+                        return false;
+                }
+            })
+            .map((snippet: Snippet) => snippet.id); // 只返回 id 字符串数组
+    }
+
+    /**
      * 生成代码片段列表
      * @param snippetsList 代码片段列表
      * @returns 代码片段列表 HTML
@@ -948,16 +1106,24 @@ export default class PluginSnippets extends Plugin {
     };
 
     /**
+     * 设置菜单代码片段类型当前选中项
+     * @param snippetType 代码片段类型
+     */
+    private setMenuSnippetsTypeCurrent(snippetType: string) {
+        // 移除其他选项上的 .b3-menu__item--current 类名
+        this.clearMenuSelection();
+        // 给首个该类型的选项添加 .b3-menu__item--current 类名；搜索时排除的选项会添加 .fn__none 类名
+        const firstMenuItem = this.menuItems.querySelector(`.b3-menu__item[data-type="${snippetType}"]:not(.fn__none)`) as HTMLElement;
+        firstMenuItem?.classList.add("b3-menu__item--current");
+    }
+
+    /**
      * 设置菜单代码片段类型
      * @param snippetType 代码片段类型
      */
     private setMenuSnippetsType(snippetType: string) {
         if (!this.isMobile) {
-            // 移除其他选项上的 .b3-menu__item--current 类名
-            this.clearMenuSelection();
-            // 给首个该类型的选项添加 .b3-menu__item--current 类名
-            const firstMenuItem = this.menuItems.querySelector(`.b3-menu__item[data-type="${snippetType}"]`) as HTMLElement;
-            firstMenuItem?.classList.add("b3-menu__item--current");
+            this.setMenuSnippetsTypeCurrent(snippetType);
         }
 
         // 设置该代码片段类型的全局开关状态
@@ -1437,6 +1603,7 @@ export default class PluginSnippets extends Plugin {
      */
     private createEditorExtensions(theme: any, language: string) {
         // 根据语言类型选择相应的语言支持
+        const placeholderText = language === "js" ? this.i18n.codeSnippetJS : this.i18n.codeSnippetCSS;
         const languageSupport = language === "js" ? javascript() : css();
         
         return [
@@ -1445,7 +1612,7 @@ export default class PluginSnippets extends Plugin {
             // 标记特殊字符（不可打印或其他令人困惑的字符）
             highlightSpecialChars(),
             // 占位符
-            placeholder(this.i18n.codeSnippet),
+            placeholder(placeholderText),
             // 启用撤销/重做历史记录
             history(),
             // 显示代码折叠图标

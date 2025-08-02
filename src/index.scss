@@ -111,12 +111,16 @@
     }
   
     // 隐藏非当前类型的代码片段
-    &[data-type="css"] + .jcsm-snippets-container .jcsm-snippet-item[data-type="js"] {
+    &[data-type="css"] ~ .jcsm-snippets-container .jcsm-snippet-item[data-type="js"] {
       display: none !important;
     }
-    &[data-type="js"] + .jcsm-snippets-container .jcsm-snippet-item[data-type="css"] {
+    &[data-type="js"] ~ .jcsm-snippets-container .jcsm-snippet-item[data-type="css"] {
       display: none !important;
     }
+  }
+
+  .jcsm-snippets-search {
+    margin: 0 10px 4px 0;
   }
 
   .jcsm-snippets-container {

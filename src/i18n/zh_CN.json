@@ -15,6 +15,7 @@
   "unNamed": "未命名",
   "pluginConfig": "插件设置",
   "reloadUI": "重新加载界面",
+  "search": "搜索",
   "add": "添加",
   "edit": "编辑",
   "delete": "删除",
@@ -25,6 +26,8 @@
   "confirm": "确定",
   "title": "标题",
   "codeSnippet": "代码片段",
+  "codeSnippetCSS": "CSS 代码片段",
+  "codeSnippetJS": "JavaScript 代码片段",
   "openSnippetsPanel": "打开代码片段快捷面板",
   "deleteConfirm": "⚠️ 删除操作确认",
   "deleteConfirmDescription": "确定要删除代码片段${x}吗？",
@@ -53,5 +56,11 @@
   "couldCloseNoticeInPluginSettings": "<span class='ariaLabel' aria-label='在插件设置中可以关闭该通知'>${x}</span>",
   "reloadUIAfterModifyJS": "修改 JS 代码片段后需重新加载界面才能保证生效",
   "reloadUIAfterModifyJSNotice": "通知：修改 JS 代码片段",
-  "reloadUIAfterModifyJSNoticeDescription": "修改 JS 代码片段后需重新加载界面才能保证生效，可以在插件的顶栏菜单中点击“重新加载界面”按钮，或者在 [设置 - 快捷键] 中给“重新加载界面”按钮绑定快捷键"
+  "reloadUIAfterModifyJSNoticeDescription": "修改 JS 代码片段后需重新加载界面才能保证生效，可以在插件的顶栏菜单中点击“重新加载界面”按钮，或者在 [设置 - 快捷键] 中给“重新加载界面”按钮绑定快捷键",
+  "snippetSearchType": "代码片段搜索",
+  "snippetSearchTypeDescription": "通过标题或内容搜索代码片段",
+  "snippetSearchTypeDisabled": "禁用",
+  "snippetSearchTypeName": "搜索标题",
+  "snippetSearchTypeContent": "搜索内容",
+  "snippetSearchTypeNameAndContent": "搜索标题和内容"
 }
