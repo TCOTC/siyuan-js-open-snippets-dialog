@@ -264,10 +264,11 @@ export default class PluginSnippets extends Plugin {
     private readonly configItems: Array<{
         key: string;
         description?: string;
-        type?: 'boolean' | 'string' | 'number' | 'createActionElement';
+        type?: 'boolean' | 'string' | 'number' | 'select' | 'createActionElement';
         defaultValue?: any;
         direction?: 'row' | 'column';
         createActionElement?: () => HTMLElement;
+        options?: Array<{ value: string; text: string }>;
     }> = [
         {
             key: 'realTimePreview',
@@ -283,17 +284,14 @@ export default class PluginSnippets extends Plugin {
         {
             key: "snippetSearchType",
             description: "snippetSearchTypeDescription",
-            type: "number",
+            type: "select",
             defaultValue: 1,
-            createActionElement: () => {
-                // 创建代码片段搜索类型下拉框
-                return this.genSelectElement("snippetSearchType", [
-                    { value: "0", text: this.i18n.snippetSearchTypeDisabled },
-                    { value: "1", text: this.i18n.snippetSearchTypeName },
-                    { value: "2", text: this.i18n.snippetSearchTypeContent },
-                    { value: "3", text: this.i18n.snippetSearchTypeNameAndContent }
-                ]);
-            },
+            options: [
+                { value: "0", text: "snippetSearchTypeDisabled" },
+                { value: "1", text: "snippetSearchTypeName" },
+                { value: "2", text: "snippetSearchTypeContent" },
+                { value: "3", text: "snippetSearchTypeNameAndContent" }
+            ],
         },
         {
             key: 'consoleDebug',
@@ -322,25 +320,29 @@ export default class PluginSnippets extends Plugin {
             description: "reloadUIAfterModifyJSNoticeDescription",
             type: "boolean", // TODO: description 中的 [设置 - 快捷键] 支持点击，点击后跳转到 [设置 - 快捷键] 页面，并滚动到插件的快捷键设置、展开插件的快捷键设置
             defaultValue: true,
+        },
+        {
+            key: "editorIndentUnit",
+            description: "editorIndentUnitDescription",
+            type: "select",
+            defaultValue: "followSiyuan",
+            options: [
+                { value: "followSiyuan", text: "editorIndentUnitFollowSiyuan" },
+                { value: "tab1", text: "editorIndentUnitTab1" },
+                { value: "tab2", text: "editorIndentUnitTab2" },
+                { value: "space1", text: "editorIndentUnitSpace1" },
+                { value: "space2", text: "editorIndentUnitSpace2" },
+                { value: "space3", text: "editorIndentUnitSpace3" },
+                { value: "space4", text: "editorIndentUnitSpace4" },
+                { value: "space5", text: "editorIndentUnitSpace5" },
+                { value: "space6", text: "editorIndentUnitSpace6" },
+                { value: "space7", text: "editorIndentUnitSpace7" },
+                { value: "space8", text: "editorIndentUnitSpace8" }
+            ],
         }
     ];
 
-    /**
-     * 创建通用的下拉框元素
-     * @param key 配置项的 key
-     * @param options 选项数组，每个选项包含 value 和 text
-     * @returns 下拉框 HTML 元素
-     */
-    private genSelectElement(key: string, options: Array<{ value: string; text: string }>): HTMLElement {
-        const currentValue = (window.siyuan.jcsm as any)[key] ?? this.configItems.find(item => item.key === key)?.defaultValue;
-        const optionsHtml = options.map(option => 
-            `<option value="${option.value}"${currentValue === parseInt(option.value) ? " selected" : ""}>${option.text}</option>`
-        ).join("");
-        
-        return this.htmlToElement(
-            `<select class="b3-select fn__flex-center" data-type="${key}">${optionsHtml}</select>`
-        );
-    }
+
 
     /**
      * 创建配置 getter
@@ -389,6 +391,20 @@ export default class PluginSnippets extends Plugin {
                 if (item.type === 'boolean') {
                     return this.htmlToElement(
                         `<input class="b3-switch fn__flex-center" type="checkbox" data-type="${item.key}"${(window.siyuan.jcsm as any)[item.key] ? " checked" : ""}>`
+                    );
+                } else if (item.type === 'select' && item.options) {
+                    // 创建下拉框
+                    const currentValue = (window.siyuan.jcsm as any)[item.key] ?? item.defaultValue;
+                    const optionsHtml = item.options.map(option => {
+                        // 支持数字和字符串类型的值比较
+                        const isSelected = typeof currentValue === 'number' && typeof option.value === 'string' 
+                            ? currentValue === parseInt(option.value)
+                            : currentValue === option.value;
+                        return `<option value="${option.value}"${isSelected ? " selected" : ""}>${(this.i18n as any)[option.text]}</option>`;
+                    }).join("");
+                    
+                    return this.htmlToElement(
+                        `<select class="b3-select fn__flex-center" data-type="${item.key}">${optionsHtml}</select>`
                     );
                 } else if (item.type === 'createActionElement' || item.createActionElement) {
                     return item.createActionElement?.();
@@ -488,10 +504,16 @@ export default class PluginSnippets extends Plugin {
                         }
                     }
                 }
-            } else if (item.type === 'number') {
+            } else if (item.type === 'select') {
                 const element = dialogElement.querySelector(`select[data-type='${item.key}']`) as HTMLSelectElement;
                 if (element) {
-                    const newValue = parseInt(element.value);
+                    let newValue: any = element.value;
+                    
+                    // 根据配置项的类型转换值
+                    if (item.key === "snippetSearchType") {
+                        newValue = parseInt(element.value);
+                    }
+                    
                     if ((window.siyuan.jcsm as any)[item.key] !== newValue) {
                         (window.siyuan.jcsm as any)[item.key] = newValue;
 
@@ -512,11 +534,18 @@ export default class PluginSnippets extends Plugin {
                             } else {
                                 this.menuItems.querySelector(".jcsm-top-container button[data-type='search']")?.classList.remove("fn__none");
                             }
+                        } else if (item.key === "editorIndentUnit") {
+                            // 修改编辑器缩进单位时，重新创建所有打开的编辑器
+                            const editorDialogs = document.querySelectorAll(`.b3-dialog--open[data-key="jcsm-snippet-dialog"]`);
+                            editorDialogs.forEach(dialog => {
+                                const contentContainer = dialog.querySelector(".jcsm-dialog-content") as HTMLElement;
+                                if (contentContainer) {
+                                    this.recreateEditor(dialog, contentContainer);
+                                }
+                            });
                         }
                     }
                 }
-            // } else if (item.createActionElement) {
-            //     // 处理特定的自定义控件
             }
         });
 
@@ -1593,6 +1622,31 @@ export default class PluginSnippets extends Plugin {
     };
 
     /**
+     * 获取编辑器缩进单位
+     * @returns 缩进单位字符串
+     */
+    private getEditorIndentUnit(): string {
+        const indentUnitConfig = (window.siyuan.jcsm as any)?.editorIndentUnit ?? "followSiyuan";
+        console.log("getEditorIndentUnit: indentUnitConfig", indentUnitConfig);
+        
+        if (indentUnitConfig === "followSiyuan") {
+            // 跟随思源设置
+            return window.siyuan.config.editor.codeTabSpaces === 0 ? "\t" : " ".repeat(window.siyuan.config.editor.codeTabSpaces);
+        } else if (indentUnitConfig.startsWith("tab")) {
+            // 制表符配置
+            const tabCount = parseInt(indentUnitConfig.replace("tab", ""));
+            return "\t".repeat(tabCount);
+        } else if (indentUnitConfig.startsWith("space")) {
+            // 空格配置
+            const spaceCount = parseInt(indentUnitConfig.replace("space", ""));
+            return " ".repeat(spaceCount);
+        }
+        
+        // 默认返回思源设置
+        return window.siyuan.config.editor.codeTabSpaces === 0 ? "\t" : " ".repeat(window.siyuan.config.editor.codeTabSpaces);
+    }
+
+    /**
      * 创建编辑器扩展配置
      * @param theme 主题配置
      * @param language 语言类型
@@ -1603,9 +1657,9 @@ export default class PluginSnippets extends Plugin {
         const placeholderText = language === "js" ? this.i18n.codeSnippetJS : this.i18n.codeSnippetCSS;
         const languageSupport = language === "js" ? javascript() : css();
 
-        // window.siyuan.config.editor.codeTabSpaces 是数字，为 0 时对应一个制表符，为其他正数时对应数量的空格
-        // TODO: 根据思源的设置 window.siyuan.config.editor.codeTabSpaces ，也可以在插件设置中设置
-        const indentUnitText = window.siyuan.config.editor.codeTabSpaces === 0 ? "\t" : " ".repeat(window.siyuan.config.editor.codeTabSpaces);
+        // 根据插件设置获取缩进单位
+        const indentUnitText = this.getEditorIndentUnit();
+        this.console.log("createEditorExtensions: indentUnitText", "[", indentUnitText, "]");
         
         return [
             // 显示行号
@@ -1825,6 +1879,7 @@ export default class PluginSnippets extends Plugin {
      * @param contentContainer 内容容器
      */
     private recreateEditor(dialogElement: Element, contentContainer: HTMLElement) {
+        this.console.log("recreateEditor: dialogElement", dialogElement, ", contentContainer", contentContainer);
         // 获取当前编辑器内容
         const existingEditorElement = contentContainer.querySelector('.cm-editor');
         if (!existingEditorElement) return;

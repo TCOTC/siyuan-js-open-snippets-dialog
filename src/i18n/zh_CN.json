@@ -62,5 +62,18 @@
   "snippetSearchTypeDisabled": "禁用",
   "snippetSearchTypeName": "搜索标题",
   "snippetSearchTypeContent": "搜索内容",
-  "snippetSearchTypeNameAndContent": "搜索标题和内容"
+  "snippetSearchTypeNameAndContent": "搜索标题和内容",
+  "editorIndentUnit": "编辑器缩进单位",
+  "editorIndentUnitDescription": "代码片段编辑器中 Tab 键的缩进单位",
+  "editorIndentUnitFollowSiyuan": "跟随思源设置",
+  "editorIndentUnitTab1": "1 个制表符",
+  "editorIndentUnitTab2": "2 个制表符",
+  "editorIndentUnitSpace1": "1 个空格",
+  "editorIndentUnitSpace2": "2 个空格",
+  "editorIndentUnitSpace3": "3 个空格",
+  "editorIndentUnitSpace4": "4 个空格",
+  "editorIndentUnitSpace5": "5 个空格",
+  "editorIndentUnitSpace6": "6 个空格",
+  "editorIndentUnitSpace7": "7 个空格",
+  "editorIndentUnitSpace8": "8 个空格"
 }

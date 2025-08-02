@@ -62,5 +62,18 @@
   "snippetSearchTypeDisabled": "Disabled",
   "snippetSearchTypeName": "Search title",
   "snippetSearchTypeContent": "Search content",
-  "snippetSearchTypeNameAndContent": "Search name and content"
+  "snippetSearchTypeNameAndContent": "Search name and content",
+  "editorIndentUnit": "Editor indent unit",
+  "editorIndentUnitDescription": "The indent unit for Tab key in snippet editor",
+  "editorIndentUnitFollowSiyuan": "Follow Siyuan settings",
+  "editorIndentUnitTab1": "1 tab",
+  "editorIndentUnitTab2": "2 tabs",
+  "editorIndentUnitSpace1": "1 space",
+  "editorIndentUnitSpace2": "2 spaces",
+  "editorIndentUnitSpace3": "3 spaces",
+  "editorIndentUnitSpace4": "4 spaces",
+  "editorIndentUnitSpace5": "5 spaces",
+  "editorIndentUnitSpace6": "6 spaces",
+  "editorIndentUnitSpace7": "7 spaces",
+  "editorIndentUnitSpace8": "8 spaces"
 }
