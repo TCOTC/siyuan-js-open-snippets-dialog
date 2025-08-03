@@ -714,6 +714,11 @@ export default class PluginSnippets extends Plugin {
                 event.stopPropagation();
                 this.menu?.close(); // 不关闭菜单的话对话框中的容器无法滚动
 
+                // 过程中隐藏设置对话框，避免闪烁
+                const styleSheet = document.createElement("style");
+                styleSheet.textContent = "body > div[data-key='dialog-setting'] { display: none; }";
+                document.head.appendChild(styleSheet);
+                
                 const settingDialog = openSetting(window.siyuan.ws.app);
                 const settingDialogElement = settingDialog.element;
                 // 点击外观选项卡
@@ -722,6 +727,10 @@ export default class PluginSnippets extends Plugin {
                     // 点击代码片段设置按钮，打开窗口
                     settingDialogElement.querySelector('button#codeSnippet').dispatchEvent(new CustomEvent("click"));
                     settingDialog.destroy();
+                    setTimeout(() => {
+                        // destroy 有个关闭动画，需要等待动画结束才能移除样式（参考原生代码 app/src/dialog/index.ts Dialog.destroy 方法）
+                        document.head.removeChild(styleSheet);
+                    }, Constants.TIMEOUT_DBLCLICK);
                 });
 
             } else if (action === "settingsKeymap") {
