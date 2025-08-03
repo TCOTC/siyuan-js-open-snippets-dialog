@@ -10,7 +10,8 @@ import {
     Setting,
     fetchPost,
     fetchSyncPost,
-    Constants
+    Constants,
+    openSetting
 } from "siyuan";
 
 // CodeMirror 6 导入
@@ -45,7 +46,6 @@ import { vscodeLight, vscodeDark } from '@uiw/codemirror-theme-vscode'
 //     getAllEditor,
 //     Files,
 //     platformUtils,
-//     openSetting,
 //     openAttributePanel,
 //     saveLayout
 // } from "siyuan";
@@ -261,7 +261,7 @@ export default class PluginSnippets extends Plugin {
     /**
      * 配置项定义
      */
-    private readonly configItems: Array<{
+    private get configItems(): Array<{
         key: string;
         description?: string;
         type?: 'boolean' | 'string' | 'number' | 'select' | 'createActionElement';
@@ -269,90 +269,118 @@ export default class PluginSnippets extends Plugin {
         direction?: 'row' | 'column';
         createActionElement?: () => HTMLElement;
         options?: Array<{ value: string; text: string }>;
-    }> = [
-        {
-            key: 'realTimePreview',
-            description: 'realTimePreviewDescription',
-            type: 'boolean',
-            defaultValue: true,
-        },
-        {
-            key: 'newSnippetEnabled',
-            type: 'boolean',
-            defaultValue: true,
-        },
-        {
-            key: "showDuplicateButton",
-            description: "showDuplicateButtonDescription",
-            type: "boolean",
-            defaultValue: false,
-        },
-        {
-            key: "showDeleteButton",
-            description: "showDeleteButtonDescription",
-            type: "boolean",
-            defaultValue: true,
-        },
-        {
-            key: "snippetSearchType",
-            description: "snippetSearchTypeDescription",
-            type: "select",
-            defaultValue: 1,
-            options: [
-                { value: "0", text: "snippetSearchTypeDisabled" },
-                { value: "1", text: "snippetSearchTypeName" },
-                { value: "2", text: "snippetSearchTypeContent" },
-                { value: "3", text: "snippetSearchTypeNameAndContent" }
-            ],
-        },
-        {
-            key: "editorIndentUnit",
-            description: "editorIndentUnitDescription",
-            type: "select",
-            defaultValue: "followSiyuan",
-            options: [
-                { value: "followSiyuan", text: "editorIndentUnitFollowSiyuan" },
-                { value: "tab1", text: "editorIndentUnitTab1" },
-                { value: "tab2", text: "editorIndentUnitTab2" },
-                { value: "space1", text: "editorIndentUnitSpace1" },
-                { value: "space2", text: "editorIndentUnitSpace2" },
-                { value: "space3", text: "editorIndentUnitSpace3" },
-                { value: "space4", text: "editorIndentUnitSpace4" },
-                { value: "space5", text: "editorIndentUnitSpace5" },
-                { value: "space6", text: "editorIndentUnitSpace6" },
-                { value: "space7", text: "editorIndentUnitSpace7" },
-                { value: "space8", text: "editorIndentUnitSpace8" }
-            ],
-        },
-        {
-            key: "feedbackIssue",
-            description: "feedbackIssueDescription",
-            type: "createActionElement",
-            createActionElement: () => {
-                const repoLink = "https://github.com/TCOTC/snippets";
-                return this.htmlToElement(
-                    `<a href="${repoLink}" target="_blank" rel="noopener noreferrer" class="b3-button b3-button--outline fn__flex-center fn__size200 ariaLabel" aria-label="${repoLink}" data-position="north"><svg><use xlink:href="#iconGithub"></use></svg>${this.i18n.feedbackIssueButton}</a>`
-                );
+    }> {
+        const configItems: Array<{
+            key: string;
+            description?: string;
+            type?: 'boolean' | 'string' | 'number' | 'select' | 'createActionElement';
+            defaultValue?: any;
+            direction?: 'row' | 'column';
+            createActionElement?: () => HTMLElement;
+            options?: Array<{ value: string; text: string }>;
+        }> = [
+            {
+                key: 'realTimePreview',
+                description: 'realTimePreviewDescription',
+                type: 'boolean',
+                defaultValue: true,
             },
-        },
-        {
-            key: 'consoleDebug',
-            description: 'consoleDebugDescription',
-            type: 'boolean',
-            defaultValue: false,
-        },
-        // {
-        //     key: "notificationSwitch", // 通知总开关，通知数量多了再添加
-        //     type: "boolean",
-        //     defaultValue: true,
-        // },
-        {
-            key: "reloadUIAfterModifyJSNotice",
-            description: "reloadUIAfterModifyJSNoticeDescription",
-            type: "boolean", // TODO: description 中的 [设置 - 快捷键] 支持点击，点击后跳转到 [设置 - 快捷键] 页面，并滚动到插件的快捷键设置、展开插件的快捷键设置
-            defaultValue: true,
+            {
+                key: 'newSnippetEnabled',
+                type: 'boolean',
+                defaultValue: true,
+            },
+            {
+                key: "showDuplicateButton",
+                description: "showDuplicateButtonDescription",
+                type: "boolean",
+                defaultValue: false,
+            },
+            {
+                key: "showDeleteButton",
+                description: "showDeleteButtonDescription",
+                type: "boolean",
+                defaultValue: true,
+            },
+            {
+                key: "snippetSearchType",
+                description: "snippetSearchTypeDescription",
+                type: "select",
+                defaultValue: 1,
+                options: [
+                    { value: "0", text: "snippetSearchTypeDisabled" },
+                    { value: "1", text: "snippetSearchTypeName" },
+                    { value: "2", text: "snippetSearchTypeContent" },
+                    { value: "3", text: "snippetSearchTypeNameAndContent" }
+                ],
+            },
+            {
+                key: "editorIndentUnit",
+                description: "editorIndentUnitDescription",
+                type: "select",
+                defaultValue: "followSiyuan",
+                options: [
+                    { value: "followSiyuan", text: "editorIndentUnitFollowSiyuan" },
+                    { value: "tab1", text: "editorIndentUnitTab1" },
+                    { value: "tab2", text: "editorIndentUnitTab2" },
+                    { value: "space1", text: "editorIndentUnitSpace1" },
+                    { value: "space2", text: "editorIndentUnitSpace2" },
+                    { value: "space3", text: "editorIndentUnitSpace3" },
+                    { value: "space4", text: "editorIndentUnitSpace4" },
+                    { value: "space5", text: "editorIndentUnitSpace5" },
+                    { value: "space6", text: "editorIndentUnitSpace6" },
+                    { value: "space7", text: "editorIndentUnitSpace7" },
+                    { value: "space8", text: "editorIndentUnitSpace8" }
+                ],
+            }
+        ];
+
+        if (!this.isMobile) {
+            configItems.push({
+                key: "openNativeSnippets",
+                description: "openNativeSnippetsDescription",
+                type: "createActionElement",
+                createActionElement: () => {
+                    return this.htmlToElement(
+                        `<span class="b3-button b3-button--outline fn__flex-center fn__size200" data-action="settingsSnippets"><svg><use xlink:href="#iconJcsm"></use></svg>${this.i18n.openNativeSnippetsWindow}</span>`
+                    );
+                },
+            });
         }
-    ];
+
+        configItems.push(
+            {
+                key: "feedbackIssue",
+                description: "feedbackIssueDescription",
+                type: "createActionElement",
+                createActionElement: () => {
+                    const repoLink = "https://github.com/TCOTC/snippets";
+                    return this.htmlToElement(
+                        `<a href="${repoLink}" target="_blank" rel="noopener noreferrer" class="b3-button b3-button--outline fn__flex-center fn__size200 ariaLabel" aria-label="${repoLink}" data-position="north"><svg><use xlink:href="#iconGithub"></use></svg>${this.i18n.feedbackIssueButton}</a>`
+                    );
+                },
+            },
+            {
+                key: 'consoleDebug',
+                description: 'consoleDebugDescription',
+                type: 'boolean',
+                defaultValue: false,
+            },
+            // {
+            //     key: "notificationSwitch", // 通知总开关，通知数量多了再添加
+            //     type: "boolean",
+            //     defaultValue: true,
+            // },
+            {
+                key: "reloadUIAfterModifyJSNotice",
+                description: !this.isMobile ? "reloadUIAfterModifyJSNoticeDescription" : "reloadUIAfterModifyJSNoticeDescriptionMobile",
+                type: "boolean",
+                defaultValue: true,
+            }
+        );
+
+        return configItems;
+    }
 
 
 
@@ -678,6 +706,51 @@ export default class PluginSnippets extends Plugin {
                 }
             } else if (target === closeElement || target === scrimElement) {
                 this.closeDialogByElement(dialog.element);
+            }
+
+            const action = target.getAttribute("data-action");
+            if (action === "settingsSnippets") {
+                event.preventDefault();
+                event.stopPropagation();
+                this.menu?.close(); // 不关闭菜单的话对话框中的容器无法滚动
+
+                const settingDialog = openSetting(window.siyuan.ws.app);
+                const settingDialogElement = settingDialog.element;
+                // 点击外观选项卡
+                settingDialogElement.querySelector('.b3-tab-bar [data-name="appearance"]').dispatchEvent(new CustomEvent("click"));
+                requestAnimationFrame(() => {
+                    // 点击代码片段设置按钮，打开窗口
+                    settingDialogElement.querySelector('button#codeSnippet').dispatchEvent(new CustomEvent("click"));
+                    settingDialog.destroy();
+                });
+
+            } else if (action === "settingsKeymap") {
+                event.preventDefault();
+                event.stopPropagation();
+                this.menu?.close(); // 不关闭菜单的话对话框中的容器无法滚动
+
+                const settingDialogElement = openSetting(window.siyuan.ws.app).element;
+                // 点击快捷键选项卡
+                settingDialogElement.querySelector('.b3-tab-bar [data-name="keymap"]').dispatchEvent(new CustomEvent("click"));
+
+                // 查找并点击指定文本
+                const clickListItemByText = (container: Element, text: string) => {
+                    const items = container.querySelectorAll('.b3-list-item__text');
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i] as HTMLElement;
+                        if (item.textContent === text) {
+                            item.dispatchEvent(new CustomEvent("click", { bubbles: true }));
+                            return item;
+                        }
+                    }
+                    return null;
+                };
+
+                // 先点击插件名，再点击 reloadUI 快捷键选项
+                const pluginItem = clickListItemByText(settingDialogElement, this.i18n.pluginDisplayName);
+                if (pluginItem?.parentElement?.nextElementSibling) {
+                    clickListItemByText(pluginItem.parentElement.nextElementSibling, this.i18n.reloadUI);
+                }
             }
         }
 
@@ -1408,8 +1481,20 @@ export default class PluginSnippets extends Plugin {
                     this.snippetsList = this.snippetsList.map((s: Snippet) => s.id === snippet.id ? snippet : s);
                 }
             } else {
-                // 如果不存在或者 API 调用出错，则将 snippet 添加到 this.snippetsList 开头
-                this.snippetsList.unshift(snippet);
+                // 如果不存在或者 API 调用出错，则找到第一个相同类型的代码片段，插入到它的前面。要保证 CSS 在前，JS 在后
+                const firstSameTypeSnippet = this.snippetsList.find((s: Snippet) => s.type === snippet.type);
+                if (firstSameTypeSnippet) {
+                    this.snippetsList.splice(this.snippetsList.indexOf(firstSameTypeSnippet), 0, snippet);
+                } else {
+                    // 如果找不到相同类型的代码片段
+                    if (snippet.type === "css") {
+                        // CSS 插入到开头
+                        this.snippetsList.unshift(snippet);
+                    } else {
+                        // JS 插入到 CSS 之后
+                        this.snippetsList.push(snippet);
+                    }
+                }
                 hasChanges = true;
             }
         }
@@ -1868,6 +1953,7 @@ export default class PluginSnippets extends Plugin {
      * 启动主题模式监听
      */
     private startThemeModeWatch() {
+        this.console.log("startThemeModeWatch: 启动主题模式监听");
         // 如果已经启动了监听，则不重复启动
         if (window.siyuan.jcsm?.themeObserver) {
             return;
@@ -1915,6 +2001,7 @@ export default class PluginSnippets extends Plugin {
      * 停止主题模式监听
      */
     private stopThemeModeWatch() {
+        this.console.log("stopThemeModeWatch: 停止主题模式监听");
         if (window.siyuan.jcsm?.themeObserver) {
             window.siyuan.jcsm.themeObserver.disconnect();
             delete window.siyuan.jcsm.themeObserver;
@@ -2960,9 +3047,10 @@ export default class PluginSnippets extends Plugin {
         // 检查主题监听状态
         this.checkAndManageThemeWatch();
 
-        // 如果没有监听器，不需要检查
+        // 如果没有监听器，停止定时器并返回
         if (!this.listeners || this.listeners.length === 0) {
             this.isCheckingListeners = false;
+            this.stopListenerCheckInterval();
             return;
         }
 
@@ -3146,7 +3234,7 @@ export default class PluginSnippets extends Plugin {
     // ================================ 其他 ================================
 
 
-    // TODO: 桌面端修改代码片段之后同步到打开的新窗口（所有变更都是弹窗确认，避免以后原生改进了 https://github.com/siyuan-note/siyuan/issues/12303 造成冲突）
+    // TODO功能: 桌面端修改代码片段之后同步到打开的新窗口（所有变更都是弹窗确认，避免以后原生改进了 https://github.com/siyuan-note/siyuan/issues/12303 造成冲突）
     // 问：桌面端使用新窗口的情况下插件能实现跨窗口通信吗？A 窗口的插件将状态同步到 B 窗口的插件，然后执行一些操作
     // 答：简单的用 localStorage、复杂的用 broadCast
     //  localStraoge.setItem 设置，window.addEventListener('storage' 监听

@@ -1,5 +1,5 @@
 {
-  "pluginDisplayName": "代码片段快捷面板",
+  "pluginDisplayName": "代码片段管理器",
   "pluginNotSupportedInPublish": " 插件不支持在发布服务下使用",
   "loadConfigError": "配置文件异常，已移除配置文件",
   "loadConfigIncompatible": "当前的插件配置文件是更高版本的，请升级插件，或者保存一次插件设置以覆盖当前配置",
@@ -28,7 +28,7 @@
   "codeSnippet": "代码片段",
   "codeSnippetCSS": "CSS 代码片段",
   "codeSnippetJS": "JavaScript 代码片段",
-  "openSnippetsPanel": "打开代码片段快捷面板",
+  "openSnippetsManager": "打开代码片段管理器",
   "deleteConfirm": "⚠️ 删除操作确认",
   "deleteConfirmDescription": "确定要删除代码片段${x}吗？",
   "cancelConfirm": "⚠️ 取消操作确认",
@@ -56,7 +56,8 @@
   "couldCloseNoticeInPluginSettings": "<span class='ariaLabel' aria-label='在插件设置中可以关闭该通知'>${x}</span>",
   "reloadUIAfterModifyJS": "修改 JS 代码片段后需重新加载界面才能保证生效",
   "reloadUIAfterModifyJSNotice": "通知：修改 JS 代码片段",
-  "reloadUIAfterModifyJSNoticeDescription": "修改 JS 代码片段后需重新加载界面才能保证生效，可以在插件的顶栏菜单中点击“重新加载界面”按钮，或者在 [设置 - 快捷键] 中给“重新加载界面”按钮绑定快捷键",
+  "reloadUIAfterModifyJSNoticeDescription": "修改 JS 代码片段后需重新加载界面才能保证生效，可以在插件的代码片段管理菜单中点击“重新加载界面”按钮，或者在 <span class='ariaLabel' data-action='settingsKeymap' aria-label='点击跳转' data-position='north' style='cursor: pointer; color: var(--b3-theme-primary);'>[设置 - 快捷键]</span> 中给“重新加载界面”操作绑定快捷键",
+  "reloadUIAfterModifyJSNoticeDescriptionMobile": "修改 JS 代码片段后需重新加载界面才能保证生效，可以在插件的代码片段管理菜单中点击“重新加载界面”按钮",
   "snippetSearchType": "代码片段搜索",
   "snippetSearchTypeDescription": "通过标题或内容搜索代码片段",
   "snippetSearchTypeDisabled": "禁用",
@@ -81,5 +82,8 @@
   "showDuplicateButton": "显示创建副本按钮",
   "showDuplicateButtonDescription": "在代码片段列表中显示创建副本按钮，点击后会创建一个与当前代码片段相同内容的副本，并将其插入到当前代码片段的上方",
   "showDeleteButton": "显示删除按钮",
-  "showDeleteButtonDescription": "在代码片段列表中显示删除按钮，点击后会删除该代码片段"
+  "showDeleteButtonDescription": "在代码片段列表中显示删除按钮，点击后会删除该代码片段",
+  "openNativeSnippets": "原生代码片段窗口",
+  "openNativeSnippetsDescription": "点击打开思源原生的代码片段管理窗口",
+  "openNativeSnippetsWindow": "打开窗口"
 }
