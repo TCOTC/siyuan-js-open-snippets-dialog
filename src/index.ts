@@ -282,6 +282,18 @@ export default class PluginSnippets extends Plugin {
             defaultValue: true,
         },
         {
+            key: "showDuplicateButton",
+            description: "showDuplicateButtonDescription",
+            type: "boolean",
+            defaultValue: false,
+        },
+        {
+            key: "showDeleteButton",
+            description: "showDeleteButtonDescription",
+            type: "boolean",
+            defaultValue: true,
+        },
+        {
             key: "snippetSearchType",
             description: "snippetSearchTypeDescription",
             type: "select",
@@ -501,6 +513,26 @@ export default class PluginSnippets extends Plugin {
                                     }
                                 });
                             }
+                        } else if (item.key === "showDuplicateButton") {
+                            // 修改 showDuplicateButton 之后，查询所有菜单项修改创建副本按钮的 fn__none
+                            const duplicateButtons = this.menuItems.querySelectorAll(".jcsm-snippet-item button[data-type='duplicate']") as NodeListOf<HTMLButtonElement>;
+                            duplicateButtons.forEach(duplicateButton => {
+                                if (newValue) {
+                                    duplicateButton.classList.remove("fn__none");
+                                } else {
+                                    duplicateButton.classList.add("fn__none");
+                                }   
+                            });
+                        } else if (item.key === "showDeleteButton") {
+                            // 修改 showDeleteButton 之后，查询所有菜单项修改删除按钮的 fn__none
+                            const deleteButtons = this.menuItems.querySelectorAll(".jcsm-snippet-item button[data-type='delete']") as NodeListOf<HTMLButtonElement>;
+                            deleteButtons.forEach(deleteButton => {
+                                if (newValue) {
+                                    deleteButton.classList.remove("fn__none");
+                                } else {
+                                    deleteButton.classList.add("fn__none");
+                                }
+                            });
                         }
                     }
                 }
@@ -1037,7 +1069,7 @@ export default class PluginSnippets extends Plugin {
                 } else if (type === "new") {
                     // 新建代码片段
                     const snippet: Snippet = {
-                        id: window.Lute.NewNodeID(),
+                        id: this.genNewSnippetId(),
                         name: "",
                         type: this.snippetsType as "css" | "js",
                         enabled: this.newSnippetEnabled,
@@ -1068,7 +1100,10 @@ export default class PluginSnippets extends Plugin {
                 }
                 
                 const buttonType = target.dataset.type;
-                if (buttonType === "edit") {
+                if (buttonType === "duplicate") {
+                    // 创建代码片段副本
+                    this.saveSnippet(snippet, true);
+                } else if (buttonType === "edit") {
                     // 编辑代码片段，打开编辑对话框
                     this.openSnippetEditDialog(snippet);
                     // TODO自定义页签: 编辑页签，等其他功能稳定之后再做
@@ -1150,6 +1185,16 @@ export default class PluginSnippets extends Plugin {
     }
 
     /**
+     * 是否显示创建副本按钮
+     */
+    declare showDuplicateButton: boolean;
+
+    /**
+     * 是否显示删除按钮
+     */
+    declare showDeleteButton: boolean;
+
+    /**
      * 生成代码片段列表
      * @param snippetsList 代码片段列表
      * @returns 代码片段列表 HTML
@@ -1161,8 +1206,9 @@ export default class PluginSnippets extends Plugin {
                 <div class="jcsm-snippet-item b3-menu__item" data-type="${snippet.type}" data-id="${snippet.id}">
                     <span class="jcsm-snippet-name fn__flex-1" placeholder="${this.i18n.unNamed}">${snippet.name}</span>
                     <span class="fn__space"></span>
+                    <button class="block__icon block__icon--show fn__flex-center${this.showDuplicateButton ? "" : " fn__none"}" data-type="duplicate"><svg><use xlink:href="#iconCopy"></use></svg></button>
                     <button class="block__icon block__icon--show fn__flex-center" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
-                    <button class="block__icon block__icon--show fn__flex-center" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
                     <span class="fn__space"></span>
                     <input class="jcsm-switch b3-switch fn__flex-center" type="checkbox"${snippet.enabled ? " checked" : ""}>
                 </div>
@@ -1328,26 +1374,46 @@ export default class PluginSnippets extends Plugin {
      * 保存代码片段（添加或更新）
      * @param snippet 代码片段
      */
-    private async saveSnippet(snippet: Snippet) {
+    private async saveSnippet(snippet: Snippet, isCopy: boolean = false) {
         this.console.log("saveSnippet: snippet", snippet);
 
-        // 在 snippetsList 中查找是否存在该代码片段
-        const oldSnippet = await this.getSnippetById(snippet.id);
-        let hasChanges = false;
-        if (oldSnippet) {
-            // 如果存在，则更新该代码片段
-            // 比较对象属性值而不是对象引用
-            hasChanges = oldSnippet.name    !== snippet.name    ||
-                         oldSnippet.content !== snippet.content ||
-                         oldSnippet.enabled !== snippet.enabled;
-            if (hasChanges) {
-                this.snippetsList = this.snippetsList.map((s: Snippet) => s.id === snippet.id ? snippet : s);
+        let hasChanges = false, copySnippet: Snippet;
+        if (isCopy) {
+            // 使用结构化克隆深拷贝 snippet 对象，避免副本和原对象引用同一内存
+            if (typeof structuredClone === "function") {
+                copySnippet = structuredClone(snippet);
+            } else {
+                // 不支持 structuredClone 则回退到 JSON 方法
+                copySnippet = JSON.parse(JSON.stringify(snippet));
             }
-        } else {
-            // 如果不存在或者 API 调用出错，则将 snippet 添加到 this.snippetsList 开头
-            this.snippetsList.unshift(snippet);
+            // 生成新的代码片段
+            copySnippet.id = this.genNewSnippetId();
+            copySnippet.name = snippet.name + ` (${this.i18n.duplicate} ${new Date().toLocaleString()})`;
+
+            // 把副本创建在当前代码片段的上面
+            this.snippetsList.splice(this.snippetsList.indexOf(snippet), 0, copySnippet);
             hasChanges = true;
+
+            this.console.log("saveSnippet: copySnippet", copySnippet);
+        } else {
+            // 在 snippetsList 中查找是否存在该代码片段
+            const oldSnippet = await this.getSnippetById(snippet.id);
+            if (oldSnippet && !isCopy) {
+                // 如果存在，则更新该代码片段
+                // 比较对象属性值而不是对象引用
+                hasChanges = oldSnippet.name    !== snippet.name    ||
+                            oldSnippet.content !== snippet.content ||
+                            oldSnippet.enabled !== snippet.enabled;
+                if (hasChanges) {
+                    this.snippetsList = this.snippetsList.map((s: Snippet) => s.id === snippet.id ? snippet : s);
+                }
+            } else {
+                // 如果不存在或者 API 调用出错，则将 snippet 添加到 this.snippetsList 开头
+                this.snippetsList.unshift(snippet);
+                hasChanges = true;
+            }
         }
+
         if (hasChanges) {
             // 代码片段发生变更才推送更新
             this.saveSnippetsList(this.snippetsList);
@@ -1356,8 +1422,8 @@ export default class PluginSnippets extends Plugin {
         // 添加的代码片段有可能未启用，所以 updateSnippetElement() 不传入 enabled === true 的参数
         // 问题案例: 先禁用整体状态，再在对话框中启用，然后预览，然后保存。会在整体禁用的情况下启用代码片段，或者说没有移除预览时添加的元素
         //  应该始终执行 updateSnippetElement
-        this.updateSnippetElement(snippet);
-        this.applySnippetUIChange(snippet, true);
+        this.updateSnippetElement(copySnippet ?? snippet);
+        this.applySnippetUIChange(snippet, true, copySnippet);
     };
 
     /**
@@ -1392,55 +1458,56 @@ export default class PluginSnippets extends Plugin {
      * 应用代码片段 UI 变更
      * @param snippet 代码片段
      * @param isAddOrUpdate 是否为添加或更新
+     * @param copySnippet 副本代码片段
      */
-    private applySnippetUIChange(snippet: Snippet, isAddOrUpdate: boolean) {
+    private applySnippetUIChange(snippet: Snippet, isAddOrUpdate: boolean, copySnippet?: Snippet) {
         const snippetMenuItem = this.menuItems.querySelector(`.jcsm-snippet-item[data-id="${snippet.id}"]`) as HTMLElement;
         const dialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippet.id}"]`) as HTMLDivElement;
         let deleteButton, previewButton, confirmButton;
-        if (dialog) {
+        if (dialog && !copySnippet) {
+            // 创建代码片段副本时不需要更新原始代码片段的 Dialog 的按钮
             deleteButton = dialog.querySelector(`.jcsm-dialog .jcsm-dialog-container button[data-action="delete"]`) as HTMLButtonElement;
             previewButton = dialog.querySelector(`.jcsm-dialog .b3-dialog__action button[data-action="preview"]`) as HTMLButtonElement;
             confirmButton = dialog.querySelector(`.jcsm-dialog .b3-dialog__action button[data-action="confirm"]`) as HTMLButtonElement;
         }
         // 应用代码片段变更，修改相关的元素
         if (isAddOrUpdate) {
-            if (snippetMenuItem) {
-                // 更新菜单项
-                const nameElement = snippetMenuItem.querySelector(".jcsm-snippet-name") as HTMLElement;
-                if (nameElement) {
-                    nameElement.textContent = snippet.name;
-                }
-                const switchElement = snippetMenuItem.querySelector("input") as HTMLInputElement;
-                if (switchElement) {
-                    switchElement.checked = snippet.enabled;
-                }
-            } else {
-                // 添加菜单项
+            if (!snippetMenuItem) {
+                // 没有菜单项，在菜单项列表的顶部插入新的菜单项
                 const snippetsHtml = this.genMenuSnippetsItems([snippet]);
                 this.menuItems.querySelector(".jcsm-snippets-container")?.insertAdjacentHTML("afterbegin", snippetsHtml);
+            } else {
+                // 有菜单项
+                if (copySnippet) {
+                    // 在指定菜单项的上方插入新的副本菜单项
+                    const snippetsHtml = this.genMenuSnippetsItems([copySnippet]);
+                    snippetMenuItem.insertAdjacentHTML("beforebegin", snippetsHtml);
+                } else {
+                    // 更新菜单项
+                    const nameElement = snippetMenuItem.querySelector(".jcsm-snippet-name") as HTMLElement;
+                    if (nameElement) {
+                        nameElement.textContent = snippet.name;
+                    }
+                    const switchElement = snippetMenuItem.querySelector("input") as HTMLInputElement;
+                    if (switchElement) {
+                        switchElement.checked = snippet.enabled;
+                    }
+                }
             }
 
             // 修改对应的 Dialog
-            // 显示删除按钮
-            deleteButton?.classList.remove("fn__none");
-            // 显示“应用”按钮
-            previewButton?.classList.remove("fn__none");
+            deleteButton?.classList.remove("fn__none"); // 显示删除按钮
             if (confirmButton) {
-                // 将“新建”按钮的文案改为“保存”
-                confirmButton.textContent = this.i18n.save;
+                confirmButton.textContent = this.i18n.save; // 将“新建”按钮的文案改为“保存”
             }
         } else {
             // 移除菜单项
             snippetMenuItem?.remove();
 
             // 修改对应的 Dialog
-            // 隐藏删除按钮
-            deleteButton?.classList.add("fn__none");
-            // 隐藏“应用”按钮
-            previewButton?.classList.add("fn__none");
+            deleteButton?.classList.add("fn__none"); // 隐藏删除按钮
             if (confirmButton) {
-                // 将“保存”按钮的文案改为“新建”
-                confirmButton.textContent = this.i18n.new;
+                confirmButton.textContent = this.i18n.new; // 将“保存”按钮的文案改为“新建”
             }
         }
     }
@@ -1634,6 +1701,7 @@ export default class PluginSnippets extends Plugin {
      * @param confirmText 确认按钮的文案
      */
     private genSnippetEditDialog(snippet: Snippet, confirmText: string = this.i18n.save) {
+        // TODO功能: 在删除按钮左边加一个创建副本按钮，点击之后创建副本并且打开编辑对话框
         return `
             <div class="jcsm-dialog">
                 <div class="jcsm-dialog-header resize__move"></div>
@@ -2214,7 +2282,7 @@ export default class PluginSnippets extends Plugin {
             // 只更新代码片段元素，不保存代码片段 this.saveSnippet(snippet);
             this.updateSnippetElement(previewSnippet, undefined, true);
         }
-        // 保存或更新代码片段
+        // 新建或更新代码片段
         const saveHandler = () => {
             snippet.name = nameElement.value;
             snippet.content = codeMirrorView.state.doc.toString();
@@ -2579,6 +2647,18 @@ export default class PluginSnippets extends Plugin {
 
 
     // ================================ 工具方法 ================================
+
+    /**
+     * 生成新的代码片段 ID
+     * @returns 新的代码片段 ID
+     */
+    private genNewSnippetId() {
+        let newId = window.Lute.NewNodeID();
+        while (this.snippetsList.find((s: Snippet) => s.id === newId)) {
+            newId = window.Lute.NewNodeID();
+        }
+        return newId;
+    }
 
     /**
      * 判断代码片段类型是否启用

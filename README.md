@@ -22,7 +22,7 @@ How to open:
 Features:
 
 - Edit snippet title and content
-- Real-time apply CSS snippets
+- Real-time preview CSS snippets
 - Add and delete snippets
 - Integrated CodeMirror 6 code editor
   - Line number display

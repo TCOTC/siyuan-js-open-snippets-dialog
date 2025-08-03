@@ -65,7 +65,7 @@
   "snippetSearchTypeNameAndContent": "Search name and content",
   "editorIndentUnit": "Editor indent unit",
   "editorIndentUnitDescription": "The indent unit for Tab key in snippet editor",
-  "editorIndentUnitFollowSiyuan": "Follow Siyuan settings",
+  "editorIndentUnitFollowSiyuan": "Follow SiYuan settings",
   "editorIndentUnitTab1": "1 tab",
   "editorIndentUnitTab2": "2 tabs",
   "editorIndentUnitSpace1": "1 space",
@@ -75,5 +75,11 @@
   "editorIndentUnitSpace5": "5 spaces",
   "editorIndentUnitSpace6": "6 spaces",
   "editorIndentUnitSpace7": "7 spaces",
-  "editorIndentUnitSpace8": "8 spaces"
+  "editorIndentUnitSpace8": "8 spaces",
+  "duplicate": "Duplicate",
+  "duplicateSnippetFailed": "Failed to create duplicate snippet",
+  "showDuplicateButton": "Show duplicate button",
+  "showDuplicateButtonDescription": "Show duplicate button in snippet list, clicking will create a copy of the current snippet and insert it above the current snippet",
+  "showDeleteButton": "Show delete button",
+  "showDeleteButtonDescription": "Show delete button in snippet list, clicking will delete the snippet"
 }

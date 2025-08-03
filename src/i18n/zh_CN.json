@@ -75,5 +75,11 @@
   "editorIndentUnitSpace5": "5 个空格",
   "editorIndentUnitSpace6": "6 个空格",
   "editorIndentUnitSpace7": "7 个空格",
-  "editorIndentUnitSpace8": "8 个空格"
+  "editorIndentUnitSpace8": "8 个空格",
+  "duplicate": "副本",
+  "duplicateSnippetFailed": "创建副本失败",
+  "showDuplicateButton": "显示创建副本按钮",
+  "showDuplicateButtonDescription": "在代码片段列表中显示创建副本按钮，点击后会创建一个与当前代码片段相同内容的副本，并将其插入到当前代码片段的上方",
+  "showDeleteButton": "显示删除按钮",
+  "showDeleteButtonDescription": "在代码片段列表中显示删除按钮，点击后会删除该代码片段"
 }
