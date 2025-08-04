@@ -29,3 +29,14 @@ Features:
   - Syntax highlighting
   - Bracket matching
   - Search and replace
+
+#### Local File Watch
+
+How to open:
+
+- Click the plugin settings button in the top of the management menu, open the settings, and enable local file watch in the settings
+
+Features:
+
+- Continuously monitor the code snippet files in the specified folder, and automatically load them into the interface when the files change
+- Do not monitor continuously, only load all code snippet files once on startup

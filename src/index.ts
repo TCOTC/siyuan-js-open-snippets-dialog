@@ -53,8 +53,8 @@ import { vscodeLight, vscodeDark } from '@uiw/codemirror-theme-vscode'
 const PLUGIN_NAME = "snippets";            // 插件名
 const STORAGE_NAME = "plugin-config.json"; // 配置文件名
 const LOG_NAME = "plugin-snippets.log";    // 日志文件名
-// 模态对话框集合：设置对话框、删除对话框、取消对话框
-const MODAL_DIALOG_KEYS = ["jcsm-setting-dialog", "jcsm-snippet-delete", "jcsm-snippet-cancel"];
+// 模态对话框集合：设置对话框、删除对话框、取消对话框、重载界面确认对话框
+const MODAL_DIALOG_KEYS = ["jcsm-setting-dialog", "jcsm-snippet-delete", "jcsm-snippet-cancel", "jcsm-reload-ui-confirm"];
 // const TAB_TYPE = "custom-tab"; // 自定义标签页
 
 export default class PluginSnippets extends Plugin {
@@ -863,6 +863,11 @@ export default class PluginSnippets extends Plugin {
      * 菜单列表容器 #commonMenu > .b3-menu__items
      */
     private menuItems: HTMLElement;
+
+    // TODO功能: 菜单项支持拖拽排序（参考原生大纲拖拽实现 app/src/layout/dock/Outline.ts Outline.bindSort 方法）
+    // 支持设置排序方式：固定排序（拖拽排序）、已开启优先、未开启优先
+    // - [ ] 固定排序方式下再支持拖拽菜单选项调整排序（需要先验证一下 API 会不会按自己的逻辑重置顺序、验证一下用内置的代码片段窗口修改代码片段再保存之后会不会把排序重置）
+    // - [ ] 优先排序方式下仅在生成菜单的时候排序，使用菜单的过程中不会再次排序
 
     /**
      * 打开顶栏菜单
@@ -2848,13 +2853,50 @@ export default class PluginSnippets extends Plugin {
      * 重新加载界面
      */
     private reloadUI() {
-        // TODO: 方案1：获取界面上所有打开的代码片段编辑对话框，判断是否存在未保存的变更，如果有的话需要弹窗确认再重载界面
+        // 方案1：获取界面上所有打开的代码片段编辑对话框，判断是否存在未保存的变更，如果有的话需要弹窗确认再重载界面
+        // 先用方案 1 顶顶，之后看看能不能实现方案 2
         // TODO: 方案2：获取界面上所有打开的代码片段编辑对话框（包括相关内联样式），重载界面之后恢复对话框的位置、大小、内容...
-        fetchPost("/api/ui/reloadUI", (response: any) => {
-            if (response.status !== 200) {
-                this.showErrorMessage(this.i18n.reloadUIFailed);
+
+        // 获取所有打开的代码片段编辑对话框
+        const dialogs = document.querySelectorAll(".b3-dialog--open[data-key='jcsm-snippet-dialog']");
+        // 判断是否存在未保存的变更
+        let needConfirm = false;
+        for (let i = 0; i < dialogs.length; i++) {
+            const dialog = dialogs[i] as HTMLElement;
+            const snippetId = dialog.getAttribute("data-snippet-id");
+            const snippet = this.snippetsList.find((s: Snippet) => s.id === snippetId);
+            // 获取代码片段的标题
+            const titleElement = dialog.querySelector(".jcsm-dialog-name") as HTMLInputElement;
+            const title = titleElement?.value || "";
+            // 从编辑器获取代码
+            const editorElement = dialog.querySelector(".cm-editor") as HTMLElement;
+            const editorView = (editorElement as any).cmView as EditorView;
+            const code = editorView.state.doc.toString() || "";
+            if (
+                (snippet && (title !== snippet.name || code !== snippet.content)) // 已存在的代码片段，判断标题或内容是否有变更
+                || (!snippet && (title !== "" || code !== ""))                    // 新建代码片段，判断是否有内容
+            ) {
+                // 只要有一个未保存变更就停止循环
+                needConfirm = true;
+                break;
             }
-        });
+        }
+
+        const reloadUI = () => {
+            fetchPost("/api/ui/reloadUI", (response: any) => {
+                if (response.status !== 200) {
+                    this.showErrorMessage(this.i18n.reloadUIFailed);
+                }
+            });
+        }
+
+        if (needConfirm) {
+            this.openConfirmDialog(this.i18n.reloadUIConfirm, this.i18n.reloadUIConfirmDescription, "jcsm-reload-ui-confirm", undefined, undefined,  () => {
+                reloadUI();
+            });
+        } else {
+            reloadUI();
+        }
     };
 
     /**

@@ -86,8 +86,8 @@
   "openNativeSnippets": "Native Snippets Window",
   "openNativeSnippetsDescription": "Click to open SiYuan's native snippets management window",
   "openNativeSnippetsWindow": "Open Window",
-  "fileWatchEnabled": "File Watch Mode",
-  "fileWatchEnabledDescription": "Select the file watching working mode, including disabled, enabled and load all code snippets on startup only. This feature is still unstable; please provide feedback if you encounter any issues.",
+  "fileWatchEnabled": "Local File Watch",
+  "fileWatchEnabledDescription": "Select the file watching working mode, including disabled, enabled and load all code snippets on startup only (.css and .js files). This feature is still unstable; please provide feedback if you encounter any issues.",
   "fileWatchModeDisabled": "Disabled file watch",
   "fileWatchModeEnabled": "Enabled file watch",
   "fileWatchModeLoadOnly": "Load once on startup",
@@ -97,5 +97,7 @@
   "fileWatchIntervalDescription": "Time interval (seconds) to check for file changes, recommended 5 - 30 seconds",
   "fileWatchError": "File watching error",
   "fileWatchInvalidPath": "Invalid folder path",
-  "fileWatchNoSupportAbsPath": "Absolute path is not supported"
+  "fileWatchNoSupportAbsPath": "Absolute path is not supported",
+  "reloadUIConfirm": "⚠️ Reload UI Confirm",
+  "reloadUIConfirmDescription": "After reloading the interface, the unsaved code snippet modifications will be lost, are you sure you want to reload the interface?"
 }
