@@ -41,6 +41,11 @@ declare global {
                 isReloadUIButtonBreathing?: boolean;
                 themeObserver?: MutationObserver;
                 snippetSearchType?: number;
+                fileWatchEnabled?: string;
+                fileWatchPath?: string;
+                fileWatchInterval?: number;
+                fileWatchIntervalId?: number | null;
+                fileWatchFileStates?: Map<string, FileState>;
             };
         };
     }
@@ -55,6 +60,15 @@ interface SettingItem {
     direction?: "row" | "column";
     actionElement?: HTMLElement;
     createActionElement?: () => HTMLElement;
+}
+
+/**
+ * 文件状态类型
+ */
+interface FileState {
+    path: string;
+    lastModified: number;
+    content: string;
 }
 
 /**
@@ -84,4 +98,4 @@ declare module "siyuan" {
     }
 }
 
-export { Snippet, SettingItem, ListenersArray, ElementListeners, ListenerItem };
+export { Snippet, SettingItem, ListenersArray, ElementListeners, ListenerItem, FileState };

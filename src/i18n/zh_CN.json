@@ -85,5 +85,17 @@
   "showDeleteButtonDescription": "在代码片段列表中显示删除按钮，点击后会删除该代码片段",
   "openNativeSnippets": "原生代码片段窗口",
   "openNativeSnippetsDescription": "点击打开思源原生的代码片段管理窗口",
-  "openNativeSnippetsWindow": "打开窗口"
+  "openNativeSnippetsWindow": "打开窗口",
+  "fileWatchEnabled": "文件监听模式",
+  "fileWatchEnabledDescription": "选择文件监听的工作模式，包括禁用、启用和仅在启动时加载一次所有代码片段文件。该功能尚不稳定，遇到问题时敬请反馈",
+  "fileWatchModeDisabled": "禁用文件监听",
+  "fileWatchModeEnabled": "启用文件监听",
+  "fileWatchModeLoadOnly": "启动时加载一次",
+  "fileWatchPath": "监听文件夹路径",
+  "fileWatchPathDescription": "要监听的文件夹路径，仅支持相对路径",
+  "fileWatchInterval": "监听轮询时间间隔",
+  "fileWatchIntervalDescription": "检查文件变化的时间间隔（秒），建议设置为 5 - 30 秒",
+  "fileWatchError": "文件监听错误",
+  "fileWatchInvalidPath": "无效的文件夹路径",
+  "fileWatchNoSupportAbsPath": "不支持监听绝对路径"
 }

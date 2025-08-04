@@ -83,7 +83,19 @@
   "showDuplicateButtonDescription": "Show duplicate button in snippet list, clicking will create a copy of the current snippet and insert it above the current snippet",
   "showDeleteButton": "Show delete button",
   "showDeleteButtonDescription": "Show delete button in snippet list, clicking will delete the snippet",
-  "openNativeSnippets": "Native snippets window",
-  "openNativeSnippetsDescription": "Click to open the native snippets management window of SiYuan",
-  "openNativeSnippetsWindow": "Open window"
+  "openNativeSnippets": "Native Snippets Window",
+  "openNativeSnippetsDescription": "Click to open SiYuan's native snippets management window",
+  "openNativeSnippetsWindow": "Open Window",
+  "fileWatchEnabled": "File Watch Mode",
+  "fileWatchEnabledDescription": "Select the file watching working mode, including disabled, enabled and load all code snippets on startup only. This feature is still unstable; please provide feedback if you encounter any issues.",
+  "fileWatchModeDisabled": "Disabled file watch",
+  "fileWatchModeEnabled": "Enabled file watch",
+  "fileWatchModeLoadOnly": "Load once on startup",
+  "fileWatchPath": "Watch Folder Path",
+  "fileWatchPathDescription": "The folder path to monitor, only supports relative paths",
+  "fileWatchInterval": "Watch Polling Interval",
+  "fileWatchIntervalDescription": "Time interval (seconds) to check for file changes, recommended 5 - 30 seconds",
+  "fileWatchError": "File watching error",
+  "fileWatchInvalidPath": "Invalid folder path",
+  "fileWatchNoSupportAbsPath": "Absolute path is not supported"
 }

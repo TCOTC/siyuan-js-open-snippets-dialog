@@ -1,5 +1,5 @@
 import "./index.scss";
-import { Snippet, ListenersArray } from "./types";
+import { Snippet, ListenersArray, FileState } from "./types";
 import { parse as acornParse } from "acorn";
 import {
     Plugin,
@@ -88,7 +88,7 @@ export default class PluginSnippets extends Plugin {
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
 
         // 初始化插件设置
-        this.initSetting();
+        await this.initSetting();
 
         // 添加顶栏按钮
         this.addIcons(`
@@ -162,6 +162,11 @@ export default class PluginSnippets extends Plugin {
             },
         });
 
+        // 启动文件监听
+        if (this.fileWatchEnabled !== "disabled") {
+            this.startFileWatch();
+        }
+
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
 
         // 调试
@@ -193,6 +198,9 @@ export default class PluginSnippets extends Plugin {
         // 移除菜单
         this.menu?.close();
 
+        // 停止文件监听
+        this.stopFileWatch();
+
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnunload);
     }
 
@@ -212,6 +220,9 @@ export default class PluginSnippets extends Plugin {
 
         // 移除菜单
         this.menu?.close();
+
+        // 停止文件监听
+        this.stopFileWatch();
 
         // TODO自定义页签: 移除所有自定义页签
 
@@ -332,6 +343,29 @@ export default class PluginSnippets extends Plugin {
                     { value: "space7", text: "editorIndentUnitSpace7" },
                     { value: "space8", text: "editorIndentUnitSpace8" }
                 ],
+            },
+            {
+                key: "fileWatchEnabled",
+                description: "fileWatchEnabledDescription",
+                type: "select",
+                defaultValue: "disabled",
+                options: [
+                    { value: "disabled", text: "fileWatchModeDisabled" },
+                    { value: "enabled", text: "fileWatchModeEnabled" },
+                    { value: "loadOnly", text: "fileWatchModeLoadOnly" }
+                ],
+            },
+            {
+                key: "fileWatchPath",
+                description: "fileWatchPathDescription",
+                type: "string",
+                defaultValue: "data/snippets",
+            },
+            {
+                key: "fileWatchInterval",
+                description: "fileWatchIntervalDescription",
+                type: "number",
+                defaultValue: 5,
             }
         ];
 
@@ -445,6 +479,18 @@ export default class PluginSnippets extends Plugin {
                     
                     return this.htmlToElement(
                         `<select class="b3-select fn__flex-center" data-type="${item.key}">${optionsHtml}</select>`
+                    );
+                } else if (item.type === 'string') {
+                    // 创建文本输入框
+                    const currentValue = (window.siyuan.jcsm as any)[item.key] ?? item.defaultValue ?? "";
+                    return this.htmlToElement(
+                        `<input class="b3-text-field fn__flex-center" type="text" data-type="${item.key}" value="${currentValue}"${item.defaultValue ? ` placeholder="${item.defaultValue}"` : ""}>`
+                    );
+                } else if (item.type === 'number') {
+                    // 创建数字输入框
+                    const currentValue = (window.siyuan.jcsm as any)[item.key] ?? item.defaultValue ?? 0;
+                    return this.htmlToElement(
+                        `<input class="b3-text-field fn__flex-center" type="number" data-type="${item.key}" value="${currentValue}" min="1" max="300" step="1"${item.defaultValue ? ` placeholder="${item.defaultValue}"` : ""}>`
                     );
                 } else if (item.type === 'createActionElement' || item.createActionElement) {
                     return item.createActionElement?.();
@@ -606,6 +652,32 @@ export default class PluginSnippets extends Plugin {
                         }
                     }
                 }
+            } else if (item.type === 'string') {
+                const element = dialogElement.querySelector(`input[data-type='${item.key}']`) as HTMLInputElement;
+                if (element) {
+                    let newValue = element.value;
+                    
+                    // 对 fileWatchPath 进行特殊验证，不允许为空或只有空字符
+                    if (item.key === "fileWatchPath") {
+                        if (!newValue || newValue.trim() === "") {
+                            newValue = "data/snippets";
+                            // 重置输入框的值（目前没什么用，因为保存设置之后对话框就关闭了。不过以后有可能有用）
+                            // element.value = newValue;
+                        }
+                    }
+                    
+                    if ((window.siyuan.jcsm as any)[item.key] !== newValue) {
+                        (window.siyuan.jcsm as any)[item.key] = newValue;
+                    }
+                }
+            } else if (item.type === 'number') {
+                const element = dialogElement.querySelector(`input[data-type='${item.key}']`) as HTMLInputElement;
+                if (element) {
+                    const newValue = parseInt(element.value) || item.defaultValue || 0;
+                    if ((window.siyuan.jcsm as any)[item.key] !== newValue) {
+                        (window.siyuan.jcsm as any)[item.key] = newValue;
+                    }
+                }
             }
         });
 
@@ -615,6 +687,9 @@ export default class PluginSnippets extends Plugin {
             config[item.key] = (window.siyuan.jcsm as any)[item.key];
         });
         this.saveData(STORAGE_NAME, config);
+
+        // 在应用设置之后处理文件监听设置变化
+        this.handleFileWatchSettingChange();
 
         // 移除设置对话框
         this.closeDialogByElement(dialogElement);
@@ -1288,9 +1363,9 @@ export default class PluginSnippets extends Plugin {
                 <div class="jcsm-snippet-item b3-menu__item" data-type="${snippet.type}" data-id="${snippet.id}">
                     <span class="jcsm-snippet-name fn__flex-1" placeholder="${this.i18n.unNamed}">${snippet.name}</span>
                     <span class="fn__space"></span>
+                    <button class="block__icon block__icon--show fn__flex-center${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
                     <button class="block__icon block__icon--show fn__flex-center${this.showDuplicateButton ? "" : " fn__none"}" data-type="duplicate"><svg><use xlink:href="#iconCopy"></use></svg></button>
                     <button class="block__icon block__icon--show fn__flex-center" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
-                    <button class="block__icon block__icon--show fn__flex-center${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
                     <span class="fn__space"></span>
                     <input class="jcsm-switch b3-switch fn__flex-center" type="checkbox"${snippet.enabled ? " checked" : ""}>
                 </div>
@@ -1370,7 +1445,12 @@ export default class PluginSnippets extends Plugin {
      * 设置重新加载界面按钮呼吸动画
      */
     private setReloadUIButtonBreathing() {
+        if (this.isReloadUIButtonBreathing) return; // 如果已经设置了呼吸动画，则不重复设置
         this.isReloadUIButtonBreathing = true;
+        if (!this.menuItems) {
+            // 如果加载插件时就开启文件监听，menuItems 有可能未初始化，不需要设置呼吸动画
+            return;
+        }
         const reloadUIButton = this.menuItems.querySelector(".jcsm-top-container button[data-type='reload']") as HTMLButtonElement;
         if (reloadUIButton) {
             reloadUIButton.classList.add("jcsm-breathing");
@@ -1490,17 +1570,16 @@ export default class PluginSnippets extends Plugin {
                     this.snippetsList = this.snippetsList.map((s: Snippet) => s.id === snippet.id ? snippet : s);
                 }
             } else {
-                // 如果不存在或者 API 调用出错，则找到第一个相同类型的代码片段，插入到它的前面。要保证 CSS 在前，JS 在后
-                const firstSameTypeSnippet = this.snippetsList.find((s: Snippet) => s.type === snippet.type);
-                if (firstSameTypeSnippet) {
-                    this.snippetsList.splice(this.snippetsList.indexOf(firstSameTypeSnippet), 0, snippet);
+                if (snippet.type === "css") {
+                    // CSS 插入到开头
+                    this.snippetsList.unshift(snippet);
                 } else {
-                    // 如果找不到相同类型的代码片段
-                    if (snippet.type === "css") {
-                        // CSS 插入到开头
-                        this.snippetsList.unshift(snippet);
+                    // 如果不存在或者 API 调用出错，则找到第一个相同类型的代码片段，插入到它的前面。要保证 CSS 在前，JS 在后
+                    const firstSameTypeSnippet = this.snippetsList.find((s: Snippet) => s.type === snippet.type);
+                    if (firstSameTypeSnippet) {
+                        this.snippetsList.splice(this.snippetsList.indexOf(firstSameTypeSnippet), 0, snippet);
                     } else {
-                        // JS 插入到 CSS 之后
+                        // 如果不存在 JS 代码片段，则直接插入到末尾
                         this.snippetsList.push(snippet);
                     }
                 }
@@ -2588,11 +2667,10 @@ export default class PluginSnippets extends Plugin {
 
     // ================================ 消息处理 ================================
 
-    get notificationSwitch() { return window.siyuan.jcsm?.notificationSwitch ?? true; }
-    set notificationSwitch(value: boolean) { window.siyuan.jcsm.notificationSwitch = value; }
-
-    get reloadUIAfterModifyJS() { return window.siyuan.jcsm?.reloadUIAfterModifyJS ?? true; }
-    set reloadUIAfterModifyJS(value: boolean) { window.siyuan.jcsm.reloadUIAfterModifyJS = value; }
+    /**
+     * 是否开启通知
+     */
+    private notificationSwitch: boolean = true; // 暂时默认开启
 
     /**
      * 弹出通知（仅限在插件设置中存在选项的通知可以使用该方法）
@@ -2612,8 +2690,8 @@ export default class PluginSnippets extends Plugin {
      * @param message 错误消息
      * @param timeout 消息显示时间（毫秒）；-1 永不关闭；0 永不关闭，添加一个关闭按钮；undefined 默认 6000 毫秒
      */
-    private showErrorMessage(message: string, timeout: number | undefined = undefined) {
-        showMessage(this.i18n.pluginDisplayName + ": " + message, timeout, "error");
+    private showErrorMessage(message: string, timeout: number | undefined = undefined, id?: string) {
+        showMessage(this.i18n.pluginDisplayName + ": " + message, timeout, "error", id);
 
         // 将日志写入任务添加到队列
         this.addLogWriteTask(message);
@@ -3302,4 +3380,565 @@ export default class PluginSnippets extends Plugin {
     //     label: this.data[STORAGE_NAME].readonlyText || "Readonly",
     //     type: "readonly",
     // });
+
+    // ================================ 文件监听功能 ================================
+    // AI 写的，没有严格考虑，代码能跑就行
+
+    // TODO: 增加一个功能“监听到 JS 文件有更新时，自动重新加载界面”
+    // TODO考虑: 支持管理（开启关闭）监听的文件夹中的代码片段 → 在 JS 右边增加一个“文件”选项卡（仅在开启该功能时显示），开关状态存在同目录中的 plugin-snippets-files-config.json 文件中
+
+    /**
+     * 文件监听模式
+     */
+    declare fileWatchEnabled: string;
+
+    /**
+     * 文件监听路径
+     */
+    declare fileWatchPath: string;
+
+    /**
+     * 文件监听间隔（秒）
+     */
+    declare fileWatchInterval: number;
+
+    /**
+     * 文件监听状态（文件路径 -> 文件状态）
+     */
+    private fileWatchFileStates: Map<string, FileState>;
+
+    /**
+     * 文件监听定时器 ID
+     */
+    private fileWatchIntervalId: number | null;
+
+    /**
+     * 启动文件监听
+     */
+    private startFileWatch() {
+        if (this.fileWatchEnabled === "disabled") {
+            return;
+        }
+
+        // 停止现有的监听
+        this.stopFileWatch();
+        
+        // 清理所有旧的文件监听元素
+        this.removeAllFileWatchElements();
+        
+        // 初始化文件状态
+        this.fileWatchFileStates = new Map();
+        
+        // 初始加载现有文件
+        this.loadExistingFiles();
+        
+        // 只有在启用模式下才设置定时器进行持续监听
+        if (this.fileWatchEnabled === "enabled") {
+            this.fileWatchIntervalId = window.setInterval(() => {
+                this.checkFileChanges();
+            }, this.fileWatchInterval * 1000);
+        }
+    }
+
+    /**
+     * 初始加载现有文件
+     */
+    private async loadExistingFiles() {
+        try {
+            const folderPath = this.fileWatchPath;
+            
+            if (!folderPath) {
+                this.console.warn("loadExistingFiles: Folder path is empty");
+                return;
+            }
+
+            // 获取文件夹中的文件列表
+            const files = await this.getFolderFiles(folderPath);
+            
+            if (!files || files.length === 0) {
+                this.console.log("loadExistingFiles: No watchable files found in folder");
+                return;
+            }
+
+            this.console.log("loadExistingFiles: Start loading existing files", files.length, "files");
+
+            // 加载每个文件
+            for (const file of files) {
+                await this.loadSingleFile(file);
+            }
+
+            this.console.log("loadExistingFiles: Existing files loading completed");
+
+        } catch (error) {
+            if (error.message && error.message.includes("system cannot find the file specified")) {
+                // 检查是否是路径无效的错误
+                this.console.warn("loadExistingFiles: Invalid folder path, stopping file watch");
+                this.showErrorMessage(this.i18n.fileWatchInvalidPath + ": " + this.fileWatchPath, 0);
+                this.stopFileWatch();
+                return;
+            } else if (error.message && error.message.includes("filename, directory name, or volume label syntax is incorrect")) {
+                // 检查是否是绝对路径无效的错误
+                this.console.warn("loadExistingFiles: Invalid folder path, stopping file watch");
+                this.showErrorMessage(this.i18n.fileWatchNoSupportAbsPath + ": " + this.fileWatchPath, 0);
+                this.stopFileWatch();
+                return;
+            }
+            
+            this.console.error("loadExistingFiles: Failed to load existing files", error);
+            this.showErrorMessage(this.i18n.fileWatchError + ": " + error.message);
+        }
+    }
+
+    /**
+     * 加载单个文件
+     */
+    private async loadSingleFile(filePath: string) {
+        try {
+            // 检查文件路径是否有效
+            if (!filePath || filePath === 'undefined') {
+                return;
+            }
+            
+            // 获取文件信息
+            const response = await this.getFile(filePath);
+
+            // 检查响应格式
+            let currentModified = 0;
+            let currentContent = "";
+
+            if (typeof response === 'string') {
+                // 如果响应是字符串，说明直接返回了文件内容
+                currentContent = response;
+            } else if (response && typeof response === 'object') {
+                // 如果响应是对象，检查是否有 code 字段
+                if (response.code !== undefined) {
+                    if (response.code !== 0) {
+                        return;
+                    }
+                    
+                    if (!response.data) {
+                        return;
+                    }
+                    
+                    currentModified = response.data.modified || 0;
+                    currentContent = response.data.content || "";
+                } else {
+                    // 如果响应对象没有 code 字段，可能直接是文件数据
+                    currentModified = response.modified || 0;
+                    currentContent = response.content || "";
+                }
+            } else {
+                return;
+            }
+
+            // 记录文件状态
+            this.fileWatchFileStates.set(filePath, {
+                path: filePath,
+                lastModified: currentModified,
+                content: currentContent
+            });
+
+            // 应用文件内容
+            await this.applyFileChange(filePath, currentContent);
+            
+            this.console.log("loadSingleFile: File loaded successfully", filePath);
+
+        } catch (error) {
+            if (error.message && error.message.includes("The system cannot find the file specified")) {
+                // 检查是否是路径无效的错误
+                this.console.warn("loadSingleFile: Invalid file path", filePath);
+                return;
+            } else if (error.message && error.message.includes("filename, directory name, or volume label syntax is incorrect")) {
+                // 检查是否是绝对路径无效的错误
+                this.console.warn("loadSingleFile: Invalid absolute file path", filePath);
+                return;
+            }
+            
+            this.console.error("loadSingleFile: Failed to load file", filePath, error);
+        }
+    }
+
+    /**
+     * 停止文件监听
+     */
+    private stopFileWatch() {
+        if (this.fileWatchIntervalId) {
+            window.clearInterval(this.fileWatchIntervalId);
+            this.fileWatchIntervalId = null;
+            this.console.log("stopFileWatch: File watch stopped");
+        }
+        
+        // 只有在禁用模式下才移除所有文件监听元素
+        if (this.fileWatchEnabled === "disabled") {
+            this.removeAllFileWatchElements();
+        }
+    }
+
+    /**
+     * 移除所有文件监听元素
+     */
+    private removeAllFileWatchElements() {
+        const watchElements = document.querySelectorAll('[id^="snippetCssJcsmWatch"], [id^="snippetJsJcsmWatch"]');
+        let hasJSRemoved = false;
+        
+        watchElements.forEach(element => {
+            // 检查是否是 JS 文件被移除
+            if (element.id.startsWith('snippetJsJcsmWatch') && 
+                element.textContent && 
+                this.isValidJavaScriptCode(element.textContent)) {
+                hasJSRemoved = true;
+            }
+            element.remove();
+        });
+        
+        // 如果有 JS 文件被移除，弹出提示
+        if (hasJSRemoved) {
+            this.showNotification("reloadUIAfterModifyJS", 2000);
+            this.setReloadUIButtonBreathing();
+        }
+        
+        this.console.log("removeAllFileWatchElements: Removed all file watch elements", watchElements.length);
+    }
+
+    /**
+     * 检查文件变化
+     */
+    private async checkFileChanges() {
+        try {
+            const folderPath = this.fileWatchPath;
+            
+            if (!folderPath) {
+                this.console.warn("checkFileChanges: 文件夹路径为空");
+                return;
+            }
+
+            // 获取文件夹中的文件列表
+            const files = await this.getFolderFiles(folderPath);
+            
+            // 检查已删除的文件
+            const currentFilePaths = new Set(files || []);
+            const watchedFilePaths = Array.from(this.fileWatchFileStates.keys());
+            
+            for (const watchedFilePath of watchedFilePaths) {
+                if (!currentFilePaths.has(watchedFilePath)) {
+                    // 文件已被删除，移除对应的元素和状态
+                    this.removeFileWatchElement(watchedFilePath);
+                    this.fileWatchFileStates.delete(watchedFilePath);
+                    this.console.log("checkFileChanges: File deleted", watchedFilePath);
+                }
+            }
+            
+            if (!files || files.length === 0) {
+                return;
+            }
+
+            // 检查每个文件的变化
+            for (const file of files) {
+                await this.checkSingleFileChange(file);
+            }
+
+        } catch (error) {
+            if (error.message && error.message.includes("The system cannot find the file specified")) {
+                // 检查是否是路径无效的错误
+                this.console.warn("checkFileChanges: Invalid folder path, stopping file watch");
+                this.showErrorMessage(this.i18n.fileWatchInvalidPath + ": " + this.fileWatchPath, 0);
+                this.stopFileWatch();
+                return;
+            } else if (error.message && error.message.includes("filename, directory name, or volume label syntax is incorrect")) {
+                // 检查是否是绝对路径无效的错误
+                this.console.warn("checkFileChanges: Invalid absolute path, stopping file watch");
+                this.showErrorMessage(this.i18n.fileWatchNoSupportAbsPath + ": " + this.fileWatchPath, 0);
+                this.stopFileWatch();
+                return;
+            }
+            
+            this.console.error("checkFileChanges: Failed to check file changes", error);
+            this.showErrorMessage(this.i18n.fileWatchError + ": " + error.message);
+        }
+    }
+
+    /**
+     * 获取文件夹中的文件列表
+     */
+    private async getFolderFiles(folderPath: string): Promise<string[]> {
+        try {
+            const response = await new Promise<any>((resolve) => {
+                fetchPost("/api/file/readDir", { path: folderPath }, (response: any) => {
+                    resolve(response);
+                });
+            });
+
+            if (response.code !== 0) {
+                throw new Error(response.msg || "读取文件夹失败");
+            }
+
+            const files: string[] = [];
+            if (response.data && Array.isArray(response.data)) {
+                for (const item of response.data) {
+                    // 检查文件路径是否存在且有效
+                    if (item.isDir === false && 
+                        item.name && 
+                        (item.name.endsWith('.css') || item.name.endsWith('.js'))) {
+                        
+                        // 构建文件路径：如果 item.path 不存在，则使用文件夹路径 + 文件名
+                        let filePath = item.path;
+                        if (!filePath && item.name) {
+                            filePath = `${folderPath}/${item.name}`;
+                        }
+                        
+                        if (filePath) {
+                            files.push(filePath);
+                        }
+                    }
+                }
+            }
+
+            return files;
+        } catch (error) {
+            if (error.message && error.message.includes("The system cannot find the file specified")) {
+                // 检查是否是路径无效的错误
+                this.console.warn("getFolderFiles: Invalid folder path", folderPath);
+                throw error; // 重新抛出错误，让上层方法处理
+            } else if (error.message && error.message.includes("filename, directory name, or volume label syntax is incorrect")) {
+                // 检查是否是绝对路径无效的错误
+                this.console.warn("getFolderFiles: Invalid absolute path", folderPath);
+                throw error; // 重新抛出错误，让上层方法处理
+            }
+            
+            this.console.error("getFolderFiles: Failed to get folder file list", error);
+            throw error;
+        }
+    }
+
+    /**
+     * 检查单个文件的变化
+     */
+    private async checkSingleFileChange(filePath: string) {
+        try {
+            // 检查文件路径是否有效
+            if (!filePath || filePath === 'undefined') {
+                return;
+            }
+            
+            // 获取文件信息
+            const response = await this.getFile(filePath);
+
+            // 检查响应格式
+            let currentModified = 0;
+            let currentContent = "";
+
+            if (typeof response === 'string') {
+                // 如果响应是字符串，说明直接返回了文件内容
+                currentContent = response;
+            } else if (response && typeof response === 'object') {
+                // 如果响应是对象，检查是否有 code 字段
+                if (response.code !== undefined) {
+                    if (response.code !== 0) {
+                        return;
+                    }
+                    
+                    if (!response.data) {
+                        return;
+                    }
+                    
+                    currentModified = response.data.modified || 0;
+                    currentContent = response.data.content || "";
+                } else {
+                    // 如果响应对象没有 code 字段，可能直接是文件数据
+                    currentModified = response.modified || 0;
+                    currentContent = response.content || "";
+                }
+            } else {
+                return;
+            }
+
+            // 获取之前的文件状态
+            const previousState = this.fileWatchFileStates.get(filePath);
+
+            if (!previousState) {
+                // 新文件，记录状态并应用文件内容
+                this.fileWatchFileStates.set(filePath, {
+                    path: filePath,
+                    lastModified: currentModified,
+                    content: currentContent
+                });
+                
+                // 应用新文件内容
+                await this.applyFileChange(filePath, currentContent);
+                this.console.log("checkSingleFileChange: New file added", filePath);
+                return;
+            }
+
+            // 检查文件是否有变化
+            if (previousState.lastModified !== currentModified || previousState.content !== currentContent) {
+                // 获取文件扩展名
+                const fileName = filePath.split('/').pop() || "";
+                const fileExtension = fileName.split('.').pop()?.toLowerCase();
+                
+                if (fileExtension === 'js') {
+                    // 对于 JS 文件，只处理首次添加和移除，不处理中途变更
+                    // 检查是否是文件被删除后重新添加的情况
+                    const encodedFilePath = encodeURIComponent(filePath);
+                    const existingElement = document.querySelector(`[data-file-path="${encodedFilePath}"]`);
+                    if (!existingElement) {
+                        // 元素不存在，说明是重新添加的情况，需要重新应用
+                        this.fileWatchFileStates.set(filePath, {
+                            path: filePath,
+                            lastModified: currentModified,
+                            content: currentContent
+                        });
+                        
+                        await this.applyFileChange(filePath, currentContent);
+                        this.console.log("checkSingleFileChange: JS file re-added", filePath);
+                    } else {
+                        // 元素存在，说明是中途变更，不处理
+                        this.console.log("checkSingleFileChange: JS file modified during runtime, ignoring", filePath);
+                        // 更新文件状态但不重新应用
+                        this.fileWatchFileStates.set(filePath, {
+                            path: filePath,
+                            lastModified: currentModified,
+                            content: currentContent
+                        });
+                    }
+                } else {
+                    // 对于非 JS 文件，保持原有逻辑
+                    this.fileWatchFileStates.set(filePath, {
+                        path: filePath,
+                        lastModified: currentModified,
+                        content: currentContent
+                    });
+
+                    // 应用文件变化
+                    await this.applyFileChange(filePath, currentContent);
+                }
+            }
+        } catch (error) {
+            if (error.message && error.message.includes("The system cannot find the file specified")) {
+                // 检查是否是路径无效的错误
+                this.console.warn("checkSingleFileChange: Invalid file path", filePath);
+                // 移除无效文件的状态
+                this.fileWatchFileStates.delete(filePath);
+                return;
+            } else if (error.message && error.message.includes("filename, directory name, or volume label syntax is incorrect")) {
+                // 检查是否是绝对路径无效的错误
+                this.console.warn("checkSingleFileChange: Invalid absolute file path", filePath);
+                // 移除无效文件的状态
+                this.fileWatchFileStates.delete(filePath);
+                return;
+            }
+            
+            this.console.error("checkSingleFileChange: Failed to check file change", filePath, error);
+        }
+    }
+
+    /**
+     * 应用文件变化
+     */
+    private async applyFileChange(filePath: string, content: string) {
+        try {
+            const fileName = filePath.split('/').pop() || "";
+            const fileExtension = fileName.split('.').pop()?.toLowerCase();
+
+            if (fileExtension === 'css') {
+                // 应用 CSS 文件
+                await this.applyCSSFile(filePath, content);
+            } else if (fileExtension === 'js') {
+                // 应用 JS 文件
+                await this.applyJSFile(filePath, content);
+            }
+
+        } catch (error) {
+            this.console.error("applyFileChange: Failed to apply file change", filePath, error);
+        }
+    }
+
+    /**
+     * 应用 CSS 文件 - 直接添加样式元素
+     */
+    private async applyCSSFile(filePath: string, content: string) {
+        try {
+            // 移除已存在的同名文件监听元素
+            this.removeFileWatchElement(filePath);
+            
+            // 创建新的样式元素
+            const styleElement = document.createElement('style');
+            styleElement.id = `snippetCssJcsmWatch${this.genNewSnippetId()}`;
+            styleElement.setAttribute('data-file-path', encodeURIComponent(filePath));
+            styleElement.textContent = content;
+            
+            // 添加到 head 中
+            document.head.appendChild(styleElement);
+            
+            this.console.log("applyCSSFile: Added file watch style element", filePath);
+
+        } catch (error) {
+            this.console.error("applyCSSFile: Failed to apply CSS file", filePath, error);
+        }
+    }
+
+    /**
+     * 应用 JS 文件 - 直接添加脚本元素
+     */
+    private async applyJSFile(filePath: string, content: string) {
+        try {
+            // 验证 JS 代码是否有效
+            if (!this.isValidJavaScriptCode(content)) {
+                this.console.warn("applyJSFile: Invalid JS code", filePath);
+                return;
+            }
+
+            // 移除已存在的同名文件监听元素
+            this.removeFileWatchElement(filePath);
+            
+            // 创建新的脚本元素
+            const scriptElement = document.createElement('script');
+            scriptElement.type = 'text/javascript';
+            scriptElement.id = `snippetJsJcsmWatch${this.genNewSnippetId()}`;
+            scriptElement.setAttribute('data-file-path', encodeURIComponent(filePath));
+            scriptElement.textContent = content;
+            
+            // 添加到 head 中
+            document.head.appendChild(scriptElement);
+            
+            this.console.log("applyJSFile: Added file watch script element", filePath);
+
+        } catch (error) {
+            this.console.error("applyJSFile: Failed to apply JS file", filePath, error);
+        }
+    }
+
+    /**
+     * 移除文件监听元素
+     */
+    private removeFileWatchElement(filePath: string) {
+        const existingElement = document.querySelector(`[data-file-path="${encodeURIComponent(filePath)}"]`);
+        if (existingElement) {
+            // 检查是否是有效的 JS 文件被移除
+            const fileName = filePath.split('/').pop() || "";
+            const fileExtension = fileName.split('.').pop()?.toLowerCase();
+            
+            if (fileExtension === 'js' && existingElement.textContent && this.isValidJavaScriptCode(existingElement.textContent)) {
+                // JS 代码片段元素被移除需要弹出消息提示
+                this.showNotification("reloadUIAfterModifyJS", 2000);
+                // 高亮菜单上的重新加载界面按钮
+                this.setReloadUIButtonBreathing();
+                this.console.log("removeFileWatchElement: JS file removed, UI reload required", filePath);
+            } else {
+                this.console.log("removeFileWatchElement: Removed file watch element", filePath);
+            }
+            
+            existingElement.remove();
+        }
+    }
+
+    /**
+     * 在设置应用时启动或停止文件监听
+     */
+    private handleFileWatchSettingChange() {
+        if (this.fileWatchEnabled === "disabled") {
+            this.stopFileWatch();
+        } else {
+            this.startFileWatch();
+        }
+    }
 }

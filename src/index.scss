@@ -148,6 +148,16 @@
           height: 0;
         }
       }
+
+      // 按钮太多了，hover 的时候才显示
+      .block__icon {
+        display: none;
+      }
+
+      &:hover .block__icon,
+      .jcsm-active {
+        display: flex;
+      }
     }
   }
 }
