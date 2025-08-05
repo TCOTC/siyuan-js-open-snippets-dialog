@@ -1,22 +1,13 @@
 import "./index.scss";
 import { Snippet, ListenersArray, FileState } from "./types";
 import { parse as acornParse } from "acorn";
-import {
-    Plugin,
-    showMessage,
-    Dialog,
-    Menu,
-    getFrontend,
-    Setting,
-    fetchPost,
-    fetchSyncPost,
-    Constants,
-    openSetting
-} from "siyuan";
 
-// CodeMirror 6 导入
-import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
-// import { autocompletion, completionKeymap } from '@codemirror/autocomplete'
+// 思源插件 API
+import { Plugin, showMessage, Dialog, Menu, getFrontend, Setting, fetchPost, fetchSyncPost, Constants, openSetting } from "siyuan";
+// 未使用的：Custom、confirm、openTab、adaptHotkey、getBackend、Protyle、openWindow、IOperation、openMobileFileById、lockScreen、ICard、ICardData、exitSiYuan、getModelByDockType、getAllEditor、Files、platformUtils、openAttributePanel、saveLayout
+
+// CodeMirror 6
+import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete' // import { autocompletion, completionKeymap } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { javascript } from '@codemirror/lang-javascript'
 import { css } from '@codemirror/lang-css'
@@ -26,29 +17,6 @@ import { EditorState } from '@codemirror/state'
 import { crosshairCursor, drawSelection, dropCursor, EditorView, highlightActiveLine, highlightSpecialChars, keymap, lineNumbers, placeholder, rectangularSelection } from '@codemirror/view'
 import { vscodeLight, vscodeDark } from '@uiw/codemirror-theme-vscode'
 
-// 未使用的导入
-// import {
-//     Custom,
-//     confirm,
-//     openTab,
-//     adaptHotkey,
-//     getBackend,
-//     Protyle,
-//     openWindow,
-//     IOperation,
-//     Constants,
-//     openMobileFileById,
-//     lockScreen,
-//     ICard,
-//     ICardData,
-//     exitSiYuan,
-//     getModelByDockType,
-//     getAllEditor,
-//     Files,
-//     platformUtils,
-//     openAttributePanel,
-//     saveLayout
-// } from "siyuan";
 
 const PLUGIN_NAME = "snippets";            // 插件名
 const STORAGE_NAME = "plugin-config.json"; // 配置文件名
@@ -75,7 +43,7 @@ export default class PluginSnippets extends Plugin {
     public async onload() {
         // 发布服务不启用插件
         if (window.siyuan.isPublish) {
-            this.console.log(this.i18n.pluginDisplayName + this.i18n.pluginNotSupportedInPublish);
+            console.log(this.i18n.pluginDisplayName + this.i18n.pluginNotSupportedInPublish);
             return;
         }
 
@@ -413,8 +381,6 @@ export default class PluginSnippets extends Plugin {
         return configItems;
     }
 
-
-
     /**
      * 创建配置 getter
      * @param key 配置项 key
@@ -447,7 +413,11 @@ export default class PluginSnippets extends Plugin {
         });
     }
 
-    // 创建设置项
+    /**
+     * 创建设置项
+     * @param item 配置项
+     * @returns 设置项
+     */
     private createSettingItem(item: typeof this.configItems[0]) {
         if (!item.direction) {
             item.direction = "column";
@@ -762,7 +732,6 @@ export default class PluginSnippets extends Plugin {
             if (tagName === "button" || isScrim || isDispatch) {
                 const type = target.dataset.type;
                 if (type === "cancel" || isScrim || (isDispatch && event.detail=== "Escape")) {
-                    this.console.log("dialogClickHandler: cancel");
                     event.stopPropagation();
                     this.closeDialogByElement(dialog.element);
                 } else if (type === "confirm" || (isDispatch && event.detail=== "Enter")) {
@@ -1193,7 +1162,6 @@ export default class PluginSnippets extends Plugin {
                 // 更新代码片段元素
                 // 切换全局开关只会影响已启用的代码片段，所以过滤出来
                 const filteredSnippets = this.snippetsList.filter((snippet: Snippet) => snippet.type === this.snippetsType && snippet.enabled === true);
-                this.console.log("filteredSnippets", filteredSnippets);
                 filteredSnippets.forEach((snippet: Snippet) => {
                     // enabled 为 true 时，snippet.enabled 也一定为 true
                     this.updateSnippetElement(snippet, enabled);
@@ -1316,7 +1284,7 @@ export default class PluginSnippets extends Plugin {
     /**
      * 筛选代码片段（不区分大小写）
      * @param searchText 搜索文本
-     * @returns 筛选后的代码片段列表
+     * @returns 筛选后的代码片段 ID 数组，如果禁用搜索或搜索文本为空则返回 false
      */
     private filterSnippetsIds(searchText: string): string[] | false {
         // 如果禁用搜索或搜索文本为空，返回 false，表示不搜索
@@ -1362,9 +1330,9 @@ export default class PluginSnippets extends Plugin {
     /**
      * 生成代码片段列表
      * @param snippetsList 代码片段列表
-     * @returns 代码片段列表 HTML
+     * @returns 代码片段列表 HTML 字符串
      */
-    private genMenuSnippetsItems(snippetsList: Snippet[]) {
+    private genMenuSnippetsItems(snippetsList: Snippet[]): string {
         let snippetsHtml = "";
         snippetsList.forEach((snippet: Snippet) => {
             snippetsHtml += `
@@ -1552,6 +1520,7 @@ export default class PluginSnippets extends Plugin {
     /**
      * 保存代码片段（添加或更新）
      * @param snippet 代码片段
+     * @param isCopy 是否为复制操作
      */
     private async saveSnippet(snippet: Snippet, isCopy: boolean = false) {
         this.console.log("saveSnippet: snippet", snippet);
@@ -1700,9 +1669,9 @@ export default class PluginSnippets extends Plugin {
     /**
      * 根据 ID 获取代码片段（副作用是更新 this.snippetsList ）
      * @param id 代码片段 ID
-     * @returns 代码片段
+     * @returns 代码片段 | false
      */
-    private async getSnippetById(id: string) {
+    private async getSnippetById(id: string): Promise<Snippet | false> {
         const snippetsList = await this.getSnippetsList();
         if (snippetsList) {
             this.snippetsList = snippetsList;
@@ -1714,7 +1683,7 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 获取代码片段列表
-     * @returns 代码片段列表
+     * @returns 代码片段列表 | false
      */
     private async getSnippetsList(): Promise<Snippet[] | false> {
         const response = await fetchSyncPost("/api/snippet/getSnippet", { type: "all", enabled: 2 });
@@ -1731,7 +1700,7 @@ export default class PluginSnippets extends Plugin {
      * @param snippetsList 代码片段列表
      */
     private saveSnippetsList(snippetsList: Snippet[]) {
-        this.console.log("putSnippetsList", snippetsList);
+        this.console.log("saveSnippetsList", snippetsList);
         fetchPost("/api/snippet/setSnippet", {snippets: snippetsList}, (response) => {
             // 增加错误处理
             if (response.code !== 0) {
@@ -1819,7 +1788,7 @@ export default class PluginSnippets extends Plugin {
      * @param code 代码
      * @returns 是否为有效的 JavaScript 代码
      */
-    private isValidJavaScriptCode(code: string) {
+    private isValidJavaScriptCode(code: string): boolean {
         code = code.trim();
         if (code === "") return false;
         // 使用 acorn 解析代码，判断是否为有效的 JavaScript 代码
@@ -1873,8 +1842,9 @@ export default class PluginSnippets extends Plugin {
      * 生成代码片段编辑对话框
      * @param snippet 代码片段
      * @param confirmText 确认按钮的文案
+     * @returns 代码片段编辑对话框 HTML 字符串
      */
-    private genSnippetEditDialog(snippet: Snippet, confirmText: string = this.i18n.save) {
+    private genSnippetEditDialog(snippet: Snippet, confirmText: string = this.i18n.save): string {
         // TODO功能: 在删除按钮左边加一个创建副本按钮（始终显示），点击之后创建副本（不直接保存，是新建的代码片段，需要手动点击保存按钮）并且打开编辑对话框
         return `
             <div class="jcsm-dialog">
@@ -2013,6 +1983,13 @@ export default class PluginSnippets extends Plugin {
         ];
     }
 
+    /**
+     * 创建代码片段编辑器
+     * @param container 容器元素
+     * @param content 初始内容
+     * @param language 语言类型
+     * @returns 编辑器视图
+     */
     private createCodeMirrorEditor(container: HTMLElement, content: string, language: string): EditorView {
         const theme = window.siyuan.config.appearance.mode === 0 ? vscodeLight : vscodeDark;
         
@@ -2057,7 +2034,7 @@ export default class PluginSnippets extends Plugin {
                         lastThemeMode = currentThemeMode;
                         
                         // 更新所有打开的代码片段编辑对话框中的编辑器主题
-                        this.updateAllEditorThemes();
+                        this.updateAllEditorConfigs("theme");
                     }
                 }
             });
@@ -2083,7 +2060,6 @@ export default class PluginSnippets extends Plugin {
      * 停止主题模式监听
      */
     private stopThemeModeWatch() {
-        this.console.log("stopThemeModeWatch: stop theme mode watch");
         if (window.siyuan.jcsm?.themeObserver) {
             window.siyuan.jcsm.themeObserver.disconnect();
             delete window.siyuan.jcsm.themeObserver;
@@ -2093,6 +2069,7 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 检查是否有编辑器对话框打开
+     * @returns 是否存在打开的编辑器对话框
      */
     private hasEditorDialogsOpen(): boolean {
         return document.querySelectorAll('.b3-dialog--open[data-key="jcsm-snippet-dialog"]').length > 0;
@@ -2100,6 +2077,7 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 检查并管理主题模式监听状态
+     * @param isOpen 是否正在打开编辑器对话框
      */
     private checkAndManageThemeWatch(isOpen: boolean = false) {
         const hasDialog = isOpen || this.hasEditorDialogsOpen();
@@ -2134,7 +2112,7 @@ export default class PluginSnippets extends Plugin {
             // 获取当前编辑器实例 - 通过 DOM 元素查找对应的 EditorView
             const editorView = (existingEditorElement as any).cmView as EditorView;
             if (!editorView) {
-                this.console.log("updateAllEditorConfigs: editorView not found, recreating editor:", reason);
+                this.console.warn("updateAllEditorConfigs: editorView not found, recreating editor:", reason);
                 this.recreateEditor(dialogElement, contentContainer);
                 return;
             }
@@ -2158,13 +2136,6 @@ export default class PluginSnippets extends Plugin {
             
             this.console.log("updateAllEditorConfigs: editor:", reason, "updated:", dialogElement);
         });
-    }
-
-    /**
-     * 更新所有打开的代码片段编辑对话框中的编辑器主题
-     */
-    private updateAllEditorThemes() {
-        this.updateAllEditorConfigs("theme");
     }
     
     /**
@@ -2203,11 +2174,12 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 打开代码片段编辑对话框
-     * @param snippetId 代码片段 ID
-     * @param confirmText 确认按钮的文案
+     * @param snippet 代码片段
+     * @param isNew 是否为新建代码片段
+     * @returns 是否成功打开对话框
      */
-    private async openSnippetEditDialog(snippet: Snippet, isNew?: boolean) {
-        if (this.getAllModalDialogElements().length > 0) return;
+    private async openSnippetEditDialog(snippet: Snippet, isNew?: boolean): Promise<boolean> {
+        if (this.getAllModalDialogElements().length > 0) return false;
 
         // 检查参数
         const paramError: string[] = [];
@@ -2233,7 +2205,7 @@ export default class PluginSnippets extends Plugin {
         const existedDialog = document.querySelector(`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="${snippet.id}"]`) as HTMLDivElement;
         if (existedDialog) {
             this.moveElementToTop(existedDialog);
-            return;
+            return true;
         }
 
         // 创建 Dialog
@@ -2552,6 +2524,7 @@ export default class PluginSnippets extends Plugin {
      * @param cancelText 取消按钮文本
      * @param confirmText 确认按钮文本
      * @param confirm 确认回调
+     * @param cancel 取消回调
      */
     private openConfirmDialog(title: string, text: string, dataKey?: string, cancelText?: string, confirmText?: string, confirm?: () => void, cancel?: () => void) {
         if (!text && !title) {
@@ -2643,9 +2616,9 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 获取所有模态对话框元素
-     * @returns 对话框元素
+     * @returns 对话框元素数组
      */
-    private getAllModalDialogElements() {
+    private getAllModalDialogElements(): HTMLElement[] {
         // 模态对话框打开时，不允许打开或操作菜单和代码片段编辑对话框，否则 this.globalKeyDownHandler() 判断不了 Escape 和 Enter 按键是对哪个元素的操作
         return Array.from(document.querySelectorAll("body > .b3-dialog--open[data-key^='jcsm-']:not([data-modal='false'])")) as HTMLElement[];
     }
@@ -2787,7 +2760,7 @@ export default class PluginSnippets extends Plugin {
      * @param content 文件内容
      * @returns Promise<any>
      */
-    private putFile(path: string, content: string) {
+    private putFile(path: string, content: string): Promise<any> {
         if (!path || !content) {
             return Promise.reject({ code: 400, msg: "path or content is empty" });
         }
@@ -2811,7 +2784,7 @@ export default class PluginSnippets extends Plugin {
      * 生成新的代码片段 ID
      * @returns 新的代码片段 ID
      */
-    private genNewSnippetId() {
+    private genNewSnippetId(): string {
         let newId = window.Lute.NewNodeID();
         while (this.snippetsList.find((s: Snippet) => s.id === newId)) {
             newId = window.Lute.NewNodeID();
@@ -2824,7 +2797,7 @@ export default class PluginSnippets extends Plugin {
      * @param snippetType 代码片段类型
      * @returns 是否启用
      */
-    private isSnippetsTypeEnabled(snippetType: string) {
+    private isSnippetsTypeEnabled(snippetType: string): boolean {
         return (window.siyuan.config.snippet.enabledCSS && snippetType === "css") ||
                (window.siyuan.config.snippet.enabledJS  && snippetType === "js" );
     };
@@ -2883,7 +2856,7 @@ export default class PluginSnippets extends Plugin {
      * 判断是否是 Mac（原生代码 app/src/protyle/util/compatibility.ts ）
      * @returns 是否是 Mac
      */
-    private isMac() {
+    private isMac(): boolean {
         return navigator.platform.toUpperCase().indexOf("MAC") > -1;
     };
 
@@ -2892,7 +2865,7 @@ export default class PluginSnippets extends Plugin {
      * @param command 命令名称
      * @returns 用户自定义快捷键
      */
-    private getCustomKeymapByCommand(command: string) {
+    private getCustomKeymapByCommand(command: string): string {
         if (!window.siyuan.config.keymap.plugin[PLUGIN_NAME] || !window.siyuan.config.keymap.plugin[PLUGIN_NAME][command]) return "";
         return window.siyuan.config.keymap.plugin[PLUGIN_NAME][command]?.custom || "";
     }
@@ -2902,7 +2875,7 @@ export default class PluginSnippets extends Plugin {
      * @param hotkey 快捷键
      * @returns 快捷键显示文本
      */
-    private getHotkeyDisplayText(hotkey: string) {
+    private getHotkeyDisplayText(hotkey: string): string {
         if (this.isMac()) {
             return hotkey;
         }
@@ -3037,7 +3010,7 @@ export default class PluginSnippets extends Plugin {
      * 判断当前激活元素是否为输入框（input 或 textarea）
      * @returns 是否为输入框
      */
-    private isInputElementActive() {
+    private isInputElementActive(): boolean {
         const activeElement = document.activeElement;
         const tagName = activeElement.tagName.toLowerCase();
         const type = activeElement.getAttribute("type");
@@ -3097,8 +3070,8 @@ export default class PluginSnippets extends Plugin {
      * 是否存在打开的插件对话框和菜单
      * @returns 是否存在
      */
-    private isDialogAndMenuOpen() {
-        return document.querySelectorAll(".b3-dialog--open[data-key^='jcsm-']").length > 0 || this.menu;
+    private isDialogAndMenuOpen(): boolean {
+        return document.querySelectorAll(".b3-dialog--open[data-key^='jcsm-']").length > 0 || !!this.menu;
     }
 
     /**
@@ -3514,6 +3487,7 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 加载单个文件
+     * @param filePath 文件路径
      */
     private async loadSingleFile(filePath: string) {
         try {
@@ -3631,7 +3605,7 @@ export default class PluginSnippets extends Plugin {
             const folderPath = this.fileWatchPath;
             
             if (!folderPath) {
-                this.console.warn("checkFileChanges: 文件夹路径为空");
+                this.console.warn("checkFileChanges: folder path is empty");
                 return;
             }
 
@@ -3680,6 +3654,8 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 获取文件夹中的文件列表
+     * @param folderPath 文件夹路径
+     * @returns 文件列表
      */
     private async getFolderFiles(folderPath: string): Promise<string[]> {
         try {
@@ -3733,6 +3709,7 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 检查单个文件的变化
+     * @param filePath 文件路径
      */
     private async checkSingleFileChange(filePath: string) {
         try {
@@ -3854,6 +3831,8 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 应用文件变化
+     * @param filePath 文件路径
+     * @param content 文件内容
      */
     private async applyFileChange(filePath: string, content: string) {
         try {
@@ -3875,6 +3854,8 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 应用 CSS 文件 - 直接添加样式元素
+     * @param filePath 文件路径
+     * @param content 文件内容
      */
     private async applyCSSFile(filePath: string, content: string) {
         try {
@@ -3899,6 +3880,8 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 应用 JS 文件 - 直接添加脚本元素
+     * @param filePath 文件路径
+     * @param content 文件内容
      */
     private async applyJSFile(filePath: string, content: string) {
         try {
@@ -3930,6 +3913,7 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 移除文件监听元素
+     * @param filePath 文件路径
      */
     private removeFileWatchElement(filePath: string) {
         const existingElement = document.querySelector(`[data-file-path="${encodeURIComponent(filePath)}"]`);
