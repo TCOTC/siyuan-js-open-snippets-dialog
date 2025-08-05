@@ -16,20 +16,7 @@ jobs:
       - name: Package zip
         uses: vimtor/action-zip@v1
         with:
-          files: |
-            i18n/en_US.json
-            i18n/ja_JP.json
-            i18n/zh_CHT.json
-            i18n/zh_CN.json
-            icon.png
-            preview.png
-            index.css
-            index.js
-            plugin.json
-            README.md
-            README_zh_CN.md
-            README_ja_JP.md
-            README_zh_CHT.md
+          files: i18n/en_US.json i18n/ja_JP.json i18n/zh_CHT.json i18n/zh_CN.json icon.png preview.png index.css index.js plugin.json README.md README_zh_CN.md README_ja_JP.md README_zh_CHT.md
           dest: package.zip
           
 
