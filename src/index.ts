@@ -754,7 +754,7 @@ export default class PluginSnippets extends Plugin {
                 styleSheet.textContent = "body > div[data-key='dialog-setting'] { display: none; }";
                 document.head.appendChild(styleSheet);
                 
-                const settingDialog = openSetting(window.siyuan.ws.app);
+                const settingDialog = openSetting(window.siyuan.ws.app); // https://github.com/siyuan-note/siyuan/blob/22923d3eac57b59061b65e04f37913e4ba48240a/app/src/window/index.ts#L49
                 const settingDialogElement = settingDialog.element;
                 // 点击外观选项卡
                 settingDialogElement.querySelector('.b3-tab-bar [data-name="appearance"]').dispatchEvent(new CustomEvent("click"));
