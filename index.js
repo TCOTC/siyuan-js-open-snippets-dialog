@@ -896,7 +896,11 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
       window.siyuan.jcsm[item.key] = value;
     });
   }
-  // \u521B\u5EFA\u8BBE\u7F6E\u9879
+  /**
+   * \u521B\u5EFA\u8BBE\u7F6E\u9879
+   * @param item \u914D\u7F6E\u9879
+   * @returns \u8BBE\u7F6E\u9879
+   */
   createSettingItem(item) {
     if (!item.direction) {
       item.direction = "column";
@@ -1702,7 +1706,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
   /**
    * \u6839\u636E ID \u83B7\u53D6\u4EE3\u7801\u7247\u6BB5\uFF08\u526F\u4F5C\u7528\u662F\u66F4\u65B0 this.snippetsList \uFF09
    * @param id \u4EE3\u7801\u7247\u6BB5 ID
-   * @returns \u4EE3\u7801\u7247\u6BB5
+   * @returns \u4EE3\u7801\u7247\u6BB5 | false
    */
   getSnippetById(id) {
     return __async(this, null, function* () {
@@ -1717,7 +1721,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
   }
   /**
    * \u83B7\u53D6\u4EE3\u7801\u7247\u6BB5\u5217\u8868
-   * @returns \u4EE3\u7801\u7247\u6BB5\u5217\u8868
+   * @returns \u4EE3\u7801\u7247\u6BB5\u5217\u8868 | false
    */
   getSnippetsList() {
     return __async(this, null, function* () {
@@ -1831,7 +1835,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    * \u751F\u6210\u4EE3\u7801\u7247\u6BB5\u7F16\u8F91\u5BF9\u8BDD\u6846
    * @param snippet \u4EE3\u7801\u7247\u6BB5
    * @param confirmText \u786E\u8BA4\u6309\u94AE\u7684\u6587\u6848
-   * 
+   * @returns \u4EE3\u7801\u7247\u6BB5\u7F16\u8F91\u5BF9\u8BDD\u6846 HTML \u5B57\u7B26\u4E32
    */
   genSnippetEditDialog(snippet, confirmText = this.i18n.save) {
     return \`
