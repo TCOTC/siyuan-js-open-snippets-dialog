@@ -104,5 +104,8 @@ module.exports = (env, argv) => {
             ],
         },
         plugins,
+        performance: {
+          hints: false, // 关闭所有性能提示
+        },
     };
 };

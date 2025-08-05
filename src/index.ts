@@ -956,6 +956,13 @@ export default class PluginSnippets extends Plugin {
         // TODO测试: this.snippetsList 没有代码片段的情况需要测试一下看看
         snippetsContainer.insertAdjacentHTML("beforeend", this.genMenuSnippetsItems(this.snippetsList));
         this.menuItems.append(snippetsContainer);
+        
+        // “添加第一个 CSS 代码片段”的菜单项
+        const newCssSnippetButton = this.htmlToElement(`<div class="jcsm-snippet-item b3-menu__item" data-type="new" data-snippet-type="css">${this.i18n.addFirstCSSSnippet}</div>`);
+        snippetsContainer.appendChild(newCssSnippetButton);
+        // “添加第一个 JS 代码片段”的菜单项
+        const newJsSnippetButton = this.htmlToElement(`<div class="jcsm-snippet-item b3-menu__item" data-type="new" data-snippet-type="js">${this.i18n.addFirstJSSnippet}</div>`);
+        snippetsContainer.appendChild(newJsSnippetButton);
 
         this.setMenuSnippetCount();
         this.setMenuSnippetsType(this.snippetsType);
@@ -1094,48 +1101,65 @@ export default class PluginSnippets extends Plugin {
                 // 按 Esc 关闭菜单
                 this.menu.close();
             } else if (event.detail === "Enter") {
-                // 按回车切换代码片段的开关状态
                 const snippetElement = this.menuItems.querySelector(".b3-menu__item--current") as HTMLElement;
+                const type = snippetElement?.dataset.type;
                 if (snippetElement) {
-                    const input = snippetElement.querySelector("input[type='checkbox']") as HTMLInputElement;
-                    const snippet = await this.getSnippetById(snippetElement.dataset.id);
-                    if (input && snippet) {
-                        input.checked = !input.checked;
-                        // 在菜单上切换代码片段的开关状态要实时保存
-                        snippet.enabled = input.checked;
-                        this.saveSnippetsList(this.snippetsList);
-                        this.updateSnippetElement(snippet);
+                    if (type === "new") {
+                        // 按回车新建代码片段
+                        this.createSnippet();
+                    } else {
+                        // 按回车切换代码片段的开关状态
+                        const input = snippetElement.querySelector("input[type='checkbox']") as HTMLInputElement;
+                        const snippet = await this.getSnippetById(snippetElement.dataset.id);
+                        if (input && snippet) {
+                            input.checked = !input.checked;
+                            // 在菜单上切换代码片段的开关状态要实时保存
+                            snippet.enabled = input.checked;
+                            this.saveSnippetsList(this.snippetsList);
+                            this.updateSnippetElement(snippet);
+                        }
                     }
                 }
             } else if (event.detail === "ArrowUp" || event.detail === "ArrowDown") {
                 // 按上下方向键切换代码片段选项
-                const menuItems = Array.from(this.menuItems.querySelectorAll(`.b3-menu__item[data-type="${this.snippetsType}"]`)) as HTMLElement[];
+                // 获取当前代码片段类型的所有可见菜单项（排除带有 .fn__none 类的元素）
+                const visibleMenuItems = Array.from(this.menuItems.querySelectorAll(`.jcsm-snippet-item[data-type="${this.snippetsType}"]:not(.fn__none)`)) as HTMLElement[];
                 const currentMenuItem = this.menuItems.querySelector(".b3-menu__item--current") as HTMLElement;
                 
-                if (menuItems.length === 1) {
-                    // 只有一个代码片段时，切换到该代码片段
-                    menuItems[0].classList.add("b3-menu__item--current");
-                } else if (menuItems.length > 1) {
-                    // 获取当前选中项的索引，如果没有选中项则设为 -1
-                    const currentIndex = currentMenuItem ? menuItems.indexOf(currentMenuItem) : -1;
+                // 如果当前代码片段类型没有可见的 .jcsm-snippet-item 元素，则选中新建按钮
+                if (visibleMenuItems.length === 0) {
+                    const newSnippetButton = this.menuItems.querySelector(`.jcsm-snippet-item[data-type="new"][data-snippet-type="${this.snippetsType}"]`) as HTMLElement;
+                    if (newSnippetButton) {
+                        currentMenuItem?.classList.remove("b3-menu__item--current");
+                        newSnippetButton.classList.add("b3-menu__item--current");
+                        this.scrollToMenuItem(newSnippetButton);
+                    }
+                } else if (visibleMenuItems.length === 1) {
+                    // 只有一个可见代码片段时，切换到该代码片段
+                    currentMenuItem?.classList.remove("b3-menu__item--current");
+                    visibleMenuItems[0].classList.add("b3-menu__item--current");
+                    this.scrollToMenuItem(visibleMenuItems[0]);
+                } else if (visibleMenuItems.length > 1) {
+                    // 获取当前选中项在可见菜单项中的索引，如果没有选中项则设为 -1
+                    const currentIndex = currentMenuItem ? visibleMenuItems.indexOf(currentMenuItem) : -1;
                     
                     // 根据按键方向计算新的索引
                     let newIndex: number;
                     if (event.detail === "ArrowUp") {
                         // 向上键：切换到前一个元素，如果是第一个则切换到最后一个
-                        newIndex = currentIndex <= 0 ? menuItems.length - 1 : currentIndex - 1;
+                        newIndex = currentIndex <= 0 ? visibleMenuItems.length - 1 : currentIndex - 1;
                     } else {
                         // 向下键：切换到后一个元素，如果是最后一个则切换到第一个
-                        newIndex = currentIndex >= menuItems.length - 1 ? 0 : currentIndex + 1;
+                        newIndex = currentIndex >= visibleMenuItems.length - 1 ? 0 : currentIndex + 1;
                     }
                     
                     // 移除当前选中状态
                     currentMenuItem?.classList.remove("b3-menu__item--current");
                     // 添加新的选中状态
-                    menuItems[newIndex].classList.add("b3-menu__item--current");
+                    visibleMenuItems[newIndex].classList.add("b3-menu__item--current");
                     
                     // 确保选中的代码片段在滚动容器中可见
-                    this.scrollToMenuItem(menuItems[newIndex]);
+                    this.scrollToMenuItem(visibleMenuItems[newIndex]);
                 }
             } else if (event.detail === "ArrowLeft" || event.detail === "ArrowRight") {
                 // 按左右方向键切换代码片段类型
@@ -1220,16 +1244,7 @@ export default class PluginSnippets extends Plugin {
                     this.reloadUI();
                 } else if (type === "new") {
                     // 新建代码片段
-                    const snippet: Snippet = {
-                        id: this.genNewSnippetId(),
-                        name: "",
-                        type: this.snippetsType as "css" | "js",
-                        enabled: this.newSnippetEnabled,
-                        content: "",
-                    };
-                    // 不直接添加代码片段
-                    // this.saveSnippet(snippet);
-                    this.openSnippetEditDialog(snippet, true);
+                    this.createSnippet();
                 }
             }
         }
@@ -1271,21 +1286,28 @@ export default class PluginSnippets extends Plugin {
                 }
             } else {
                 // 点击非按钮的部分
-                const checkBox = snippetMenuItem.querySelector("input") as HTMLInputElement;
-                if (target !== checkBox) {
-                    // 如果点击的不是 checkBox 就手工切换开关状态
-                    checkBox.checked = !checkBox.checked;
-                }
-                const snippet = await this.getSnippetById(snippetMenuItem.dataset.id);
-                if (snippet) {
-                    // 在菜单上切换代码片段的开关状态要实时保存
-                    snippet.enabled = checkBox.checked;
-                    this.saveSnippetsList(this.snippetsList);
-                    this.updateSnippetElement(snippet);
-                }
-                if (this.isMobile) {
-                    // 移动端点击之后一直高亮着选项不好看，所以清除选中状态
-                    this.clearMenuSelection()
+                const type = snippetMenuItem.dataset.type;
+                if (type === "new") {
+                    // 新建代码片段
+                    this.createSnippet();
+                } else {
+                    // 点击代码片段的菜单项
+                    const checkBox = snippetMenuItem.querySelector("input") as HTMLInputElement;
+                    if (target !== checkBox) {
+                        // 如果点击的不是 checkBox 就手工切换开关状态
+                        checkBox.checked = !checkBox.checked;
+                    }
+                    const snippet = await this.getSnippetById(snippetMenuItem.dataset.id);
+                    if (snippet) {
+                        // 在菜单上切换代码片段的开关状态要实时保存
+                        snippet.enabled = checkBox.checked;
+                        this.saveSnippetsList(this.snippetsList);
+                        this.updateSnippetElement(snippet);
+                    }
+                    if (this.isMobile) {
+                        // 移动端点击之后一直高亮着选项不好看，所以清除选中状态
+                        this.clearMenuSelection()
+                    }
                 }
             }
         }
@@ -1395,8 +1417,10 @@ export default class PluginSnippets extends Plugin {
      * 设置菜单代码片段计数
      */
     private setMenuSnippetCount() {
-        const cssCountElement = this.menuItems?.querySelector(".jcsm-tab-count-css") as HTMLElement;
-        const jsCountElement = this.menuItems?.querySelector(".jcsm-tab-count-js") as HTMLElement;
+        if (!this.menu) return;
+        
+        const cssCountElement = this.menuItems.querySelector(".jcsm-tab-count-css") as HTMLElement;
+        const jsCountElement = this.menuItems.querySelector(".jcsm-tab-count-js") as HTMLElement;
         if (!cssCountElement || !jsCountElement) return;
 
         const cssCount = this.snippetsList.filter((item: Snippet) => item.type === "css").length;
@@ -1413,7 +1437,8 @@ export default class PluginSnippets extends Plugin {
         // 移除其他选项上的 .b3-menu__item--current 类名
         this.clearMenuSelection();
         // 给首个该类型的选项添加 .b3-menu__item--current 类名；搜索时排除的选项会添加 .fn__none 类名
-        const firstMenuItem = this.menuItems?.querySelector(`.b3-menu__item[data-type="${snippetType}"]:not(.fn__none)`) as HTMLElement;
+        const firstMenuItem = this.menuItems?.querySelector(`.b3-menu__item[data-type="${snippetType}"]:not(.fn__none)`) as HTMLElement ||
+                              this.menuItems?.querySelector(`.b3-menu__item[data-type="new"][data-snippet-type="${snippetType}"]`) as HTMLElement;
         if (firstMenuItem) {
             firstMenuItem.classList.add("b3-menu__item--current");
             // 确保选中的代码片段在滚动容器中可见
@@ -1516,6 +1541,22 @@ export default class PluginSnippets extends Plugin {
      */
     get snippetsType() { return window.siyuan.jcsm?.snippetsType ?? "css"; } // 顶栏菜单默认显示 CSS 代码片段
     set snippetsType(value: string) { window.siyuan.jcsm.snippetsType = value; }
+
+    /**
+     * 创建代码片段
+     */
+    private createSnippet() {
+        const snippet: Snippet = {
+            id: this.genNewSnippetId(),
+            name: "",
+            type: this.snippetsType as "css" | "js",
+            enabled: this.newSnippetEnabled,
+            content: "",
+        };
+        // 不直接添加代码片段
+        // this.saveSnippet(snippet);
+        this.openSnippetEditDialog(snippet, true);
+    }
 
     /**
      * 保存代码片段（添加或更新）
@@ -2853,6 +2894,7 @@ export default class PluginSnippets extends Plugin {
      * @returns 用户自定义快捷键
      */
     private getCustomKeymapByCommand(command: string) {
+        if (!window.siyuan.config.keymap.plugin[PLUGIN_NAME] || !window.siyuan.config.keymap.plugin[PLUGIN_NAME][command]) return "";
         return window.siyuan.config.keymap.plugin[PLUGIN_NAME][command]?.custom || "";
     }
 

@@ -122,10 +122,10 @@
     }
   
     // 隐藏非当前类型的代码片段
-    &[data-type="css"] ~ .jcsm-snippets-container .jcsm-snippet-item[data-type="js"] {
+    &[data-type="css"] ~ .jcsm-snippets-container .jcsm-snippet-item:is([data-type="js"], [data-snippet-type="js"]) {
       display: none !important;
     }
-    &[data-type="js"] ~ .jcsm-snippets-container .jcsm-snippet-item[data-type="css"] {
+    &[data-type="js"] ~ .jcsm-snippets-container .jcsm-snippet-item:is([data-type="css"], [data-snippet-type="css"]) {
       display: none !important;
     }
   }
@@ -157,6 +157,19 @@
       &:hover .block__icon,
       .jcsm-active {
         display: flex;
+      }
+
+      &[data-type="new"] {
+        align-items: center;
+        justify-content: center;
+      }
+
+      &[data-type="css"] ~ [data-type="new"][data-snippet-type="css"] {
+        display: none;
+      }
+
+      &[data-type="js"] ~ [data-type="new"][data-snippet-type="js"] {
+        display: none;
       }
     }
   }

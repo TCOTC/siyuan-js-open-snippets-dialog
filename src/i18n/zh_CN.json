@@ -102,5 +102,7 @@
   "fileWatchInvalidPath": "无效的文件夹路径",
   "fileWatchNoSupportAbsPath": "不支持监听绝对路径",
   "reloadUIConfirm": "⚠️ 重新加载界面确认",
-  "reloadUIConfirmDescription": "重新加载界面后，未保存的代码片段修改将会丢失，确定要重新加载界面吗？"
+  "reloadUIConfirmDescription": "重新加载界面后，未保存的代码片段修改将会丢失，确定要重新加载界面吗？",
+  "addFirstCSSSnippet": "添加第一个 CSS 代码片段",
+  "addFirstJSSnippet": "添加第一个 JS 代码片段"
 }

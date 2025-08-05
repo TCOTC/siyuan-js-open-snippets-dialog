@@ -102,5 +102,7 @@
   "fileWatchInvalidPath": "Invalid folder path",
   "fileWatchNoSupportAbsPath": "Absolute path is not supported",
   "reloadUIConfirm": "⚠️ Reload UI Confirm",
-  "reloadUIConfirmDescription": "After reloading the interface, the unsaved code snippet modifications will be lost, are you sure you want to reload the interface?"
+  "reloadUIConfirmDescription": "After reloading the interface, the unsaved code snippet modifications will be lost, are you sure you want to reload the interface?",
+  "addFirstCSSSnippet": "Add first CSS snippet",
+  "addFirstJSSnippet": "Add first JS snippet"
 }
