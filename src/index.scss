@@ -33,7 +33,7 @@
 
   // 菜单按钮
   button {
-    margin: 2px;
+    margin: 0 1px;
 
     svg {
       pointer-events: none;
@@ -260,6 +260,7 @@ div[data-key="jcsm-setting-dialog"] {
     // CodeMirror 编辑器样式
     .cm-editor {
       height: 100%; // 强制编辑器高度为 100%
+      background-color: var(--b3-theme-background);
 
       // 编辑器字体
       .cm-scroller {

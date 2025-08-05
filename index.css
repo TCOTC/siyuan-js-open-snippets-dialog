@@ -21,7 +21,7 @@
   margin: 0 5px 4px 5px;
 }
 #commonMenu[data-name=PluginSnippets] button {
-  margin: 2px;
+  margin: 0 1px;
 }
 #commonMenu[data-name=PluginSnippets] button svg {
   pointer-events: none;
@@ -189,6 +189,7 @@ div[data-key=jcsm-setting-dialog][data-mobile=false] .b3-dialog__content {
 }
 .b3-dialog--open[data-key=jcsm-snippet-dialog] .jcsm-dialog-content .cm-editor {
   height: 100%;
+  background-color: var(--b3-theme-background);
 }
 .b3-dialog--open[data-key=jcsm-snippet-dialog] .jcsm-dialog-content .cm-editor .cm-scroller {
   font-family: var(--b3-font-family-code);
