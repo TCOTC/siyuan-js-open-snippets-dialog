@@ -638,15 +638,8 @@ export default class PluginSnippets extends Plugin {
                             this.menuItems?.querySelector(".jcsm-top-container button[data-type='search']")?.classList.remove("fn__none");
                         }
                     } else if (item.key === "editorIndentUnit") {
-                        // 修改编辑器缩进单位时，重新创建所有打开的编辑器
-                        const editorDialogs = document.querySelectorAll(`.b3-dialog--open[data-key="jcsm-snippet-dialog"]`);
-                        editorDialogs.forEach(dialog => {
-                            const contentContainer = dialog.querySelector(".jcsm-dialog-content") as HTMLElement;
-                            if (contentContainer) {
-                                this.recreateEditor(dialog, contentContainer);
-                                // TODO: 改成用 editorView.setState
-                            }
-                        });
+                        // 修改编辑器缩进单位时，更新所有打开的编辑器
+                        this.updateAllEditorConfigs("indent unit");
                     }
                 }
             } else if (item.type === 'string') {
@@ -953,7 +946,6 @@ export default class PluginSnippets extends Plugin {
         // 插入代码片段列表容器
         const snippetsContainer = document.createElement("div");
         snippetsContainer.className = "jcsm-snippets-container";
-        // TODO测试: this.snippetsList 没有代码片段的情况需要测试一下看看
         snippetsContainer.insertAdjacentHTML("beforeend", this.genMenuSnippetsItems(this.snippetsList));
         this.menuItems.append(snippetsContainer);
         
@@ -981,13 +973,12 @@ export default class PluginSnippets extends Plugin {
                 // 筛选代码片段
                 const filterSnippetsIds = this.filterSnippetsIds(target.value);
                 if (filterSnippetsIds) {
-                    const filterSnippetsSelector = ".jcsm-snippet-item:is(" + filterSnippetsIds.map((id: string) => `[data-id="${id}"]`).join(", ") + ")";
-                    this.console.log("filterSnippetsSelector:", filterSnippetsSelector);
                     this.menuItems.querySelectorAll(".jcsm-snippet-item").forEach((item: HTMLElement) => {
-                        item.classList.add("fn__none");
-                    });
-                    this.menuItems.querySelectorAll(filterSnippetsSelector).forEach((item: HTMLElement) => {
-                        item.classList.remove("fn__none");
+                        if (filterSnippetsIds.includes(item.dataset.id)) {
+                            item.classList.remove("fn__none");
+                        } else {
+                            item.classList.add("fn__none");
+                        }
                     });
                 } else {
                     this.menuItems.querySelectorAll(".jcsm-snippet-item").forEach((item: HTMLElement) => {
@@ -1744,7 +1735,7 @@ export default class PluginSnippets extends Plugin {
         fetchPost("/api/snippet/setSnippet", {snippets: snippetsList}, (response) => {
             // 增加错误处理
             if (response.code !== 0) {
-                this.showErrorMessage(this.i18n.setSnippetFailed + " [" + response.msg + "]");
+                this.showErrorMessage(this.i18n.saveSnippetsListFailed + " [" + response.msg + "]");
                 return;
             }
         });
@@ -2126,9 +2117,10 @@ export default class PluginSnippets extends Plugin {
     }
 
     /**
-     * 更新所有打开的代码片段编辑对话框中的编辑器主题
+     * 更新所有打开的代码片段编辑对话框中的编辑器配置
+     * @param reason 更新原因，用于日志记录
      */
-    private updateAllEditorThemes() {
+    private updateAllEditorConfigs(reason: string = "config") {
         // 获取所有打开的代码片段编辑对话框
         const snippetDialogs = document.querySelectorAll('.b3-dialog--open[data-key="jcsm-snippet-dialog"]');
         snippetDialogs.forEach((dialogElement) => {
@@ -2142,7 +2134,7 @@ export default class PluginSnippets extends Plugin {
             // 获取当前编辑器实例 - 通过 DOM 元素查找对应的 EditorView
             const editorView = (existingEditorElement as any).cmView as EditorView;
             if (!editorView) {
-                this.console.log('updateAllEditorThemes: editorView not found, recreating editor');
+                this.console.log("updateAllEditorConfigs: editorView not found, recreating editor:", reason);
                 this.recreateEditor(dialogElement, contentContainer);
                 return;
             }
@@ -2164,8 +2156,15 @@ export default class PluginSnippets extends Plugin {
             // 更新编辑器状态，保留滚动位置和光标位置
             editorView.setState(newState);
             
-            this.console.log(`updateAllEditorThemes: editor theme updated: ${dialogElement}`);
+            this.console.log("updateAllEditorConfigs: editor:", reason, "updated:", dialogElement);
         });
+    }
+
+    /**
+     * 更新所有打开的代码片段编辑对话框中的编辑器主题
+     */
+    private updateAllEditorThemes() {
+        this.updateAllEditorConfigs("theme");
     }
     
     /**
@@ -2494,7 +2493,7 @@ export default class PluginSnippets extends Plugin {
      * @param confirm 确认回调
      */
     private openSnippetDeleteDialog(snippetName: string, confirm?: () => void) {
-        // TODO: 实现了代码片段回收站之后，增加一个“不再提示”按钮，点击之后修改配置项、弹出消息说明可以在插件设置中开关
+        // TODO功能: 实现了代码片段回收站之后，增加一个“不再提示”按钮，点击之后修改配置项、弹出消息说明可以在插件设置中开关
         this.openConfirmDialog(
             this.i18n.deleteConfirm,
             this.i18n.deleteConfirmDescription.replace("${x}", snippetName ? " <b>" + snippetName + "</b> " : ""),
@@ -3410,7 +3409,7 @@ export default class PluginSnippets extends Plugin {
     // ================================ 文件监听功能 ================================
     // AI 写的，没有严格考虑，代码能跑就行
 
-    // TODO: 增加一个功能“监听到 JS 文件有更新时，自动重新加载界面”
+    // TODO功能: 增加一个功能“监听到 JS 文件有更新时，自动重新加载界面”
     // TODO考虑: 支持管理（开启关闭）监听的文件夹中的代码片段 → 在 JS 右边增加一个“文件”选项卡（仅在开启该功能时显示），开关状态存在同目录中的 plugin-snippets-files-config.json 文件中
 
     /**
@@ -3621,7 +3620,7 @@ export default class PluginSnippets extends Plugin {
             this.setReloadUIButtonBreathing();
         }
         
-        this.console.log("removeAllFileWatchElements: Removed all file watch elements", watchElements.length);
+        this.console.log("removeAllFileWatchElements: Removed file watch elements:", watchElements.length);
     }
 
     /**

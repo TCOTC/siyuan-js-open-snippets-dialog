@@ -8,7 +8,7 @@
   "pluginUninstall": " plugin uninstalled",
   "getSnippetsListFailed": "Failed to get snippets list",
   "getSnippetFailed": "Failed to get snippet",
-  "setSnippetFailed": "Failed to set snippet",
+  "saveSnippetsListFailed": "Failed to save snippets list",
   "snippetDialogParamError": "Failed to open snippet dialog, missing snippet parameter: ",
   "updateSnippetElementParamError": "Failed to update snippet element, missing snippet parameter",
   "unknownButtonType": "Unknown button type",
@@ -103,6 +103,7 @@
   "fileWatchNoSupportAbsPath": "Absolute path is not supported",
   "reloadUIConfirm": "⚠️ Reload UI Confirm",
   "reloadUIConfirmDescription": "After reloading the interface, the unsaved code snippet modifications will be lost, are you sure you want to reload the interface?",
+  "reloadUIFailed": "Failed to reload UI",
   "addFirstCSSSnippet": "Add first CSS snippet",
   "addFirstJSSnippet": "Add first JS snippet"
 }

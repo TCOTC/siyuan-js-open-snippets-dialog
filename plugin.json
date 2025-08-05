@@ -12,15 +12,21 @@
   ],
   "displayName": {
     "default": "Code Snippets Manager",
-    "zh_CN": "代码片段管理器"
+    "zh_CN": "代码片段管理器",
+    "zh_CHT": "代碼片段管理器",
+    "ja_JP": "コードスニペットマネージャー"
   },
   "description": {
     "default": "The best plugin to manage and edit code snippets",
-    "zh_CN": "管理与编辑代码片段最好用的插件"
+    "zh_CN": "管理与编辑代码片段最好用的插件",
+    "zh_CHT": "管理與編輯代碼片段最好用的外掛程式",
+    "ja_JP": "コードスニペットを管理・編集する最高のプラグイン"
   },
   "readme": {
     "default": "README.md",
-    "zh_CN": "README_zh_CN.md"
+    "zh_CN": "README_zh_CN.md",
+    "zh_CHT": "README_zh_CHT.md",
+    "ja_JP": "README_ja_JP.md"
   },
   "funding": {
     "custom": [
@@ -38,6 +44,17 @@
     "打开代码片段面板",
     "查看代码片段",
     "编辑代码片段",
-    "管理代码片段"
+    "管理代码片段",
+    "打開代碼片段對話框",
+    "打開代碼片段面板",
+    "查看代碼片段",
+    "編輯代碼片段",
+    "管理代碼片段",
+    "コードスニペット",
+    "スニペットダイアログを開く",
+    "スニペットパネルを開く",
+    "スニペットを表示",
+    "スニペットを編集",
+    "スニペットを管理"
   ]
 }

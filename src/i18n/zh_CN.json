@@ -8,7 +8,7 @@
   "pluginUninstall": " 插件已卸载",
   "getSnippetsListFailed": "获取代码片段列表失败",
   "getSnippetFailed": "获取代码片段失败",
-  "setSnippetFailed": "设置代码片段失败",
+  "saveSnippetsListFailed": "保存代码片段列表失败",
   "snippetDialogParamError": "打开代码片段对话框失败，缺少代码片段参数：",
   "updateSnippetElementParamError": "更新代码片段元素失败，缺少代码片段参数",
   "unknownButtonType": "未知的按钮类型",
@@ -103,6 +103,7 @@
   "fileWatchNoSupportAbsPath": "不支持监听绝对路径",
   "reloadUIConfirm": "⚠️ 重新加载界面确认",
   "reloadUIConfirmDescription": "重新加载界面后，未保存的代码片段修改将会丢失，确定要重新加载界面吗？",
+  "reloadUIFailed": "重新加载界面失败",
   "addFirstCSSSnippet": "添加第一个 CSS 代码片段",
   "addFirstJSSnippet": "添加第一个 JS 代码片段"
 }

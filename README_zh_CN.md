@@ -1,4 +1,4 @@
-[English](https://github.com/TCOTC/snippets/blob/main/README.md)
+[繁體中文](https://github.com/TCOTC/snippets/blob/main/README_zh_CHT.md) | [English](https://github.com/TCOTC/snippets/blob/main/README.md) | [日本語](https://github.com/TCOTC/snippets/blob/main/README_ja_JP.md)
 
 #### 代码片段管理菜单
 
@@ -40,7 +40,3 @@
 
 - 持续监听指定文件夹下的代码片段文件，当文件发生变化时，自动加载到界面
 - 不持续监听，仅在启动时加载一次所有代码片段文件
-
----
-
-TODO文档: GIF 演示
