@@ -47,23 +47,33 @@ export default class PluginSnippets extends Plugin {
             return;
         }
 
+        // 优先添加顶栏按钮 https://github.com/TCOTC/snippets/issues/6
+        const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
+        const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
+        const topBarElement = this.addTopBar({
+            icon: "iconJcsm",
+            title: title,
+            position: "right",
+            callback: () => {
+                openSnippetsManager();
+            }
+        });
+
         // 初始化 window.siyuan.jcsm
         if (!window.siyuan.jcsm) window.siyuan.jcsm = {};
 
         const frontEnd = getFrontend();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
 
-        // 初始化插件设置
-        await this.initSetting();
-
-        // 添加顶栏按钮
+        // 顶栏按钮图标
         this.addIcons(`
-                <symbol id="iconJcsm" viewBox="0 0 32 32">
-                    <path d="M23.498 9.332c-0.256 0.256-0.415 0.611-0.415 1.002s0.159 0.745 0.415 1.002l4.665 4.665-4.665 4.665c-0.256 0.256-0.415 0.61-0.415 1.002s0.159 0.745 0.415 1.002v0c0.256 0.256 0.61 0.415 1.002 0.415s0.745-0.159 1.002-0.415l5.667-5.667c0.256-0.256 0.415-0.611 0.415-1.002s-0.158-0.745-0.415-1.002l-5.667-5.667c-0.256-0.256-0.61-0.415-1.002-0.415s-0.745 0.159-1.002 0.415v0z"></path>
-                    <path d="M7.5 8.917c-0.391 0-0.745 0.159-1.002 0.415l-5.667 5.667c-0.256 0.256-0.415 0.611-0.415 1.002s0.158 0.745 0.415 1.002l5.667 5.667c0.256 0.256 0.611 0.415 1.002 0.415s0.745-0.159 1.002-0.415v0c0.256-0.256 0.415-0.61 0.415-1.002s-0.159-0.745-0.415-1.002l-4.665-4.665 4.665-4.665c0.256-0.256 0.415-0.611 0.415-1.002s-0.159-0.745-0.415-1.002v0c-0.256-0.256-0.61-0.415-1.002-0.415v0z"></path>
-                    <path d="M19.965 3.314c-0.127-0.041-0.273-0.065-0.424-0.065-0.632 0-1.167 0.413-1.35 0.985l-0.003 0.010-7.083 22.667c-0.041 0.127-0.065 0.273-0.065 0.424 0 0.632 0.413 1.167 0.985 1.35l0.010 0.003c0.127 0.041 0.273 0.065 0.424 0.065 0.632 0 1.167-0.413 1.35-0.985l0.003-0.010 7.083-22.667c0.041-0.127 0.065-0.273 0.065-0.424 0-0.632-0.413-1.167-0.985-1.35l-0.010-0.003z"></path>
-                </symbol>
-            `);
+            <symbol id="iconJcsm" viewBox="0 0 32 32">
+                <path d="M23.498 9.332c-0.256 0.256-0.415 0.611-0.415 1.002s0.159 0.745 0.415 1.002l4.665 4.665-4.665 4.665c-0.256 0.256-0.415 0.61-0.415 1.002s0.159 0.745 0.415 1.002v0c0.256 0.256 0.61 0.415 1.002 0.415s0.745-0.159 1.002-0.415l5.667-5.667c0.256-0.256 0.415-0.611 0.415-1.002s-0.158-0.745-0.415-1.002l-5.667-5.667c-0.256-0.256-0.61-0.415-1.002-0.415s-0.745 0.159-1.002 0.415v0z"></path>
+                <path d="M7.5 8.917c-0.391 0-0.745 0.159-1.002 0.415l-5.667 5.667c-0.256 0.256-0.415 0.611-0.415 1.002s0.158 0.745 0.415 1.002l5.667 5.667c0.256 0.256 0.611 0.415 1.002 0.415s0.745-0.159 1.002-0.415v0c0.256-0.256 0.415-0.61 0.415-1.002s-0.159-0.745-0.415-1.002l-4.665-4.665 4.665-4.665c0.256-0.256 0.415-0.611 0.415-1.002s-0.159-0.745-0.415-1.002v0c-0.256-0.256-0.61-0.415-1.002-0.415v0z"></path>
+                <path d="M19.965 3.314c-0.127-0.041-0.273-0.065-0.424-0.065-0.632 0-1.167 0.413-1.35 0.985l-0.003 0.010-7.083 22.667c-0.041 0.127-0.065 0.273-0.065 0.424 0 0.632 0.413 1.167 0.985 1.35l0.010 0.003c0.127 0.041 0.273 0.065 0.424 0.065 0.632 0 1.167-0.413 1.35-0.985l0.003-0.010 7.083-22.667c0.041-0.127 0.065-0.273 0.065-0.424 0-0.632-0.413-1.167-0.985-1.35l-0.010-0.003z"></path>
+            </symbol>
+        `);
+
         // 顶栏按钮点击回调：打开代码片段管理器
         const openSnippetsManager = () => {
             if (this.getAllModalDialogElements().length > 0) return;
@@ -82,33 +92,6 @@ export default class PluginSnippets extends Plugin {
                 this.openMenu(topBarElement, rect);
             }
         };
-        const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
-        const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
-        const topBarElement = this.addTopBar({
-            icon: "iconJcsm",
-            title: title,
-            position: "right",
-            callback: () => {
-                openSnippetsManager();
-            }
-        });
-
-        // TODO自定义页签: 添加自定义标签页
-        // this.custom = this.addTab({
-        //     type: TAB_TYPE,
-        //     init() {
-        //         this.element.innerHTML = `<div class="jcsm__custom-tab">${this.data.text}</div>`;
-        //     },
-        //     beforeDestroy() {
-        //         this.console.log("在销毁标签页之前:", TAB_TYPE);
-        //         // TODO自定义页签: 销毁标签页时，需要获取当前页签的数据然后处理（比如保存）
-        //     },
-        //     destroy() {
-        //         this.console.log("销毁标签页:", TAB_TYPE);
-        //     }
-        // });
-        // 获取已打开的所有自定义页签
-        // this.getOpenedTab();
 
         // 注册快捷键（都默认置空）
         this.addCommand({
@@ -128,14 +111,34 @@ export default class PluginSnippets extends Plugin {
         });
 
         // 启动文件监听
-        if (this.fileWatchEnabled !== "disabled") {
+        if (this.fileWatchEnabled && this.fileWatchEnabled !== "disabled") {
             this.startFileWatch();
         }
+
+        // 初始化插件设置
+        await this.initSetting();
 
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
 
         // 调试
         // await new Promise(resolve => setTimeout(resolve, 10000));
+
+        // TODO自定义页签: 添加自定义标签页
+        // this.custom = this.addTab({
+        //     type: TAB_TYPE,
+        //     init() {
+        //         this.element.innerHTML = `<div class="jcsm__custom-tab">${this.data.text}</div>`;
+        //     },
+        //     beforeDestroy() {
+        //         this.console.log("在销毁标签页之前:", TAB_TYPE);
+        //         // TODO自定义页签: 销毁标签页时，需要获取当前页签的数据然后处理（比如保存）
+        //     },
+        //     destroy() {
+        //         this.console.log("销毁标签页:", TAB_TYPE);
+        //     }
+        // });
+        // 获取已打开的所有自定义页签
+        // this.getOpenedTab();
     }
 
     /**
