@@ -2626,10 +2626,8 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    * @returns \u7528\u6237\u81EA\u5B9A\u4E49\u5FEB\u6377\u952E
    */
   getCustomKeymapByCommand(command) {
-    var _a;
-    if (!window.siyuan.config.keymap.plugin[PLUGIN_NAME] || !window.siyuan.config.keymap.plugin[PLUGIN_NAME][command])
-      return "";
-    return ((_a = window.siyuan.config.keymap.plugin[PLUGIN_NAME][command]) == null ? void 0 : _a.custom) || "";
+    var _a, _b, _c;
+    return ((_c = (_b = (_a = window.siyuan.config.keymap.plugin) == null ? void 0 : _a[PLUGIN_NAME]) == null ? void 0 : _b[command]) == null ? void 0 : _c.custom) || "";
   }
   /**
    * \u83B7\u53D6\u5FEB\u6377\u952E\u663E\u793A\u6587\u672C\uFF08\u539F\u751F\u4EE3\u7801 app/src/protyle/util/compatibility.ts updateHotkeyTip() \uFF09

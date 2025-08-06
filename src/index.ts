@@ -2866,8 +2866,7 @@ export default class PluginSnippets extends Plugin {
      * @returns 用户自定义快捷键
      */
     private getCustomKeymapByCommand(command: string): string {
-        if (!window.siyuan.config.keymap.plugin[PLUGIN_NAME] || !window.siyuan.config.keymap.plugin[PLUGIN_NAME][command]) return "";
-        return window.siyuan.config.keymap.plugin[PLUGIN_NAME][command]?.custom || "";
+        return window.siyuan.config.keymap.plugin?.[PLUGIN_NAME]?.[command]?.custom || "";
     }
 
     /**
