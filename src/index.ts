@@ -47,6 +47,12 @@ export default class PluginSnippets extends Plugin {
             return;
         }
 
+        // 初始化 window.siyuan.jcsm
+        if (!window.siyuan.jcsm) window.siyuan.jcsm = {};
+
+        const frontEnd = getFrontend();
+        this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
+
         // 优先添加顶栏按钮 https://github.com/TCOTC/snippets/issues/6
         const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
         const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
