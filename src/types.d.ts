@@ -28,6 +28,7 @@ declare global {
             isPublish?: boolean;
             jcsm?: {
                 isMobile?: boolean;
+                isTouchDevice?: boolean;
                 snippetsType?: string;
                 snippetsList?: Snippet[];
                 realTimePreview?: boolean;

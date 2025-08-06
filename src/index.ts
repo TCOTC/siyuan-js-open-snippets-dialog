@@ -38,6 +38,12 @@ export default class PluginSnippets extends Plugin {
     set isMobile(value: boolean) { window.siyuan.jcsm.isMobile = value; }
 
     /**
+     * 是否为触摸设备
+     */
+    get isTouchDevice() { return window.siyuan.jcsm?.isTouchDevice; }
+    set isTouchDevice(value: boolean) { window.siyuan.jcsm.isTouchDevice = value; }
+
+    /**
      * 启用插件（进行各种初始化）
      */
     public async onload() {
@@ -65,11 +71,7 @@ export default class PluginSnippets extends Plugin {
             }
         });
 
-        // 初始化 window.siyuan.jcsm
-        if (!window.siyuan.jcsm) window.siyuan.jcsm = {};
-
-        const frontEnd = getFrontend();
-        this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
+        this.isTouchDevice = ("ontouchstart" in window) && navigator.maxTouchPoints > 1;
 
         // 顶栏按钮图标
         this.addIcons(`
@@ -1342,15 +1344,16 @@ export default class PluginSnippets extends Plugin {
      * @returns 代码片段列表 HTML 字符串
      */
     private genMenuSnippetsItems(snippetsList: Snippet[]): string {
+        const isTouch = this.isMobile || this.isTouchDevice;
         let snippetsHtml = "";
         snippetsList.forEach((snippet: Snippet) => {
             snippetsHtml += `
                 <div class="jcsm-snippet-item b3-menu__item" data-type="${snippet.type}" data-id="${snippet.id}">
                     <span class="jcsm-snippet-name fn__flex-1" placeholder="${this.i18n.unNamed}">${snippet.name}</span>
                     <span class="fn__space"></span>
-                    <button class="block__icon block__icon--show fn__flex-center${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
-                    <button class="block__icon block__icon--show fn__flex-center${this.showDuplicateButton ? "" : " fn__none"}" data-type="duplicate"><svg><use xlink:href="#iconCopy"></use></svg></button>
-                    <button class="block__icon block__icon--show fn__flex-center" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center${ isTouch ? " jcsm-touch" : ""}${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center${ isTouch ? " jcsm-touch" : ""}${this.showDuplicateButton ? "" : " fn__none"}" data-type="duplicate"><svg><use xlink:href="#iconCopy"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center${ isTouch ? " jcsm-touch" : ""}" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
                     <span class="fn__space"></span>
                     <input class="jcsm-switch b3-switch fn__flex-center" type="checkbox"${snippet.enabled ? " checked" : ""}>
                 </div>

@@ -150,7 +150,7 @@
       }
 
       // 按钮太多了，hover 的时候才显示
-      .block__icon {
+      .block__icon:not(.jcsm-touch) {
         display: none;
       }
 
