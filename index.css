@@ -110,7 +110,7 @@
 #commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item .jcsm-snippet-name::-webkit-scrollbar {
   height: 0;
 }
-#commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item .block__icon {
+#commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item .block__icon:not(.jcsm-touch) {
   display: none;
 }
 #commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item:hover .block__icon,

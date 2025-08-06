@@ -623,6 +623,16 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
     window.siyuan.jcsm.isMobile = value;
   }
   /**
+   * \u662F\u5426\u4E3A\u89E6\u6478\u8BBE\u5907
+   */
+  get isTouchDevice() {
+    var _a;
+    return (_a = window.siyuan.jcsm) == null ? void 0 : _a.isTouchDevice;
+  }
+  set isTouchDevice(value) {
+    window.siyuan.jcsm.isTouchDevice = value;
+  }
+  /**
    * \u542F\u7528\u63D2\u4EF6\uFF08\u8FDB\u884C\u5404\u79CD\u521D\u59CB\u5316\uFF09
    */
   onload() {
@@ -635,14 +645,24 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
         window.siyuan.jcsm = {};
       const frontEnd = (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.getFrontend)();
       this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
-      yield this.initSetting();
+      const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
+      const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
+      const topBarElement = this.addTopBar({
+        icon: "iconJcsm",
+        title,
+        position: "right",
+        callback: () => {
+          openSnippetsManager();
+        }
+      });
+      this.isTouchDevice = "ontouchstart" in window && navigator.maxTouchPoints > 1;
       this.addIcons(\`
-                <symbol id="iconJcsm" viewBox="0 0 32 32">
-                    <path d="M23.498 9.332c-0.256 0.256-0.415 0.611-0.415 1.002s0.159 0.745 0.415 1.002l4.665 4.665-4.665 4.665c-0.256 0.256-0.415 0.61-0.415 1.002s0.159 0.745 0.415 1.002v0c0.256 0.256 0.61 0.415 1.002 0.415s0.745-0.159 1.002-0.415l5.667-5.667c0.256-0.256 0.415-0.611 0.415-1.002s-0.158-0.745-0.415-1.002l-5.667-5.667c-0.256-0.256-0.61-0.415-1.002-0.415s-0.745 0.159-1.002 0.415v0z"></path>
-                    <path d="M7.5 8.917c-0.391 0-0.745 0.159-1.002 0.415l-5.667 5.667c-0.256 0.256-0.415 0.611-0.415 1.002s0.158 0.745 0.415 1.002l5.667 5.667c0.256 0.256 0.611 0.415 1.002 0.415s0.745-0.159 1.002-0.415v0c0.256-0.256 0.415-0.61 0.415-1.002s-0.159-0.745-0.415-1.002l-4.665-4.665 4.665-4.665c0.256-0.256 0.415-0.611 0.415-1.002s-0.159-0.745-0.415-1.002v0c-0.256-0.256-0.61-0.415-1.002-0.415v0z"></path>
-                    <path d="M19.965 3.314c-0.127-0.041-0.273-0.065-0.424-0.065-0.632 0-1.167 0.413-1.35 0.985l-0.003 0.010-7.083 22.667c-0.041 0.127-0.065 0.273-0.065 0.424 0 0.632 0.413 1.167 0.985 1.35l0.010 0.003c0.127 0.041 0.273 0.065 0.424 0.065 0.632 0 1.167-0.413 1.35-0.985l0.003-0.010 7.083-22.667c0.041-0.127 0.065-0.273 0.065-0.424 0-0.632-0.413-1.167-0.985-1.35l-0.010-0.003z"></path>
-                </symbol>
-            \`);
+            <symbol id="iconJcsm" viewBox="0 0 32 32">
+                <path d="M23.498 9.332c-0.256 0.256-0.415 0.611-0.415 1.002s0.159 0.745 0.415 1.002l4.665 4.665-4.665 4.665c-0.256 0.256-0.415 0.61-0.415 1.002s0.159 0.745 0.415 1.002v0c0.256 0.256 0.61 0.415 1.002 0.415s0.745-0.159 1.002-0.415l5.667-5.667c0.256-0.256 0.415-0.611 0.415-1.002s-0.158-0.745-0.415-1.002l-5.667-5.667c-0.256-0.256-0.61-0.415-1.002-0.415s-0.745 0.159-1.002 0.415v0z"></path>
+                <path d="M7.5 8.917c-0.391 0-0.745 0.159-1.002 0.415l-5.667 5.667c-0.256 0.256-0.415 0.611-0.415 1.002s0.158 0.745 0.415 1.002l5.667 5.667c0.256 0.256 0.611 0.415 1.002 0.415s0.745-0.159 1.002-0.415v0c0.256-0.256 0.415-0.61 0.415-1.002s-0.159-0.745-0.415-1.002l-4.665-4.665 4.665-4.665c0.256-0.256 0.415-0.611 0.415-1.002s-0.159-0.745-0.415-1.002v0c-0.256-0.256-0.61-0.415-1.002-0.415v0z"></path>
+                <path d="M19.965 3.314c-0.127-0.041-0.273-0.065-0.424-0.065-0.632 0-1.167 0.413-1.35 0.985l-0.003 0.010-7.083 22.667c-0.041 0.127-0.065 0.273-0.065 0.424 0 0.632 0.413 1.167 0.985 1.35l0.010 0.003c0.127 0.041 0.273 0.065 0.424 0.065 0.632 0 1.167-0.413 1.35-0.985l0.003-0.010 7.083-22.667c0.041-0.127 0.065-0.273 0.065-0.424 0-0.632-0.413-1.167-0.985-1.35l-0.010-0.003z"></path>
+            </symbol>
+        \`);
       const openSnippetsManager = () => {
         if (this.getAllModalDialogElements().length > 0)
           return;
@@ -659,16 +679,6 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
           this.openMenu(topBarElement, rect);
         }
       };
-      const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
-      const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
-      const topBarElement = this.addTopBar({
-        icon: "iconJcsm",
-        title,
-        position: "right",
-        callback: () => {
-          openSnippetsManager();
-        }
-      });
       this.addCommand({
         langKey: "openSnippetsManager",
         // \u6253\u5F00\u4EE3\u7801\u7247\u6BB5\u7BA1\u7406\u5668
@@ -685,9 +695,10 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
           this.reloadUI();
         }
       });
-      if (this.fileWatchEnabled !== "disabled") {
+      if (this.fileWatchEnabled && this.fileWatchEnabled !== "disabled") {
         this.startFileWatch();
       }
+      yield this.initSetting();
       console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
     });
   }
@@ -1410,15 +1421,16 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    * @returns \u4EE3\u7801\u7247\u6BB5\u5217\u8868 HTML \u5B57\u7B26\u4E32
    */
   genMenuSnippetsItems(snippetsList) {
+    const isTouch = this.isMobile || this.isTouchDevice;
     let snippetsHtml = "";
     snippetsList.forEach((snippet) => {
       snippetsHtml += \`
                 <div class="jcsm-snippet-item b3-menu__item" data-type="\${snippet.type}" data-id="\${snippet.id}">
                     <span class="jcsm-snippet-name fn__flex-1" placeholder="\${this.i18n.unNamed}">\${snippet.name}</span>
                     <span class="fn__space"></span>
-                    <button class="block__icon block__icon--show fn__flex-center\${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
-                    <button class="block__icon block__icon--show fn__flex-center\${this.showDuplicateButton ? "" : " fn__none"}" data-type="duplicate"><svg><use xlink:href="#iconCopy"></use></svg></button>
-                    <button class="block__icon block__icon--show fn__flex-center" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center\${isTouch ? " jcsm-touch" : ""}\${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center\${isTouch ? " jcsm-touch" : ""}\${this.showDuplicateButton ? "" : " fn__none"}" data-type="duplicate"><svg><use xlink:href="#iconCopy"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center\${isTouch ? " jcsm-touch" : ""}" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
                     <span class="fn__space"></span>
                     <input class="jcsm-switch b3-switch fn__flex-center" type="checkbox"\${snippet.enabled ? " checked" : ""}>
                 </div>
