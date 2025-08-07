@@ -1,6 +1,7 @@
 import "./index.scss";
 import { Snippet, ListenersArray, FileState } from "./types";
 import { parse as acornParse } from "acorn";
+import { exportByMobile } from "./export";
 
 // 思源插件 API
 import { Plugin, showMessage, Dialog, Menu, getFrontend, Setting, fetchPost, fetchSyncPost, Constants, openSetting } from "siyuan";
@@ -18,9 +19,11 @@ import { crosshairCursor, drawSelection, dropCursor, EditorView, highlightActive
 import { vscodeLight, vscodeDark } from '@uiw/codemirror-theme-vscode'
 
 
-const PLUGIN_NAME = "snippets";            // 插件名
-const STORAGE_NAME = "plugin-config.json"; // 配置文件名
-const LOG_NAME = "plugin-snippets.log";    // 日志文件名
+const PLUGIN_NAME = "snippets";                    // 插件名
+const STORAGE_NAME = "plugin-config.json";         // 配置文件名
+const LOG_NAME = "plugin-snippets.log";            // 日志文件名
+const TEMP_PLUGIN_PATH = "/temp/plugin-snippets/"; // 插件临时文件路径
+const TEMP_EXPORT_PATH = "/temp/export/";          // 导入导出临时文件路径
 // const TAB_TYPE = "custom-tab"; // 自定义标签页
 
 export default class PluginSnippets extends Plugin {
@@ -358,7 +361,41 @@ export default class PluginSnippets extends Plugin {
             });
         }
 
+        if (!this.isMobile && !this.isTouchDevice) {
+            // 等实现 https://github.com/siyuan-note/siyuan/issues/15484 之后，通过 API 获取思源版本来判断是否支持，然后添加配置项
+            configItems.push({
+                key: "exportSnippets",
+                description: "exportSnippetsDescription",
+                type: "createActionElement",
+                createActionElement: () => {
+                    return this.htmlToElement(
+                        `<span class="b3-button b3-button--outline fn__flex-center fn__size200" data-action="exportSnippets"><svg><use xlink:href="#iconUpload"></use></svg>${this.i18n.export}</span>`
+                    );
+                },
+            });
+        }
+
         configItems.push(
+            {
+                key: "importSnippetsWithAppend",
+                description: "importSnippetsWithAppendDescription",
+                type: "createActionElement",
+                createActionElement: () => {
+                    return this.htmlToElement(
+                        `<span class="b3-button b3-button--outline fn__flex-center fn__size200" data-action="importSnippetsWithAppend"><svg><use xlink:href="#iconDownload"></use></svg>${this.i18n.importWithAppend}</span>`
+                    );
+                },
+            },
+            {
+                key: "importSnippetsWithOverwrite",
+                description: "importSnippetsWithOverwriteDescription",
+                type: "createActionElement",
+                createActionElement: () => {
+                    return this.htmlToElement(
+                        `<span class="b3-button b3-button--outline fn__flex-center fn__size200" data-action="importSnippetsWithOverwrite"><svg><use xlink:href="#iconDownload"></use></svg>${this.i18n.importWithOverwrite}</span>`
+                    );
+                },
+            },
             {
                 key: "feedbackIssue",
                 description: "feedbackIssueDescription",
@@ -754,60 +791,80 @@ export default class PluginSnippets extends Plugin {
             }
 
             // 执行特殊操作
-            const action = target.getAttribute("data-action");
-            if (action === "settingsSnippets") {
-                event.preventDefault();
-                event.stopPropagation();
-                this.menu?.close(); // 不关闭菜单的话对话框中的容器无法滚动
+            const action = target.closest("[data-action]")?.getAttribute("data-action");
+            if (action) {
+                if (action === "settingsSnippets") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.menu?.close(); // 不关闭菜单的话对话框中的容器无法滚动
 
-                // 过程中隐藏设置对话框，避免闪烁
-                const styleSheet = document.createElement("style");
-                styleSheet.textContent = "body > div[data-key='dialog-setting'] { display: none; }";
-                document.head.appendChild(styleSheet);
-                
-                const settingDialog = openSetting(window.siyuan.ws.app); // https://github.com/siyuan-note/siyuan/blob/22923d3eac57b59061b65e04f37913e4ba48240a/app/src/window/index.ts#L49
-                const settingDialogElement = settingDialog.element;
-                // 点击外观选项卡
-                settingDialogElement.querySelector('.b3-tab-bar [data-name="appearance"]').dispatchEvent(new CustomEvent("click"));
-                requestAnimationFrame(() => {
-                    // 点击代码片段设置按钮，打开窗口
-                    settingDialogElement.querySelector('button#codeSnippet').dispatchEvent(new CustomEvent("click"));
-                    settingDialog.destroy();
-                    setTimeout(() => {
-                        // destroy 有个关闭动画，需要等待动画结束才能移除样式（参考原生代码 app/src/dialog/index.ts Dialog.destroy 方法）
-                        document.head.removeChild(styleSheet);
-                    }, Constants.TIMEOUT_DBLCLICK ?? 190);
-                });
-
-            } else if (action === "settingsKeymap") {
-                event.preventDefault();
-                event.stopPropagation();
-                this.menu?.close(); // 不关闭菜单的话对话框中的容器无法滚动
-
-                const settingDialogElement = openSetting(window.siyuan.ws.app).element;
-                // 点击快捷键选项卡
-                settingDialogElement.querySelector('.b3-tab-bar [data-name="keymap"]').dispatchEvent(new CustomEvent("click"));
-
-                // 查找并点击指定文本
-                const clickListItemByText = (container: Element, text: string) => {
-                    const items = container.querySelectorAll('.b3-list-item__text');
-                    for (let i = 0; i < items.length; i++) {
-                        const item = items[i] as HTMLElement;
-                        if (item.textContent === text) {
-                            item.dispatchEvent(new CustomEvent("click", { bubbles: true }));
-                            return item;
+                    // 过程中隐藏设置对话框，避免闪烁
+                    const styleSheet = document.createElement("style");
+                    styleSheet.textContent = "body > div[data-key='dialog-setting'] { display: none; }";
+                    document.head.appendChild(styleSheet);
+                    
+                    const settingDialog = openSetting(window.siyuan.ws.app); // https://github.com/siyuan-note/siyuan/blob/22923d3eac57b59061b65e04f37913e4ba48240a/app/src/window/index.ts#L49
+                    const settingDialogElement = settingDialog.element;
+                    // 点击外观选项卡
+                    settingDialogElement.querySelector('.b3-tab-bar [data-name="appearance"]').dispatchEvent(new CustomEvent("click"));
+                    requestAnimationFrame(() => {
+                        // 点击代码片段设置按钮，打开窗口
+                        settingDialogElement.querySelector('button#codeSnippet').dispatchEvent(new CustomEvent("click"));
+                        settingDialog.destroy();
+                        setTimeout(() => {
+                            // destroy 有个关闭动画，需要等待动画结束才能移除样式（参考原生代码 app/src/dialog/index.ts Dialog.destroy 方法）
+                            document.head.removeChild(styleSheet);
+                        }, Constants.TIMEOUT_DBLCLICK ?? 190);
+                    });
+    
+                } else if (action === "settingsKeymap") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.menu?.close(); // 不关闭菜单的话对话框中的容器无法滚动
+    
+                    const settingDialogElement = openSetting(window.siyuan.ws.app).element;
+                    // 点击快捷键选项卡
+                    settingDialogElement.querySelector('.b3-tab-bar [data-name="keymap"]').dispatchEvent(new CustomEvent("click"));
+    
+                    // 查找并点击指定文本
+                    const clickListItemByText = (container: Element, text: string) => {
+                        const items = container.querySelectorAll('.b3-list-item__text');
+                        for (let i = 0; i < items.length; i++) {
+                            const item = items[i] as HTMLElement;
+                            if (item.textContent === text) {
+                                item.dispatchEvent(new CustomEvent("click", { bubbles: true }));
+                                return item;
+                            }
                         }
-                    }
-                    return null;
-                };
+                        return null;
+                    };
 
-                // 先点击插件名，再点击 reloadUI 快捷键选项
-                const pluginItem = clickListItemByText(settingDialogElement, this.i18n.pluginDisplayName);
-                if (pluginItem?.parentElement?.nextElementSibling) {
-                    clickListItemByText(pluginItem.parentElement.nextElementSibling, this.i18n.reloadUI);
+                    // 先点击插件名，再点击 reloadUI 快捷键选项
+                    const pluginItem = clickListItemByText(settingDialogElement, this.i18n.pluginDisplayName);
+                    if (pluginItem?.parentElement?.nextElementSibling) {
+                        clickListItemByText(pluginItem.parentElement.nextElementSibling, this.i18n.reloadUI);
+                    }
+                } else if (action === "exportSnippets") {
+                    // 导出所有代码片段为 JSON 文件
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.exportSnippetsToFile();
+                } else if (action.startsWith("importSnippets")) {
+                    // 通过浏览器 API 导入文件
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    if (action === "importSnippetsWithAppend") {
+                        // 追加到当前代码片段列表的开头，如果有 ID 与当前代码片段列表中的 ID 重复，则重新生成 ID
+                        this.importSnippets(false);
+                    } else if (action === "importSnippetsWithOverwrite") {
+                        // 直接覆盖所有代码片段
+                        this.importSnippets(true);
+                    }
                 }
+                // TODO功能: 需要测试移动端是否能导出导入
             }
-        }
+        };
 
         // 添加事件监听
         this.addListener(dialog.element, "click", dialogClickHandler, {capture: true});
@@ -2693,7 +2750,7 @@ export default class PluginSnippets extends Plugin {
                     }
                     // E 2025/07/24 21:13:19 错误消息
                     const newLog = oldLog + "E " + new Date().toLocaleString() + " " + message + "\n";
-                    const response = await this.putFile("/temp/" + LOG_NAME, newLog);
+                    const response = await this.putFile(TEMP_PLUGIN_PATH + LOG_NAME, newLog);
                     if (!response || (response as any).code !== 0) {
                         // 写入失败
                         const errorResponse = response as any;
@@ -2701,7 +2758,7 @@ export default class PluginSnippets extends Plugin {
                     }
                 };
 
-                const response = await this.getFile("/temp/" + LOG_NAME) as any;
+                const response = await this.getFile(TEMP_PLUGIN_PATH + LOG_NAME) as any;
                 if (response && response.code === 404) {
                     // 没有文件，直接创建文件
                     await writeLog();
@@ -3677,7 +3734,7 @@ export default class PluginSnippets extends Plugin {
             });
 
             if (response.code !== 0) {
-                throw new Error(response.msg || "读取文件夹失败");
+                throw new Error(response.msg || this.i18n.readFolderFailed);
             }
 
             const files: string[] = [];
@@ -3956,5 +4013,407 @@ export default class PluginSnippets extends Plugin {
         } else {
             this.startFileWatch();
         }
+    }
+
+    // ================================ 导出与导入功能 ================================
+
+    /**
+     * 导出所有代码片段为 JSON 文件
+     */
+    private async exportSnippetsToFile() {
+        // 方法名不能用 exportSnippets，会跟配置项定义冲突
+        try {
+            // 获取代码片段文件 data/snippets/conf.json
+            const snippetsFile = await this.getFile("data/snippets/conf.json");
+            if (!snippetsFile) {
+                this.showErrorMessage(this.i18n.getSnippetsListFailed);
+                return;
+            }
+            
+            // 创建文件名，格式 `${this.i18n.snippet} 2025-08-07 10-00-00.json`
+            // 手动拼接本地时间，确保格式统一且无非法字符
+            const now = new Date();
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            const year = now.getFullYear();
+            const month = pad(now.getMonth() + 1);
+            const day = pad(now.getDate());
+            const hour = pad(now.getHours());
+            const minute = pad(now.getMinutes());
+            const second = pad(now.getSeconds());
+            const timestamp = `${year}-${month}-${day} ${hour}-${minute}-${second}`;
+            const fileName = `${this.i18n.snippet} ${timestamp}.json`;
+
+            // 调用 API 导出代码片段文件
+            const exportResponse = await new Promise<any>((resolve) => {
+                fetchPost("/api/export/exportResources", {
+                    paths: ["data/snippets/conf.json"],
+                    name: fileName
+                }, (response: any) => {
+                    if (response.code !== 0) {
+                        this.console.error("exportSnippets: Failed to export resources", response);
+                        this.showErrorMessage(`Export failed: ${response.msg}`);
+                        return;
+                    }
+                    resolve(response);
+                });
+            });
+
+            // 下载文件
+            exportByMobile(exportResponse.data.path.replace("temp/export/", "export/"));
+
+            // 显示成功消息
+            showMessage(this.i18n.pluginDisplayName + ": " + this.i18n.exportSnippetsSuccess, 3000, "info");
+        } catch (error) {
+            this.console.error("exportSnippets: Failed to export snippets: ", error);
+            this.showErrorMessage(this.i18n.exportSnippetsFailed + ": " + error.message);
+        }
+    }
+
+    /**
+     * 导入代码片段
+     * @param overwrite 是否覆盖现有代码片段
+     */
+    private async importSnippets(overwrite: boolean) {
+        // 兼容导入 zip 和 json 文件两种情况，解压 zip 之后（有可能还有一层文件夹）还需要判断是否是 json 文件
+        try {
+            // 创建文件输入元素
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '*';
+            input.style.display = 'none';
+            
+            // 监听文件选择
+            input.addEventListener('change', async (event) => {
+                const file = (event.target as HTMLInputElement).files?.[0];
+                if (!file) {
+                    return;
+                }
+
+                const fileName = file.name || '';
+                const ext = fileName.split('.').pop()?.toLowerCase();
+
+                try {
+                    let importText = '';
+
+                    if (ext === 'zip') {
+                        // 处理 zip：上传到临时目录并解压，然后在解压目录自动寻找 json 文件
+                        const uid = window.Lute?.NewNodeID ? window.Lute.NewNodeID() : (Date.now().toString(36));
+                        const basePath = `${TEMP_EXPORT_PATH}import-${uid}`;
+                        const zipPath = `${basePath}.zip`;
+                        const unzipDir = `${basePath}/`;
+
+                        // 上传 zip 文件
+                        const uploadResp = await this.putBinaryFile(zipPath, file);
+                        if (!uploadResp || uploadResp.code !== 0) {
+                            throw new Error(`${this.i18n.uploadImportFileFailed} [${uploadResp?.code}: ${uploadResp?.msg}]`);
+                        }
+
+                        // 解压 zip 文件
+                        const unzipResp = await new Promise<any>((resolve) => {
+                            fetchPost('/api/archive/unzip', { path: unzipDir, zipPath }, (resp: any) => resolve(resp));
+                        });
+                        if (!unzipResp || unzipResp.code !== 0) {
+                            throw new Error(`${this.i18n.unzipFailed} [${unzipResp?.code}: ${unzipResp?.msg}]`);
+                        }
+
+                        // 在解压目录查找 json 文件（可能还多一层文件夹）
+                        const jsonFilePath = await this.findJsonFilePathInDir(unzipDir);
+                        if (!jsonFilePath) {
+                            throw new Error(this.i18n.noValidJsonFileFound);
+                        }
+
+                        // 读取服务器上的 json 文件文本
+                        const getResp = await this.getFile(jsonFilePath);
+                        if (getResp && getResp.code) {
+                            throw new Error(`${this.i18n.readUnzippedJsonFileFailed} [${getResp.code}: ${getResp.msg}]`);
+                        }
+                        
+                        // 如果返回的是对象，直接转换为 JSON 字符串
+                        if (typeof getResp === 'object' && Array.isArray(getResp)) {
+                            importText = JSON.stringify(getResp);
+                        } else {
+                            importText = (getResp as string) ?? '';
+                        }
+                    } else {
+                        // 直接读取本地文件文本，然后验证是否为有效的 JSON
+                        importText = await this.readFileAsText(file);
+                    }
+
+                    if (!importText) {
+                        throw new Error(this.i18n.importFileContentEmpty);
+                    }
+
+                    // 尝试解析 JSON，如果失败则提示用户
+                    let importData;
+                    try {
+                        importData = JSON.parse(importText);
+                    } catch (parseError) {
+                        throw new Error(this.i18n.importFileNotValidJson);
+                    }
+
+                    // 验证导入数据格式
+                    if (!this.validateImportData(importData)) {
+                        this.showErrorMessage(this.i18n.importSnippetsInvalidFormat);
+                        return;
+                    }
+
+                    // 获取当前代码片段列表
+                    const currentSnippets = await this.getSnippetsList();
+                    if (!currentSnippets) {
+                        this.showErrorMessage(this.i18n.getSnippetsListFailed);
+                        return;
+                    }
+
+                    let newSnippetsList: Snippet[];
+                    
+                    if (overwrite) {
+                        // 覆盖模式：直接使用导入的代码片段
+                        // 生成一份备份放到 temp 文件夹里
+                        await this.createBackup(currentSnippets);
+                        newSnippetsList = this.processImportedSnippets(importData);
+                    } else {
+                        // 追加模式：将导入的代码片段添加到现有列表前面
+                        const processedImportedSnippets = this.processImportedSnippets(importData);
+                        newSnippetsList = [...processedImportedSnippets, ...currentSnippets];
+                    }
+
+                    // 保存新的代码片段列表
+                    this.saveSnippetsList(newSnippetsList);
+                    this.snippetsList = newSnippetsList;
+                    
+                    // 更新菜单显示
+                    if (this.menu) {
+                        this.setMenuSnippetCount();
+                        this.setMenuSnippetsType(this.snippetsType);
+                    }
+
+                    // 显示成功消息
+                    const successMessage = overwrite 
+                        ? this.i18n.importSnippetsOverwriteSuccess 
+                        : this.i18n.importSnippetsAppendSuccess;
+                    showMessage(this.i18n.pluginDisplayName + ": " + successMessage, 3000, "info");
+
+                } catch (error) {
+                    this.console.error("importSnippets: Failed to import snippets", error);
+                    this.showErrorMessage(this.i18n.importSnippetsFailed + ": " + error.message);
+                } finally {
+                    // 清理文件输入元素
+                    document.body.removeChild(input);
+                }
+            });
+
+            // 添加到 DOM 并触发文件选择
+            document.body.appendChild(input);
+            input.click();
+
+        } catch (error) {
+            this.console.error("importSnippets: Failed to create file input", error);
+            this.showErrorMessage(this.i18n.importSnippetsFailed + ": " + error.message);
+        }
+    }
+
+    /**
+     * 读取文件内容为文本
+     * @param file 文件对象
+     * @returns 文件内容
+     */
+    private readFileAsText(file: File): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const result = event.target?.result as string;
+                if (result) {
+                    resolve(result);
+                } else {
+                    reject(new Error("Failed to read file"));
+                }
+            };
+            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.readAsText(file);
+        });
+    }
+
+    /**
+     * 验证导入数据格式
+     * @param data 导入的数据
+     * @returns 是否为有效格式
+     */
+    private validateImportData(data: any): boolean {
+        // 检查基本结构，验证数组
+        if (!Array.isArray(data)) {
+            return false;
+        }
+
+        // 验证每个代码片段
+        for (const snippet of data) {
+            if (!this.validateSnippet(snippet)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 验证单个代码片段格式
+     * @param snippet 代码片段
+     * @returns 是否为有效格式
+     */
+    private validateSnippet(snippet: any): boolean {
+        // 检查必需字段
+        if (!snippet || typeof snippet !== 'object') {
+            return false;
+        }
+
+        if (typeof snippet.name !== 'string') {
+            return false;
+        }
+
+        if (typeof snippet.content !== 'string') {
+            return false;
+        }
+
+        if (snippet.type !== 'css' && snippet.type !== 'js') {
+            return false;
+        }
+
+        if (typeof snippet.enabled !== 'boolean') {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 创建备份文件
+     * @param snippets 要备份的代码片段列表
+     */
+    private async createBackup(snippets: Snippet[]): Promise<void> {
+        try {
+            // 生成备份文件名，格式：snippets_backup_2025-08-07_10-00-00.json
+            const now = new Date();
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            const year = now.getFullYear();
+            const month = pad(now.getMonth() + 1);
+            const day = pad(now.getDate());
+            const hour = pad(now.getHours());
+            const minute = pad(now.getMinutes());
+            const second = pad(now.getSeconds());
+            const timestamp = `${year}-${month}-${day}_${hour}-${minute}-${second}`;
+            const backupFileName = `snippets_backup_${timestamp}.json`;
+            
+            // 备份文件路径
+            const backupPath = `${TEMP_PLUGIN_PATH}${backupFileName}`;
+            
+            // 转换为 JSON 字符串
+            const backupContent = JSON.stringify(snippets, null, 2);
+            
+            // 写入备份文件
+            const response = await this.putFile(backupPath, backupContent);
+            
+            if (response.code !== 0) {
+                this.console.error("createBackup: Failed to create backup file", response);
+                this.showErrorMessage(`${this.i18n.backupCreateFailed}: ${response.msg}`);
+                return;
+            }
+            
+            this.console.log("createBackup: Backup created successfully", backupPath);
+            
+        } catch (error) {
+            this.console.error("createBackup: Failed to create backup", error);
+            this.showErrorMessage(this.i18n.backupCreateFailed + ": " + error.message);
+        }
+    }
+
+    /**
+     * 处理导入的代码片段
+     * @param importedSnippets 导入的代码片段数组
+     * @returns 处理后的代码片段数组
+     */
+    private processImportedSnippets(importedSnippets: Snippet[]): Snippet[] {
+        const currentIds = new Set(this.snippetsList.map(s => s.id));
+        
+        return importedSnippets.map(snippet => {
+            // 如果 ID 重复，生成新的 ID
+            if (snippet.id && currentIds.has(snippet.id)) {
+                snippet.id = this.genNewSnippetId();
+            } else if (!snippet.id) {
+                // 如果没有 ID，生成新的 ID
+                snippet.id = this.genNewSnippetId();
+            }
+            
+            return snippet;
+        });
+    }
+
+    // 上传二进制文件（用于 zip）
+    private putBinaryFile(path: string, file: File): Promise<any> {
+        if (!path || !file) {
+            return Promise.reject({ code: 400, msg: "path or file is empty" });
+        }
+        const formData = new FormData();
+        formData.append("path", path);
+        formData.append("isDir", "false");
+        formData.append("file", file);
+        return new Promise((resolve) => {
+            fetchPost("/api/file/putFile", formData, (response: any) => resolve(response));
+        });
+    }
+
+    // 在解压目录中查找 json 文件，递归查找所有子文件夹
+    private async findJsonFilePathInDir(dir: string): Promise<string | null> {
+        return this.findJsonFileRecursive(dir);
+    }
+
+    // 递归查找 JSON 文件的辅助方法
+    private async findJsonFileRecursive(dir: string): Promise<string | null> {
+        // 读取目录内容
+        const listResp = await new Promise<any>((resolve) => {
+            fetchPost('/api/file/readDir', { path: dir }, (resp: any) => resolve(resp));
+        });
+        if (!listResp || listResp.code !== 0) {
+            this.console.error('findJsonFileRecursive: readDir failed', listResp);
+            return null;
+        }
+        const items = Array.isArray(listResp.data) ? listResp.data : [];
+        
+        // 先查找当前目录中的所有文件
+        const files = items.filter((it: any) => !it.isDir && it.name);
+        for (const file of files) {
+            const filePath = file.path || (dir.replace(/\/$/, '') + '/' + file.name);
+            
+            try {
+                const fileContent = await this.getFile(filePath);
+                
+                if (fileContent && !fileContent.code) {
+                    // 如果已经是对象，直接验证是否为数组
+                    if (typeof fileContent === 'object' && Array.isArray(fileContent)) {
+                        return filePath;
+                    }
+                    
+                    // 如果是字符串，尝试解析为 JSON
+                    if (typeof fileContent === 'string') {
+                        JSON.parse(fileContent);
+                        return filePath;
+                    }
+                }
+            } catch (error) {
+                // 不是有效的 JSON，继续查找下一个文件
+                continue;
+            }
+        }
+        
+        // 递归查找所有子文件夹
+        const subDirs = items.filter((it: any) => it.isDir === true);
+        for (const subDir of subDirs) {
+            const subDirPath = subDir.path || (dir.replace(/\/$/, '') + '/' + subDir.name);
+            
+            const result = await this.findJsonFileRecursive(subDirPath);
+            if (result) {
+                return result;
+            }
+        }
+        
+        return null;
     }
 }

@@ -49,6 +49,21 @@ declare global {
                 fileWatchFileStates?: Map<string, FileState>;
             };
         };
+        JSAndroid?: {
+            openExternal: (uri: string) => void;
+            exportByDefault: (uri: string) => void;
+        };
+        JSHarmony?: {
+            openExternal: (uri: string) => void;
+            exportByDefault: (uri: string) => void;
+        };
+        webkit?: {
+            messageHandlers?: {
+                openLink?: {
+                    postMessage: (uri: string) => void;
+                };
+            };
+        };
     }
 }
 
