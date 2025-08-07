@@ -142,6 +142,12 @@
           content: attr(placeholder);
           color: var(--b3-theme-on-surface-light);
         }
+
+        &::after {
+          // 标题是空白字符时用于撑起菜单项高度
+          content: "";
+          display: inline-block;
+        }
     
         &::-webkit-scrollbar {
           // 被截断的代码片段名称，在桌面端可以按住 Shift 滚动鼠标滚轮来查看，在移动端可以直接按住左右划动查看
@@ -155,7 +161,7 @@
       }
 
       &:hover .block__icon,
-      .jcsm-active {
+      .block__icon.jcsm-active {
         display: flex;
       }
 

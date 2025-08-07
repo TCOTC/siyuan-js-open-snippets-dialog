@@ -12,7 +12,7 @@
   "snippetDialogParamError": "Failed to open snippet dialog, missing snippet parameter: ",
   "updateSnippetElementParamError": "Failed to update snippet element, missing snippet parameter",
   "unknownButtonType": "Unknown button type",
-  "unNamed": "Unnamed",
+  "emptySnippet": "Empty snippet",
   "pluginConfig": "Plugin settings",
   "reloadUI": "Reload UI",
   "search": "Search",

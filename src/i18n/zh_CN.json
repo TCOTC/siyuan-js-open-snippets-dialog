@@ -12,7 +12,7 @@
   "snippetDialogParamError": "打开代码片段对话框失败，缺少代码片段参数：",
   "updateSnippetElementParamError": "更新代码片段元素失败，缺少代码片段参数",
   "unknownButtonType": "未知的按钮类型",
-  "unNamed": "未命名",
+  "emptySnippet": "空代码片段",
   "pluginConfig": "插件设置",
   "reloadUI": "重新加载界面",
   "search": "搜索",

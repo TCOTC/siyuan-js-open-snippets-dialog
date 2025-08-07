@@ -12,7 +12,7 @@
   "snippetDialogParamError": "スニペットダイアログを開くのに失敗しました。スニペットパラメータが不足しています：",
   "updateSnippetElementParamError": "スニペット要素の更新に失敗しました。スニペットパラメータが不足しています",
   "unknownButtonType": "不明なボタンタイプ",
-  "unNamed": "無名",
+  "emptySnippet": "空のスニペット",
   "pluginConfig": "プラグイン設定",
   "reloadUI": "UIを再読み込み",
   "search": "検索",

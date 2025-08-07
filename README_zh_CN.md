@@ -1,3 +1,5 @@
+> 🔔近期更新：代码片段未命名时，菜单项标题显示代码片段的前 200 个字符 [#8](https://github.com/TCOTC/snippets/issues/8)
+
 [繁體中文](https://github.com/TCOTC/snippets/blob/main/README_zh_CHT.md) | [English](https://github.com/TCOTC/snippets/blob/main/README.md) | [日本語](https://github.com/TCOTC/snippets/blob/main/README_ja_JP.md)
 
 #### 代码片段管理菜单

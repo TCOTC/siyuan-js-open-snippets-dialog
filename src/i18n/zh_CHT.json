@@ -12,7 +12,7 @@
   "snippetDialogParamError": "開啟代碼片段對話框失敗，缺少代碼片段參數：",
   "updateSnippetElementParamError": "更新代碼片段元素失敗，缺少代碼片段參數",
   "unknownButtonType": "未知的按鈕類型",
-  "unNamed": "未命名",
+  "emptySnippet": "空代碼片段",
   "pluginConfig": "外掛程式設定",
   "reloadUI": "重新載入介面",
   "search": "搜尋",

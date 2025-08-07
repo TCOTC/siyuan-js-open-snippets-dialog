@@ -1310,7 +1310,7 @@ export default class PluginSnippets extends Plugin {
                 switch (this.snippetSearchType) {
                     case 1:
                         // 按标题筛选
-                        return snippet.name.toLowerCase().includes(normalizedText);
+                        return (snippet.name || snippet.content.slice(0, 200)).toLowerCase().includes(normalizedText);
                     case 2:
                         // 按代码内容筛选
                         return snippet.content.toLowerCase().includes(normalizedText);
@@ -1349,7 +1349,7 @@ export default class PluginSnippets extends Plugin {
         snippetsList.forEach((snippet: Snippet) => {
             snippetsHtml += `
                 <div class="jcsm-snippet-item b3-menu__item" data-type="${snippet.type}" data-id="${snippet.id}">
-                    <span class="jcsm-snippet-name fn__flex-1" placeholder="${this.i18n.unNamed}">${snippet.name}</span>
+                    <span class="jcsm-snippet-name fn__flex-1" placeholder="${this.i18n.emptySnippet}">${ snippet.name || snippet.content.slice(0, 200) }</span>
                     <span class="fn__space"></span>
                     <button class="block__icon block__icon--show fn__flex-center${ isTouch ? " jcsm-touch" : ""}${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
                     <button class="block__icon block__icon--show fn__flex-center${ isTouch ? " jcsm-touch" : ""}${this.showDuplicateButton ? "" : " fn__none"}" data-type="duplicate"><svg><use xlink:href="#iconCopy"></use></svg></button>
@@ -1654,7 +1654,7 @@ export default class PluginSnippets extends Plugin {
                     } else {
                         // 更新菜单项
                         const nameElement = snippetMenuItem.querySelector(".jcsm-snippet-name") as HTMLElement;
-                        if (nameElement) nameElement.textContent = snippet.name;
+                        if (nameElement) nameElement.textContent = snippet.name || snippet.content.slice(0, 200);
                         const switchElement = snippetMenuItem.querySelector("input") as HTMLInputElement;
                         if (switchElement) switchElement.checked = snippet.enabled;
                     }
