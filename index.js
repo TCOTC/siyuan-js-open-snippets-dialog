@@ -292,23 +292,131 @@ var createTheme = _ref => {
 };
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (createTheme);
 
-//# sourceURL=webpack://snippets/./node_modules/.pnpm/@uiw+codemirror-themes@4.24_48c864bde44adea9d3fb7fcd4ec34bb8/node_modules/@uiw/codemirror-themes/esm/index.js?`)},"./src/index.ts":(__unused_webpack_module,__webpack_exports__,__webpack_require__)=>{eval(`__webpack_require__.r(__webpack_exports__);
+//# sourceURL=webpack://snippets/./node_modules/.pnpm/@uiw+codemirror-themes@4.24_48c864bde44adea9d3fb7fcd4ec34bb8/node_modules/@uiw/codemirror-themes/esm/index.js?`)},"./src/export.ts":(__unused_webpack_module,__webpack_exports__,__webpack_require__)=>{eval(`__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   exportByMobile: () => (/* binding */ exportByMobile),
+/* harmony export */   isInAndroid: () => (/* binding */ isInAndroid),
+/* harmony export */   isInHarmony: () => (/* binding */ isInHarmony),
+/* harmony export */   isInIOS: () => (/* binding */ isInIOS),
+/* harmony export */   openByMobile: () => (/* binding */ openByMobile)
+/* harmony export */ });
+const isInAndroid = () => {
+  return window.siyuan.config.system.container === "android" && window.JSAndroid;
+};
+const isInIOS = () => {
+  var _a;
+  return window.siyuan.config.system.container === "ios" && ((_a = window.webkit) == null ? void 0 : _a.messageHandlers);
+};
+const isInHarmony = () => {
+  return window.siyuan.config.system.container === "harmony" && window.JSHarmony;
+};
+const openByMobile = (uri) => {
+  if (!uri) {
+    return;
+  }
+  if (isInIOS()) {
+    if (uri.startsWith("assets/")) {
+      window.webkit.messageHandlers.openLink.postMessage(location.origin + "/assets/" + encodeURIComponent(uri.replace("assets/", "")));
+    } else if (uri.startsWith("/")) {
+      window.webkit.messageHandlers.openLink.postMessage(location.origin + uri);
+    } else {
+      try {
+        new URL(uri);
+        window.webkit.messageHandlers.openLink.postMessage(uri);
+      } catch (e) {
+        window.webkit.messageHandlers.openLink.postMessage("https://" + uri);
+      }
+    }
+  } else if (isInAndroid()) {
+    window.JSAndroid.openExternal(uri);
+  } else if (isInHarmony()) {
+    window.JSHarmony.openExternal(uri);
+  } else {
+    window.open(uri);
+  }
+};
+const exportByMobile = (uri) => {
+  if (!uri) {
+    return;
+  }
+  if (isInIOS()) {
+    openByMobile(uri);
+  } else if (isInAndroid()) {
+    window.JSAndroid.exportByDefault(uri);
+  } else if (isInHarmony()) {
+    window.JSHarmony.exportByDefault(uri);
+  } else {
+    window.open(uri);
+  }
+};
+
+
+//# sourceURL=webpack://snippets/./src/export.ts?`)},"./src/hide-message.ts":(__unused_webpack_module,__webpack_exports__,__webpack_require__)=>{eval(`__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   hideMessage: () => (/* binding */ hideMessage)
+/* harmony export */ });
+/* harmony import */ var siyuan__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! siyuan */ "siyuan");
+/* harmony import */ var siyuan__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(siyuan__WEBPACK_IMPORTED_MODULE_0__);
+
+const hideMessage = (id) => {
+  console.log("hideMessage:", id);
+  const messagesElement = document.getElementById("message").firstElementChild;
+  if (!messagesElement) {
+    return;
+  }
+  if (id) {
+    const messageElement = messagesElement.querySelector(\`[data-id="\${id}"]\`);
+    if (messageElement) {
+      messageElement.classList.add("b3-snackbar--hide");
+      window.clearTimeout(parseInt(messageElement.getAttribute("data-timeoutid")));
+      setTimeout(() => {
+        messageElement.remove();
+        if (messagesElement.childElementCount === 0) {
+          messagesElement.parentElement.classList.remove("b3-snackbars--show");
+          messagesElement.innerHTML = "";
+        }
+      }, siyuan__WEBPACK_IMPORTED_MODULE_0__.Constants.TIMEOUT_INPUT);
+    }
+    let hasShowItem = false;
+    Array.from(messagesElement.children).find((item) => {
+      if (!item.classList.contains("b3-snackbar--hide")) {
+        hasShowItem = true;
+        return true;
+      }
+    });
+    if (hasShowItem) {
+      messagesElement.parentElement.classList.add("b3-snackbars--show");
+    } else {
+      messagesElement.parentElement.classList.remove("b3-snackbars--show");
+    }
+  } else {
+    messagesElement.parentElement.classList.remove("b3-snackbars--show");
+    setTimeout(() => {
+      messagesElement.innerHTML = "";
+    }, siyuan__WEBPACK_IMPORTED_MODULE_0__.Constants.TIMEOUT_INPUT);
+  }
+};
+
+
+//# sourceURL=webpack://snippets/./src/hide-message.ts?`)},"./src/index.ts":(__unused_webpack_module,__webpack_exports__,__webpack_require__)=>{eval(`__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (/* binding */ PluginSnippets)
 /* harmony export */ });
 /* harmony import */ var _index_scss__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./index.scss */ "./src/index.scss");
 /* harmony import */ var acorn__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! acorn */ "./node_modules/.pnpm/acorn@8.15.0/node_modules/acorn/dist/acorn.mjs");
-/* harmony import */ var siyuan__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! siyuan */ "siyuan");
-/* harmony import */ var siyuan__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(siyuan__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _codemirror_autocomplete__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! @codemirror/autocomplete */ "./node_modules/.pnpm/@codemirror+autocomplete@6.18.6/node_modules/@codemirror/autocomplete/dist/index.js");
-/* harmony import */ var _codemirror_commands__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! @codemirror/commands */ "./node_modules/.pnpm/@codemirror+commands@6.8.1/node_modules/@codemirror/commands/dist/index.js");
-/* harmony import */ var _codemirror_lang_javascript__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @codemirror/lang-javascript */ "./node_modules/.pnpm/@codemirror+lang-javascript@6.2.4/node_modules/@codemirror/lang-javascript/dist/index.js");
-/* harmony import */ var _codemirror_lang_css__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @codemirror/lang-css */ "./node_modules/.pnpm/@codemirror+lang-css@6.3.1/node_modules/@codemirror/lang-css/dist/index.js");
-/* harmony import */ var _codemirror_language__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! @codemirror/language */ "./node_modules/.pnpm/@codemirror+language@6.11.2/node_modules/@codemirror/language/dist/index.js");
-/* harmony import */ var _codemirror_search__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! @codemirror/search */ "./node_modules/.pnpm/@codemirror+search@6.5.11/node_modules/@codemirror/search/dist/index.js");
-/* harmony import */ var _codemirror_state__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! @codemirror/state */ "./node_modules/.pnpm/@codemirror+state@6.5.2/node_modules/@codemirror/state/dist/index.js");
-/* harmony import */ var _codemirror_view__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! @codemirror/view */ "./node_modules/.pnpm/@codemirror+view@6.38.1/node_modules/@codemirror/view/dist/index.js");
-/* harmony import */ var _uiw_codemirror_theme_vscode__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @uiw/codemirror-theme-vscode */ "./node_modules/.pnpm/@uiw+codemirror-theme-vscod_5b2baa7fb673d006b14c2a5dc42e68f9/node_modules/@uiw/codemirror-theme-vscode/esm/index.js");
+/* harmony import */ var _export__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./export */ "./src/export.ts");
+/* harmony import */ var siyuan__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! siyuan */ "siyuan");
+/* harmony import */ var siyuan__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(siyuan__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var _hide_message__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./hide-message */ "./src/hide-message.ts");
+/* harmony import */ var _codemirror_autocomplete__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! @codemirror/autocomplete */ "./node_modules/.pnpm/@codemirror+autocomplete@6.18.6/node_modules/@codemirror/autocomplete/dist/index.js");
+/* harmony import */ var _codemirror_commands__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! @codemirror/commands */ "./node_modules/.pnpm/@codemirror+commands@6.8.1/node_modules/@codemirror/commands/dist/index.js");
+/* harmony import */ var _codemirror_lang_javascript__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! @codemirror/lang-javascript */ "./node_modules/.pnpm/@codemirror+lang-javascript@6.2.4/node_modules/@codemirror/lang-javascript/dist/index.js");
+/* harmony import */ var _codemirror_lang_css__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! @codemirror/lang-css */ "./node_modules/.pnpm/@codemirror+lang-css@6.3.1/node_modules/@codemirror/lang-css/dist/index.js");
+/* harmony import */ var _codemirror_language__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! @codemirror/language */ "./node_modules/.pnpm/@codemirror+language@6.11.2/node_modules/@codemirror/language/dist/index.js");
+/* harmony import */ var _codemirror_search__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! @codemirror/search */ "./node_modules/.pnpm/@codemirror+search@6.5.11/node_modules/@codemirror/search/dist/index.js");
+/* harmony import */ var _codemirror_state__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! @codemirror/state */ "./node_modules/.pnpm/@codemirror+state@6.5.2/node_modules/@codemirror/state/dist/index.js");
+/* harmony import */ var _codemirror_view__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! @codemirror/view */ "./node_modules/.pnpm/@codemirror+view@6.38.1/node_modules/@codemirror/view/dist/index.js");
+/* harmony import */ var _uiw_codemirror_theme_vscode__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @uiw/codemirror-theme-vscode */ "./node_modules/.pnpm/@uiw+codemirror-theme-vscod_5b2baa7fb673d006b14c2a5dc42e68f9/node_modules/@uiw/codemirror-theme-vscode/esm/index.js");
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -341,10 +449,14 @@ var __async = (__this, __arguments, generator) => {
 
 
 
+
+
 const PLUGIN_NAME = "snippets";
 const STORAGE_NAME = "plugin-config.json";
 const LOG_NAME = "plugin-snippets.log";
-class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
+const TEMP_PLUGIN_PATH = "/temp/plugin-snippets/";
+const TEMP_EXPORT_PATH = "/temp/export/";
+class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
   constructor() {
     super(...arguments);
     /**
@@ -432,7 +544,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
           } else if (this.snippetsType === "js") {
             window.siyuan.config.snippet.enabledJS = enabled;
           }
-          (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.fetchPost)("/api/setting/setSnippet", window.siyuan.config.snippet);
+          (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.fetchPost)("/api/setting/setSnippet", window.siyuan.config.snippet);
           const filteredSnippets = this.snippetsList.filter((snippet) => snippet.type === this.snippetsType && snippet.enabled === true);
           filteredSnippets.forEach((snippet) => {
             this.updateSnippetElement(snippet, enabled);
@@ -643,7 +755,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
       }
       if (!window.siyuan.jcsm)
         window.siyuan.jcsm = {};
-      const frontEnd = (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.getFrontend)();
+      const frontEnd = (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.getFrontend)();
       this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
       const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
       const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
@@ -695,10 +807,11 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
           this.reloadUI();
         }
       });
+      yield this.initSetting();
       if (this.fileWatchEnabled && this.fileWatchEnabled !== "disabled") {
         this.startFileWatch();
       }
-      yield this.initSetting();
+      window.siyuan.jcsm.disableNotification = this.disableNotification.bind(this);
       console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
     });
   }
@@ -729,16 +842,23 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    * \u5378\u8F7D\u63D2\u4EF6
    */
   uninstall() {
-    var _a, _b;
+    var _a, _b, _c;
     if (window.siyuan.isPublish)
       return;
     this.removeData(STORAGE_NAME);
     document.querySelectorAll(".b3-dialog--open[data-key^='jcsm-']").forEach((dialogElement) => {
       this.closeDialogByElement(dialogElement);
     });
-    (_a = this.menu) == null ? void 0 : _a.close();
+    const styleElements = Array.from(document.head.querySelectorAll("style"));
+    for (const styleElement of styleElements) {
+      if ((_a = styleElement.textContent) == null ? void 0 : _a.includes(".cm-content")) {
+        styleElement.remove();
+        break;
+      }
+    }
+    (_b = this.menu) == null ? void 0 : _b.close();
     this.stopFileWatch();
-    if ((_b = window.siyuan.jcsm) == null ? void 0 : _b.themeObserver) {
+    if ((_c = window.siyuan.jcsm) == null ? void 0 : _c.themeObserver) {
       window.siyuan.jcsm.themeObserver.disconnect();
       delete window.siyuan.jcsm.themeObserver;
     }
@@ -754,6 +874,12 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
       {
         key: "realTimePreview",
         description: "realTimePreviewDescription",
+        type: "boolean",
+        defaultValue: true
+      },
+      {
+        key: "autoReloadUIAfterModifyJS",
+        description: "autoReloadUIAfterModifyJSDescription",
         type: "boolean",
         defaultValue: true
       },
@@ -841,7 +967,39 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
         }
       });
     }
+    if (!this.isMobile && !this.isTouchDevice) {
+      configItems.push({
+        key: "exportSnippets",
+        description: "exportSnippetsDescription",
+        type: "createActionElement",
+        createActionElement: () => {
+          return this.htmlToElement(
+            \`<span class="b3-button b3-button--outline fn__flex-center fn__size200" data-action="exportSnippets"><svg><use xlink:href="#iconUpload"></use></svg>\${this.i18n.export}</span>\`
+          );
+        }
+      });
+    }
     configItems.push(
+      {
+        key: "importSnippetsWithAppend",
+        description: "importSnippetsWithAppendDescription",
+        type: "createActionElement",
+        createActionElement: () => {
+          return this.htmlToElement(
+            \`<span class="b3-button b3-button--outline fn__flex-center fn__size200" data-action="importSnippetsWithAppend"><svg><use xlink:href="#iconDownload"></use></svg>\${this.i18n.importWithAppend}</span>\`
+          );
+        }
+      },
+      {
+        key: "importSnippetsWithOverwrite",
+        description: "importSnippetsWithOverwriteDescription",
+        type: "createActionElement",
+        createActionElement: () => {
+          return this.htmlToElement(
+            \`<span class="b3-button b3-button--outline fn__flex-center fn__size200" data-action="importSnippetsWithOverwrite"><svg><use xlink:href="#iconDownload"></use></svg>\${this.i18n.importWithOverwrite}</span>\`
+          );
+        }
+      },
       {
         key: "feedbackIssue",
         description: "feedbackIssueDescription",
@@ -976,7 +1134,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
         }
       }
       this.loadConfig(config);
-      this.setting = new siyuan__WEBPACK_IMPORTED_MODULE_2__.Setting({});
+      this.setting = new siyuan__WEBPACK_IMPORTED_MODULE_3__.Setting({});
       this.configItems.forEach((item) => {
         this.setting.addItem(this.createSettingItem(item));
       });
@@ -1062,6 +1220,8 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
             }
           } else if (item.key === "editorIndentUnit") {
             this.updateAllEditorConfigs("indent unit");
+          } else if (item.key === "fileWatchEnabled") {
+            this.handleFileWatchModeChange();
           }
         }
       } else if (item.type === "string") {
@@ -1076,6 +1236,11 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
         }
         if (window.siyuan.jcsm[item.key] !== newValue) {
           window.siyuan.jcsm[item.key] = newValue;
+          if (item.key === "fileWatchPath") {
+            if (this.fileWatchEnabled !== "disabled") {
+              this.handleFileWatchPathChange();
+            }
+          }
         }
       } else if (item.type === "number") {
         const element = dialogElement.querySelector(\`input[data-type='\${item.key}']\`);
@@ -1084,6 +1249,9 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
         const newValue = parseInt(element.value) || item.defaultValue || 0;
         if (window.siyuan.jcsm[item.key] !== newValue) {
           window.siyuan.jcsm[item.key] = newValue;
+          if (item.key === "fileWatchInterval") {
+            this.handleFileWatchIntervalChange();
+          }
         }
       }
     });
@@ -1092,7 +1260,6 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
       config[item.key] = window.siyuan.jcsm[item.key];
     });
     this.saveData(STORAGE_NAME, config);
-    this.handleFileWatchSettingChange();
     this.closeDialogByElement(dialogElement);
   }
   /**
@@ -1100,7 +1267,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    * \u65B9\u6CD5\u540D\u56FA\u5B9A\u4E3A openSetting\uFF0C\u652F\u6301\u901A\u8FC7\u83DC\u5355\u6309\u94AE\u6253\u5F00\u3001\u88AB\u601D\u6E90\u8C03\u7528\u6253\u5F00
    */
   openSetting() {
-    const dialog = new siyuan__WEBPACK_IMPORTED_MODULE_2__.Dialog({
+    const dialog = new siyuan__WEBPACK_IMPORTED_MODULE_3__.Dialog({
       title: this.i18n.pluginDisplayName,
       content: \`
                 <div class="b3-dialog__content"></div>
@@ -1160,7 +1327,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
     const closeElement = dialog.element.querySelector(".b3-dialog__close");
     const scrimElement = dialog.element.querySelector(".b3-dialog__scrim");
     const dialogClickHandler = (event) => {
-      var _a, _b, _c;
+      var _a, _b, _c, _d;
       event.stopPropagation();
       const target = event.target;
       const tagName = target.tagName.toLowerCase();
@@ -1178,45 +1345,59 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
       } else if (target === closeElement || target === scrimElement) {
         this.closeDialogByElement(dialog.element);
       }
-      const action = target.getAttribute("data-action");
-      if (action === "settingsSnippets") {
-        event.preventDefault();
-        event.stopPropagation();
-        (_a = this.menu) == null ? void 0 : _a.close();
-        const styleSheet = document.createElement("style");
-        styleSheet.textContent = "body > div[data-key='dialog-setting'] { display: none; }";
-        document.head.appendChild(styleSheet);
-        const settingDialog = (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.openSetting)(window.siyuan.ws.app);
-        const settingDialogElement = settingDialog.element;
-        settingDialogElement.querySelector('.b3-tab-bar [data-name="appearance"]').dispatchEvent(new CustomEvent("click"));
-        requestAnimationFrame(() => {
-          var _a2;
-          settingDialogElement.querySelector("button#codeSnippet").dispatchEvent(new CustomEvent("click"));
-          settingDialog.destroy();
-          setTimeout(() => {
-            document.head.removeChild(styleSheet);
-          }, (_a2 = siyuan__WEBPACK_IMPORTED_MODULE_2__.Constants.TIMEOUT_DBLCLICK) != null ? _a2 : 190);
-        });
-      } else if (action === "settingsKeymap") {
-        event.preventDefault();
-        event.stopPropagation();
-        (_b = this.menu) == null ? void 0 : _b.close();
-        const settingDialogElement = (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.openSetting)(window.siyuan.ws.app).element;
-        settingDialogElement.querySelector('.b3-tab-bar [data-name="keymap"]').dispatchEvent(new CustomEvent("click"));
-        const clickListItemByText = (container, text) => {
-          const items = container.querySelectorAll(".b3-list-item__text");
-          for (let i = 0; i < items.length; i++) {
-            const item = items[i];
-            if (item.textContent === text) {
-              item.dispatchEvent(new CustomEvent("click", { bubbles: true }));
-              return item;
+      const action = (_a = target.closest("[data-action]")) == null ? void 0 : _a.getAttribute("data-action");
+      if (action) {
+        if (action === "settingsSnippets") {
+          event.preventDefault();
+          event.stopPropagation();
+          (_b = this.menu) == null ? void 0 : _b.close();
+          const styleSheet = document.createElement("style");
+          styleSheet.textContent = "body > div[data-key='dialog-setting'] { display: none; }";
+          document.head.appendChild(styleSheet);
+          const settingDialog = (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.openSetting)(window.siyuan.ws.app);
+          const settingDialogElement = settingDialog.element;
+          settingDialogElement.querySelector('.b3-tab-bar [data-name="appearance"]').dispatchEvent(new CustomEvent("click"));
+          requestAnimationFrame(() => {
+            var _a2;
+            settingDialogElement.querySelector("button#codeSnippet").dispatchEvent(new CustomEvent("click"));
+            settingDialog.destroy();
+            setTimeout(() => {
+              document.head.removeChild(styleSheet);
+            }, (_a2 = siyuan__WEBPACK_IMPORTED_MODULE_3__.Constants.TIMEOUT_DBLCLICK) != null ? _a2 : 190);
+          });
+        } else if (action === "settingsKeymap") {
+          event.preventDefault();
+          event.stopPropagation();
+          (_c = this.menu) == null ? void 0 : _c.close();
+          const settingDialogElement = (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.openSetting)(window.siyuan.ws.app).element;
+          settingDialogElement.querySelector('.b3-tab-bar [data-name="keymap"]').dispatchEvent(new CustomEvent("click"));
+          const clickListItemByText = (container, text) => {
+            const items = container.querySelectorAll(".b3-list-item__text");
+            for (let i = 0; i < items.length; i++) {
+              const item = items[i];
+              if (item.textContent === text) {
+                item.dispatchEvent(new CustomEvent("click", { bubbles: true }));
+                return item;
+              }
             }
+            return null;
+          };
+          const pluginItem = clickListItemByText(settingDialogElement, this.i18n.pluginDisplayName);
+          if ((_d = pluginItem == null ? void 0 : pluginItem.parentElement) == null ? void 0 : _d.nextElementSibling) {
+            clickListItemByText(pluginItem.parentElement.nextElementSibling, this.i18n.reloadUI);
           }
-          return null;
-        };
-        const pluginItem = clickListItemByText(settingDialogElement, this.i18n.pluginDisplayName);
-        if ((_c = pluginItem == null ? void 0 : pluginItem.parentElement) == null ? void 0 : _c.nextElementSibling) {
-          clickListItemByText(pluginItem.parentElement.nextElementSibling, this.i18n.reloadUI);
+        } else if (action === "exportSnippets") {
+          event.preventDefault();
+          event.stopPropagation();
+          this.exportSnippetsToFile();
+        } else if (action.startsWith("importSnippets")) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (action === "importSnippetsWithAppend") {
+            this.importSnippets(false);
+          } else if (action === "importSnippetsWithOverwrite") {
+            this.importSnippets(true);
+          }
         }
       }
     };
@@ -1240,7 +1421,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    */
   openMenu(topBarElement, rect) {
     return __async(this, null, function* () {
-      this.menu = new siyuan__WEBPACK_IMPORTED_MODULE_2__.Menu("PluginSnippets", () => {
+      this.menu = new siyuan__WEBPACK_IMPORTED_MODULE_3__.Menu("PluginSnippets", () => {
         this.closeMenuCallback(topBarElement);
       });
       if (this.menu.isOpen) {
@@ -1282,7 +1463,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
             <span class="fn__flex-1"></span>
             <button class="block__icon block__icon--show fn__flex-center ariaLabel\${this.snippetSearchType === 0 ? " fn__none" : ""}" data-type="search" data-position="north" aria-label="\${this.i18n.search}"><svg><use xlink:href="#iconSearch"></use></svg></button>
             <button class="block__icon block__icon--show fn__flex-center ariaLabel" data-type="config" data-position="north"><svg><use xlink:href="#iconSettings"></use></svg></button>
-            <button class="block__icon block__icon--show fn__flex-center ariaLabel\${this.isReloadUIButtonBreathing ? " jcsm-breathing" : ""}" data-type="reload" data-position="north"><svg><use xlink:href="#iconRefresh"></use></svg></button>
+            <button class="block__icon block__icon--show fn__flex-center ariaLabel\${this.isReloadUIRequired ? " jcsm-breathing" : ""}" data-type="reload" data-position="north"><svg><use xlink:href="#iconRefresh"></use></svg></button>
             <button class="block__icon block__icon--show fn__flex-center ariaLabel" data-type="new" data-position="north"><svg><use xlink:href="#iconAdd"></use></svg></button>
             <span class="fn__space"></span>
             <input class="jcsm-switch jcsm-all-snippets-switch b3-switch fn__flex-center" type="checkbox">
@@ -1367,6 +1548,9 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
     this.removeListener(this.menu.element);
     this.menu = void 0;
     this.destroyGlobalKeyDownHandler();
+    if (this.autoReloadUIAfterModifyJS && this.isReloadUIRequired && !document.querySelector(".b3-dialog--open[data-key='jcsm-snippet-dialog']")) {
+      this.postReloadUI();
+    }
   }
   /**
    * \u6EDA\u52A8\u5230\u6307\u5B9A\u7684\u83DC\u5355\u9879\uFF0C\u786E\u4FDD\u5176\u5728\u6EDA\u52A8\u5BB9\u5668\u4E2D\u53EF\u89C1
@@ -1405,7 +1589,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
     return this.snippetsList.filter((snippet) => {
       switch (this.snippetSearchType) {
         case 1:
-          return snippet.name.toLowerCase().includes(normalizedText);
+          return (snippet.name || snippet.content.slice(0, 200)).toLowerCase().includes(normalizedText);
         case 2:
           return snippet.content.toLowerCase().includes(normalizedText);
         case 3:
@@ -1426,7 +1610,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
     snippetsList.forEach((snippet) => {
       snippetsHtml += \`
                 <div class="jcsm-snippet-item b3-menu__item" data-type="\${snippet.type}" data-id="\${snippet.id}">
-                    <span class="jcsm-snippet-name fn__flex-1" placeholder="\${this.i18n.unNamed}">\${snippet.name}</span>
+                    <span class="jcsm-snippet-name fn__flex-1" placeholder="\${this.i18n.emptySnippet}">\${snippet.name || snippet.content.slice(0, 200)}</span>
                     <span class="fn__space"></span>
                     <button class="block__icon block__icon--show fn__flex-center\${isTouch ? " jcsm-touch" : ""}\${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
                     <button class="block__icon block__icon--show fn__flex-center\${isTouch ? " jcsm-touch" : ""}\${this.showDuplicateButton ? "" : " fn__none"}" data-type="duplicate"><svg><use xlink:href="#iconCopy"></use></svg></button>
@@ -1492,25 +1676,27 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
     });
   }
   /**
-   * \u91CD\u65B0\u52A0\u8F7D\u754C\u9762\u6309\u94AE\u547C\u5438\u52A8\u753B\u72B6\u6001
+   * \u662F\u5426\u9700\u8981\u91CD\u65B0\u52A0\u8F7D\u754C\u9762
    */
-  get isReloadUIButtonBreathing() {
+  get isReloadUIRequired() {
     var _a, _b;
-    return (_b = (_a = window.siyuan.jcsm) == null ? void 0 : _a.isReloadUIButtonBreathing) != null ? _b : false;
+    return (_b = (_a = window.siyuan.jcsm) == null ? void 0 : _a.isReloadUIRequired) != null ? _b : false;
   }
-  set isReloadUIButtonBreathing(value) {
-    window.siyuan.jcsm.isReloadUIButtonBreathing = value;
+  set isReloadUIRequired(value) {
+    window.siyuan.jcsm.isReloadUIRequired = value;
   }
   /**
    * \u8BBE\u7F6E\u91CD\u65B0\u52A0\u8F7D\u754C\u9762\u6309\u94AE\u547C\u5438\u52A8\u753B
    */
   setReloadUIButtonBreathing() {
-    var _a;
-    if (this.isReloadUIButtonBreathing)
-      return;
-    this.isReloadUIButtonBreathing = true;
-    const reloadUIButton = (_a = this.menuItems) == null ? void 0 : _a.querySelector(".jcsm-top-container button[data-type='reload']");
-    reloadUIButton == null ? void 0 : reloadUIButton.classList.add("jcsm-breathing");
+    return __async(this, null, function* () {
+      var _a;
+      if (this.isReloadUIRequired)
+        return;
+      this.isReloadUIRequired = true;
+      const reloadUIButton = (_a = this.menuItems) == null ? void 0 : _a.querySelector(".jcsm-top-container button[data-type='reload']");
+      reloadUIButton == null ? void 0 : reloadUIButton.classList.add("jcsm-breathing");
+    });
   }
   /**
    * \u8BBE\u7F6E\u4EE3\u7801\u7247\u6BB5\u7C7B\u578B\u5F00\u5173\u547C\u5438\u52A8\u753B
@@ -1614,15 +1800,25 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
         copySnippet.name = snippet.name + \` (\${this.i18n.duplicate} \${(/* @__PURE__ */ new Date()).toLocaleString()})\`;
         this.snippetsList.splice(this.snippetsList.indexOf(snippet), 0, copySnippet);
         hasChanges = true;
+        yield this.updateSnippetElement(copySnippet);
         this.console.log("saveSnippet: copySnippet", copySnippet);
       } else {
         const oldSnippet = yield this.getSnippetById(snippet.id);
         if (oldSnippet && !isCopy) {
-          hasChanges = oldSnippet.name !== snippet.name || oldSnippet.content !== snippet.content || oldSnippet.enabled !== snippet.enabled;
+          const nameChanged = oldSnippet.name !== snippet.name;
+          const contentOrEnabledChanged = oldSnippet.content !== snippet.content || oldSnippet.enabled !== snippet.enabled;
+          hasChanges = nameChanged || contentOrEnabledChanged;
           if (hasChanges) {
             this.snippetsList = this.snippetsList.map((s) => s.id === snippet.id ? snippet : s);
           }
+          if (contentOrEnabledChanged) {
+            yield this.updateSnippetElement(snippet);
+          }
         } else {
+          if (oldSnippet === false) {
+            this.showErrorMessage(this.i18n.getSnippetFailed);
+            return;
+          }
           if (snippet.type === "css") {
             this.snippetsList.unshift(snippet);
           } else {
@@ -1634,14 +1830,14 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
             }
           }
           hasChanges = true;
+          this.setMenuSnippetCount();
+          yield this.updateSnippetElement(snippet);
         }
       }
       if (hasChanges) {
         this.saveSnippetsList(this.snippetsList);
+        this.applySnippetUIChange(snippet, true, copySnippet);
       }
-      this.setMenuSnippetCount();
-      this.updateSnippetElement(copySnippet != null ? copySnippet : snippet);
-      this.applySnippetUIChange(snippet, true, copySnippet);
     });
   }
   /**
@@ -1666,7 +1862,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
       this.snippetsList = this.snippetsList.filter((snippet2) => snippet2.id !== id);
       this.saveSnippetsList(this.snippetsList);
       this.setMenuSnippetCount();
-      this.updateSnippetElement(snippet, false);
+      yield this.updateSnippetElement(snippet, false);
       this.applySnippetUIChange(snippet, false);
     });
   }
@@ -1695,7 +1891,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
           } else {
             const nameElement = snippetMenuItem.querySelector(".jcsm-snippet-name");
             if (nameElement)
-              nameElement.textContent = snippet.name;
+              nameElement.textContent = snippet.name || snippet.content.slice(0, 200);
             const switchElement = snippetMenuItem.querySelector("input");
             if (switchElement)
               switchElement.checked = snippet.enabled;
@@ -1737,7 +1933,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    */
   getSnippetsList() {
     return __async(this, null, function* () {
-      const response = yield (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.fetchSyncPost)("/api/snippet/getSnippet", { type: "all", enabled: 2 });
+      const response = yield (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.fetchSyncPost)("/api/snippet/getSnippet", { type: "all", enabled: 2 });
       if (response.code !== 0) {
         this.showErrorMessage(this.i18n.getSnippetsListFailed + " [" + response.msg + "]");
         return false;
@@ -1752,7 +1948,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    */
   saveSnippetsList(snippetsList) {
     this.console.log("saveSnippetsList", snippetsList);
-    (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.fetchPost)("/api/snippet/setSnippet", { snippets: snippetsList }, (response) => {
+    (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.fetchPost)("/api/snippet/setSnippet", { snippets: snippetsList }, (response) => {
       if (response.code !== 0) {
         this.showErrorMessage(this.i18n.saveSnippetsListFailed + " [" + response.msg + "]");
         return;
@@ -1766,48 +1962,50 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    * @param previewState \u4E3A true \u65F6\u662F\u9884\u89C8\u64CD\u4F5C\uFF1B\u4E3A false \u65F6\u662F\u9000\u51FA\u9884\u89C8\u64CD\u4F5C\uFF0C\u9700\u8981\u6062\u590D\u539F\u59CB\u5143\u7D20
    */
   updateSnippetElement(snippet, enabled, previewState) {
-    if (!snippet) {
-      this.showErrorMessage(this.i18n.updateSnippetElementParamError);
-      return;
-    }
-    if (previewState === void 0 && this.realTimePreview && document.querySelector(\`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="\${snippet.id}"]\`)) {
-      return;
-    }
-    const elementId = \`snippet\${snippet.type === "css" ? "CSS" : "JS"}\${snippet.id}\`;
-    const element = document.getElementById(elementId);
-    const isEnabled = enabled != null ? enabled : snippet.enabled;
-    const isSnippetsTypeEnabled = this.isSnippetsTypeEnabled(snippet.type);
-    if (isEnabled && (isSnippetsTypeEnabled || previewState)) {
-      if (element && element.innerHTML === snippet.content) {
-      } else {
-        this.console.log("updateSnippetElement: remove old element:", element);
-        element == null ? void 0 : element.remove();
-        let newElement;
-        if (snippet.type === "css") {
-          newElement = document.createElement("style");
-          newElement.id = elementId;
-          newElement.textContent = snippet.content;
-          document.head.appendChild(newElement);
-        } else if (snippet.type === "js") {
-          newElement = document.createElement("script");
-          newElement.id = elementId;
-          newElement.type = "text/javascript";
-          newElement.textContent = snippet.content;
-          document.head.appendChild(newElement);
-        }
-        this.console.log("updateSnippetElement: add new element:", newElement);
+    return __async(this, null, function* () {
+      if (!snippet) {
+        this.showErrorMessage(this.i18n.updateSnippetElementParamError);
+        return;
       }
-    } else {
-      this.console.log("updateSnippetElement: remove disabled element:", element);
-      element == null ? void 0 : element.remove();
-    }
-    if (previewState === void 0 && isEnabled && this.menu && snippet.type === this.snippetsType && !this.isSnippetsTypeEnabled(snippet.type)) {
-      this.setSnippetsTypeSwitchBreathing();
-    }
-    if (snippet.type === "js" && element && element.innerHTML && this.isValidJavaScriptCode(element.innerHTML)) {
-      this.showNotification("reloadUIAfterModifyJS", 2e3);
-      this.setReloadUIButtonBreathing();
-    }
+      if (previewState === void 0 && this.realTimePreview && document.querySelector(\`.b3-dialog--open[data-key="jcsm-snippet-dialog"][data-snippet-id="\${snippet.id}"]\`)) {
+        return;
+      }
+      const elementId = \`snippet\${snippet.type === "css" ? "CSS" : "JS"}\${snippet.id}\`;
+      const element = document.getElementById(elementId);
+      const isEnabled = enabled != null ? enabled : snippet.enabled;
+      const isSnippetsTypeEnabled = this.isSnippetsTypeEnabled(snippet.type);
+      if (isEnabled && (isSnippetsTypeEnabled || previewState)) {
+        if (element && element.innerHTML === snippet.content) {
+        } else {
+          this.console.log("updateSnippetElement: remove old element:", element);
+          element == null ? void 0 : element.remove();
+          let newElement;
+          if (snippet.type === "css") {
+            newElement = document.createElement("style");
+            newElement.id = elementId;
+            newElement.textContent = snippet.content;
+            document.head.appendChild(newElement);
+          } else if (snippet.type === "js") {
+            newElement = document.createElement("script");
+            newElement.id = elementId;
+            newElement.type = "text/javascript";
+            newElement.textContent = snippet.content;
+            document.head.appendChild(newElement);
+          }
+          this.console.log("updateSnippetElement: add new element:", newElement);
+        }
+      } else {
+        this.console.log("updateSnippetElement: remove disabled element:", element);
+        element == null ? void 0 : element.remove();
+      }
+      if (previewState === void 0 && isEnabled && this.menu && snippet.type === this.snippetsType && !this.isSnippetsTypeEnabled(snippet.type)) {
+        this.setSnippetsTypeSwitchBreathing();
+      }
+      if (snippet.type === "js" && element && element.innerHTML && this.isValidJavaScriptCode(element.innerHTML)) {
+        this.showNotification("reloadUIAfterModifyJS", 4e3);
+        yield this.setReloadUIButtonBreathing();
+      }
+    });
   }
   /**
    * \u7B80\u5355\u5224\u65AD\u5185\u5BB9\u662F\u5426\u4E3A\u6709\u6548\u7684 JavaScript \u4EE3\u7801
@@ -1906,62 +2104,62 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    */
   createEditorExtensions(theme, language) {
     const placeholderText = language === "js" ? this.i18n.codeSnippetJS : this.i18n.codeSnippetCSS;
-    const languageSupport = language === "js" ? (0,_codemirror_lang_javascript__WEBPACK_IMPORTED_MODULE_4__.javascript)() : (0,_codemirror_lang_css__WEBPACK_IMPORTED_MODULE_5__.css)();
+    const languageSupport = language === "js" ? (0,_codemirror_lang_javascript__WEBPACK_IMPORTED_MODULE_6__.javascript)() : (0,_codemirror_lang_css__WEBPACK_IMPORTED_MODULE_7__.css)();
     const indentUnitText = this.getEditorIndentUnit();
     return [
       // \u663E\u793A\u884C\u53F7
-      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_6__.lineNumbers)(),
+      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_8__.lineNumbers)(),
       // \u6807\u8BB0\u7279\u6B8A\u5B57\u7B26\uFF08\u4E0D\u53EF\u6253\u5370\u6216\u5176\u4ED6\u4EE4\u4EBA\u56F0\u60D1\u7684\u5B57\u7B26\uFF09
-      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_6__.highlightSpecialChars)(),
+      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_8__.highlightSpecialChars)(),
       // \u5360\u4F4D\u7B26
-      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_6__.placeholder)(placeholderText),
+      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_8__.placeholder)(placeholderText),
       // \u542F\u7528\u64A4\u9500/\u91CD\u505A\u5386\u53F2\u8BB0\u5F55
-      (0,_codemirror_commands__WEBPACK_IMPORTED_MODULE_7__.history)(),
+      (0,_codemirror_commands__WEBPACK_IMPORTED_MODULE_9__.history)(),
       // \u663E\u793A\u4EE3\u7801\u6298\u53E0\u56FE\u6807
-      (0,_codemirror_language__WEBPACK_IMPORTED_MODULE_8__.foldGutter)(),
+      (0,_codemirror_language__WEBPACK_IMPORTED_MODULE_10__.foldGutter)(),
       // \u7ED8\u5236\u6587\u672C\u9009\u62E9\u533A\u57DF
-      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_6__.drawSelection)(),
+      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_8__.drawSelection)(),
       // \u663E\u793A\u62D6\u62FD\u5149\u6807\uFF08\u4ECE\u5176\u4ED6\u5730\u65B9\u62D6\u5165\u7F16\u8F91\u5668\uFF09
-      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_6__.dropCursor)(),
+      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_8__.dropCursor)(),
       // \u5141\u8BB8\u591A\u91CD\u9009\u62E9
-      _codemirror_state__WEBPACK_IMPORTED_MODULE_9__.EditorState.allowMultipleSelections.of(true),
+      _codemirror_state__WEBPACK_IMPORTED_MODULE_11__.EditorState.allowMultipleSelections.of(true),
       // \u8F93\u5165\u65F6\u81EA\u52A8\u7F29\u8FDB
-      (0,_codemirror_language__WEBPACK_IMPORTED_MODULE_8__.indentOnInput)(),
+      (0,_codemirror_language__WEBPACK_IMPORTED_MODULE_10__.indentOnInput)(),
       // \u542F\u7528\u8BED\u6CD5\u9AD8\u4EAE\uFF0C\u4F7F\u7528\u9ED8\u8BA4\u9AD8\u4EAE\u6837\u5F0F
-      (0,_codemirror_language__WEBPACK_IMPORTED_MODULE_8__.syntaxHighlighting)(_codemirror_language__WEBPACK_IMPORTED_MODULE_8__.defaultHighlightStyle, { fallback: true }),
+      (0,_codemirror_language__WEBPACK_IMPORTED_MODULE_10__.syntaxHighlighting)(_codemirror_language__WEBPACK_IMPORTED_MODULE_10__.defaultHighlightStyle, { fallback: true }),
       // \u9AD8\u4EAE\u5339\u914D\u7684\u62EC\u53F7
-      (0,_codemirror_language__WEBPACK_IMPORTED_MODULE_8__.bracketMatching)(),
+      (0,_codemirror_language__WEBPACK_IMPORTED_MODULE_10__.bracketMatching)(),
       // \u81EA\u52A8\u95ED\u5408\u62EC\u53F7
-      (0,_codemirror_autocomplete__WEBPACK_IMPORTED_MODULE_10__.closeBrackets)(),
+      (0,_codemirror_autocomplete__WEBPACK_IMPORTED_MODULE_12__.closeBrackets)(),
       // \u542F\u7528\u81EA\u52A8\u5B8C\u6210\u529F\u80FD
       // TODO\u8003\u8651: \u9ED8\u8BA4\u7684\u8865\u5168\u5173\u952E\u8BCD\u592A\u5C11\u4E86\uFF0C\u8FD8\u4E0D\u5982\u6CA1\u6709\u3002\u7B49\u4E4B\u540E\u518D\u624B\u5DE5\u6DFB\u52A0\u8865\u5168\u5173\u952E\u8BCD
       // autocompletion(),
       // \u542F\u7528\u77E9\u5F62\u9009\u62E9\u6A21\u5F0F
-      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_6__.rectangularSelection)(),
+      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_8__.rectangularSelection)(),
       // \u663E\u793A\u5341\u5B57\u5149\u6807
-      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_6__.crosshairCursor)(),
+      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_8__.crosshairCursor)(),
       // \u9AD8\u4EAE\u5F53\u524D\u6D3B\u52A8\u884C
-      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_6__.highlightActiveLine)(),
+      (0,_codemirror_view__WEBPACK_IMPORTED_MODULE_8__.highlightActiveLine)(),
       // \u9AD8\u4EAE\u6240\u6709\u5339\u914D\u7684\u9009\u4E2D\u6587\u672C
-      (0,_codemirror_search__WEBPACK_IMPORTED_MODULE_11__.highlightSelectionMatches)(),
+      (0,_codemirror_search__WEBPACK_IMPORTED_MODULE_13__.highlightSelectionMatches)(),
       // \u8BBE\u7F6E\u7F29\u8FDB\u5355\u4F4D\u4E3A\u4E24\u4E2A\u7A7A\u683C
-      _codemirror_language__WEBPACK_IMPORTED_MODULE_8__.indentUnit.of(indentUnitText),
+      _codemirror_language__WEBPACK_IMPORTED_MODULE_10__.indentUnit.of(indentUnitText),
       // \u914D\u7F6E\u5FEB\u6377\u952E\u6620\u5C04
-      _codemirror_view__WEBPACK_IMPORTED_MODULE_6__.keymap.of([
+      _codemirror_view__WEBPACK_IMPORTED_MODULE_8__.keymap.of([
         // \u62EC\u53F7\u95ED\u5408\u5FEB\u6377\u952E
-        ..._codemirror_autocomplete__WEBPACK_IMPORTED_MODULE_10__.closeBracketsKeymap,
+        ..._codemirror_autocomplete__WEBPACK_IMPORTED_MODULE_12__.closeBracketsKeymap,
         // \u9ED8\u8BA4\u5FEB\u6377\u952E\uFF08\u590D\u5236\u3001\u7C98\u8D34\u3001\u5220\u9664\u7B49\uFF09
-        ..._codemirror_commands__WEBPACK_IMPORTED_MODULE_7__.defaultKeymap,
+        ..._codemirror_commands__WEBPACK_IMPORTED_MODULE_9__.defaultKeymap,
         // \u641C\u7D22\u5FEB\u6377\u952E
-        ..._codemirror_search__WEBPACK_IMPORTED_MODULE_11__.searchKeymap,
+        ..._codemirror_search__WEBPACK_IMPORTED_MODULE_13__.searchKeymap,
         // \u5386\u53F2\u8BB0\u5F55\u5FEB\u6377\u952E\uFF08\u64A4\u9500\u3001\u91CD\u505A\uFF09
-        ..._codemirror_commands__WEBPACK_IMPORTED_MODULE_7__.historyKeymap,
+        ..._codemirror_commands__WEBPACK_IMPORTED_MODULE_9__.historyKeymap,
         // \u4EE3\u7801\u6298\u53E0\u5FEB\u6377\u952E
-        ..._codemirror_language__WEBPACK_IMPORTED_MODULE_8__.foldKeymap,
+        ..._codemirror_language__WEBPACK_IMPORTED_MODULE_10__.foldKeymap,
         // \u81EA\u52A8\u5B8C\u6210\u5FEB\u6377\u952E
         // ...completionKeymap,
         // Tab \u952E\u7F29\u8FDB\u5FEB\u6377\u952E
-        _codemirror_commands__WEBPACK_IMPORTED_MODULE_7__.indentWithTab
+        _codemirror_commands__WEBPACK_IMPORTED_MODULE_9__.indentWithTab
       ]),
       // \u542F\u7528\u8BED\u8A00\u652F\u6301
       languageSupport,
@@ -1977,12 +2175,12 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    * @returns \u7F16\u8F91\u5668\u89C6\u56FE
    */
   createCodeMirrorEditor(container, content, language) {
-    const theme = window.siyuan.config.appearance.mode === 0 ? _uiw_codemirror_theme_vscode__WEBPACK_IMPORTED_MODULE_3__.vscodeLight : _uiw_codemirror_theme_vscode__WEBPACK_IMPORTED_MODULE_3__.vscodeDark;
-    const state = _codemirror_state__WEBPACK_IMPORTED_MODULE_9__.EditorState.create({
+    const theme = window.siyuan.config.appearance.mode === 0 ? _uiw_codemirror_theme_vscode__WEBPACK_IMPORTED_MODULE_5__.vscodeLight : _uiw_codemirror_theme_vscode__WEBPACK_IMPORTED_MODULE_5__.vscodeDark;
+    const state = _codemirror_state__WEBPACK_IMPORTED_MODULE_11__.EditorState.create({
       doc: content,
       extensions: this.createEditorExtensions(theme, language)
     });
-    const view = new _codemirror_view__WEBPACK_IMPORTED_MODULE_6__.EditorView({
+    const view = new _codemirror_view__WEBPACK_IMPORTED_MODULE_8__.EditorView({
       state,
       parent: container
     });
@@ -2075,10 +2273,10 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
         return;
       }
       const currentThemeMode = window.siyuan.config.appearance.mode;
-      const newTheme = currentThemeMode === 0 ? _uiw_codemirror_theme_vscode__WEBPACK_IMPORTED_MODULE_3__.vscodeLight : _uiw_codemirror_theme_vscode__WEBPACK_IMPORTED_MODULE_3__.vscodeDark;
+      const newTheme = currentThemeMode === 0 ? _uiw_codemirror_theme_vscode__WEBPACK_IMPORTED_MODULE_5__.vscodeLight : _uiw_codemirror_theme_vscode__WEBPACK_IMPORTED_MODULE_5__.vscodeDark;
       const currentState = editorView.state;
       const snippetType = dialogElement.getAttribute("data-snippet-type") || "css";
-      const newState = _codemirror_state__WEBPACK_IMPORTED_MODULE_9__.EditorState.create({
+      const newState = _codemirror_state__WEBPACK_IMPORTED_MODULE_11__.EditorState.create({
         doc: currentState.doc,
         extensions: this.createEditorExtensions(newTheme, snippetType)
       });
@@ -2141,7 +2339,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
         this.moveElementToTop(existedDialog);
         return true;
       }
-      const dialog = new siyuan__WEBPACK_IMPORTED_MODULE_2__.Dialog({
+      const dialog = new siyuan__WEBPACK_IMPORTED_MODULE_3__.Dialog({
         content: this.genSnippetEditDialog(snippet, isNew ? this.i18n.new : void 0),
         width: this.isMobile ? "92vw" : "70vw",
         height: "80vh",
@@ -2220,7 +2418,6 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
           this.showErrorMessage(this.i18n.realTimePreviewHandlerFunctionError);
           return;
         }
-        this.console.log("previewHandler: codeMirrorView.state.doc.toString()", codeMirrorView.state.doc.toString());
         const previewSnippet = {
           id: snippet.id,
           name: "",
@@ -2230,13 +2427,16 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
         };
         this.updateSnippetElement(previewSnippet, void 0, true);
       };
-      const saveHandler = () => {
+      const saveHandler = () => __async(this, null, function* () {
         snippet.name = nameElement.value;
         snippet.content = codeMirrorView.state.doc.toString();
         snippet.enabled = switchInput.checked;
-        this.saveSnippet(snippet);
         this.closeDialogByElement(dialog.element);
-      };
+        yield this.saveSnippet(snippet);
+        if (this.autoReloadUIAfterModifyJS && this.isReloadUIRequired && !document.querySelector(".b3-dialog--open[data-key='jcsm-snippet-dialog']")) {
+          this.postReloadUI();
+        }
+      });
       const isOnlyCtrl = (event) => event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey;
       this.addListener(dialog.element, "keydown", (event) => {
         this.console.log("snippetEditDialog keydown", event);
@@ -2282,7 +2482,6 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
       const closeElement = dialog.element.querySelector(".b3-dialog__close");
       const scrimElement = dialog.element.querySelector(".b3-dialog__scrim");
       this.addListener(dialog.element, "click", (event) => __async(this, null, function* () {
-        event.stopPropagation();
         const target = event.target;
         const tagName = target.tagName.toLowerCase();
         if (tagName === "input" && target === switchInput) {
@@ -2307,6 +2506,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
               }
               break;
             case "confirm":
+              event.stopPropagation();
               saveHandler();
               break;
           }
@@ -2315,6 +2515,9 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
         }
         return;
       }), { capture: true });
+      this.addListener(dialog.element, "click", (event) => __async(this, null, function* () {
+        event.stopPropagation();
+      }));
       if (snippet.type === "css" && this.realTimePreview) {
         previewHandler();
       }
@@ -2382,7 +2585,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
       return;
     }
     const redButton = dataKey === "jcsm-snippet-delete" || dataKey === "jcsm-snippet-cancel";
-    const dialog = new siyuan__WEBPACK_IMPORTED_MODULE_2__.Dialog({
+    const dialog = new siyuan__WEBPACK_IMPORTED_MODULE_3__.Dialog({
       title,
       content: \`
                 <div class="b3-dialog__content">
@@ -2439,16 +2642,21 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
       return;
     }
     this.console.log("closeDialogByElement: dialogElement:", dialogElement);
-    this.removeListener(dialogElement);
     if (dialogElement.dataset.key === "jcsm-snippet-dialog") {
+      const editorElement = dialogElement.querySelector(".jcsm-dialog-content .cm-editor");
+      if (editorElement && editorElement.cmView && editorElement.cmView.destroy) {
+        this.console.log("closeDialogByElement: destroying CodeMirror editor");
+        editorElement.cmView.destroy();
+      }
       this.removeSnippetEditButtonActive(dialogElement.dataset.snippetId);
     }
+    this.removeListener(dialogElement);
     dialogElement.classList.remove("b3-dialog--open");
     setTimeout(() => {
       dialogElement == null ? void 0 : dialogElement.remove();
       this.destroyGlobalKeyDownHandler();
       this.checkAndManageThemeWatch();
-    }, (_a = siyuan__WEBPACK_IMPORTED_MODULE_2__.Constants.TIMEOUT_DBLCLICK) != null ? _a : 190);
+    }, (_a = siyuan__WEBPACK_IMPORTED_MODULE_3__.Constants.TIMEOUT_DBLCLICK) != null ? _a : 190);
   }
   /**
    * \u83B7\u53D6\u6240\u6709\u6A21\u6001\u5BF9\u8BDD\u6846\u5143\u7D20
@@ -2465,9 +2673,34 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    */
   showNotification(messageI18nKey, timeout = void 0) {
     if (this.notificationSwitch && this[messageI18nKey + "Notice"] && this.i18n[messageI18nKey]) {
-      const message = this.i18n.couldCloseNoticeInPluginSettings.replace("\${x}", this.i18n[messageI18nKey]);
-      (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.showMessage)(message, timeout, "info", PLUGIN_NAME + "-" + messageI18nKey);
+      const ignoreNoticeButton = \`<button class='jscm-snackbar-ignore-notice-button b3-button ariaLabel' aria-label='\${this.i18n.ignoreNoticeButtonAriaLabel}' onclick='event.stopPropagation(); window.siyuan.jcsm.disableNotification("\${messageI18nKey}");'>\${this.i18n.noLongerShow}</button>\`;
+      const message = this.i18n[messageI18nKey].replace("\${ignoreNoticeButton}", ignoreNoticeButton);
+      (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(message, timeout, "info", PLUGIN_NAME + "-" + messageI18nKey);
     }
+  }
+  /**
+   * \u7981\u7528\u6307\u5B9A\u901A\u77E5
+   * @param messageI18nKey \u901A\u77E5\u7684 i18n \u952E
+   */
+  disableNotification(messageI18nKey) {
+    (0,_hide_message__WEBPACK_IMPORTED_MODULE_4__.hideMessage)(PLUGIN_NAME + "-" + messageI18nKey);
+    const noticeConfigKey = messageI18nKey + "Notice";
+    const configItem = this.configItems.find((item) => item.key === noticeConfigKey);
+    if (!configItem) {
+      this.console.warn(\`ignoreNotice: Notification config item "\${noticeConfigKey}" not found\`);
+      return;
+    }
+    if (configItem.type !== "boolean") {
+      this.console.warn(\`ignoreNotice: Notification config item "\${noticeConfigKey}" is not boolean type\`);
+      return;
+    }
+    window.siyuan.jcsm[noticeConfigKey] = false;
+    const config = { version: this.version };
+    this.configItems.forEach((item) => {
+      config[item.key] = window.siyuan.jcsm[item.key];
+    });
+    this.saveData(STORAGE_NAME, config);
+    this.console.log(\`ignoreNotice: Notification "\${noticeConfigKey}" has been disabled and settings saved\`);
   }
   /**
    * \u5F39\u51FA\u9519\u8BEF\u6D88\u606F
@@ -2475,7 +2708,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    * @param timeout \u6D88\u606F\u663E\u793A\u65F6\u95F4\uFF08\u6BEB\u79D2\uFF09\uFF1B-1 \u6C38\u4E0D\u5173\u95ED\uFF1B0 \u6C38\u4E0D\u5173\u95ED\uFF0C\u6DFB\u52A0\u4E00\u4E2A\u5173\u95ED\u6309\u94AE\uFF1Bundefined \u9ED8\u8BA4 6000 \u6BEB\u79D2
    */
   showErrorMessage(message, timeout = void 0, id) {
-    (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.showMessage)(this.i18n.pluginDisplayName + ": " + message, timeout, "error", id);
+    (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.i18n.pluginDisplayName + ": " + message, timeout, "error", id);
     this.addLogWriteTask(message);
   }
   /**
@@ -2491,20 +2724,20 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
             oldLog = lines.slice(1).join("\\n");
           }
           const newLog = oldLog + "E " + (/* @__PURE__ */ new Date()).toLocaleString() + " " + message + "\\n";
-          const response2 = yield this.putFile("/temp/" + LOG_NAME, newLog);
+          const response2 = yield this.putFile(TEMP_PLUGIN_PATH + LOG_NAME, newLog);
           if (!response2 || response2.code !== 0) {
             const errorResponse = response2;
-            (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.showMessage)(this.i18n.pluginDisplayName + ": " + this.i18n.writePluginLogFailed + " [" + errorResponse.code + ": " + errorResponse.msg + "]", 2e4, "error");
+            (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.i18n.pluginDisplayName + ": " + this.i18n.writePluginLogFailed + " [" + errorResponse.code + ": " + errorResponse.msg + "]", 2e4, "error");
           }
         });
-        const response = yield this.getFile("/temp/" + LOG_NAME);
+        const response = yield this.getFile(TEMP_PLUGIN_PATH + LOG_NAME);
         if (response && response.code === 404) {
           yield writeLog();
         } else if ((response || response === "") && !response.code) {
           yield writeLog(response);
         } else {
           const errorResponse = response;
-          (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.showMessage)(this.i18n.pluginDisplayName + ": " + this.i18n.getPluginLogFailed + " [" + errorResponse.code + ": " + errorResponse.msg + "]", 2e4, "error");
+          (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.i18n.pluginDisplayName + ": " + this.i18n.getPluginLogFailed + " [" + errorResponse.code + ": " + errorResponse.msg + "]", 2e4, "error");
         }
       } catch (error) {
         this.console.error("Failed to write log:", error);
@@ -2545,7 +2778,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    */
   getFile(path) {
     return new Promise((resolve) => {
-      (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.fetchPost)("/api/file/getFile", { path }, (response) => {
+      (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.fetchPost)("/api/file/getFile", { path }, (response) => {
         resolve(response);
       });
     });
@@ -2565,7 +2798,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
     formData.append("isDir", "false");
     formData.append("file", new File([content], path.split("/").pop(), { type: "text/plain" }));
     return new Promise((resolve) => {
-      (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.fetchPost)("/api/file/putFile", formData, (response) => {
+      (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.fetchPost)("/api/file/putFile", formData, (response) => {
         resolve(response);
       });
     });
@@ -2610,20 +2843,23 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
         break;
       }
     }
-    const reloadUI = () => {
-      (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.fetchPost)("/api/ui/reloadUI", (response) => {
-        if (response.status !== 200) {
-          this.showErrorMessage(this.i18n.reloadUIFailed);
-        }
-      });
-    };
     if (needConfirm) {
       this.openConfirmDialog(this.i18n.reloadUIConfirm, this.i18n.reloadUIConfirmDescription, "jcsm-reload-ui-confirm", void 0, void 0, () => {
-        reloadUI();
+        this.postReloadUI();
       });
     } else {
-      reloadUI();
+      this.postReloadUI();
     }
+  }
+  /**
+   * \u53D1\u9001\u91CD\u65B0\u52A0\u8F7D\u754C\u9762\u8BF7\u6C42
+   */
+  postReloadUI() {
+    (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.fetchPost)("/api/ui/reloadUI", (response) => {
+      if (response.status !== 200) {
+        this.showErrorMessage(this.i18n.reloadUIFailed);
+      }
+    });
   }
   /**
    * \u5224\u65AD\u662F\u5426\u662F Mac\uFF08\u539F\u751F\u4EE3\u7801 app/src/protyle/util/compatibility.ts \uFF09
@@ -3047,8 +3283,11 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
       element.remove();
     });
     if (hasJSRemoved) {
-      this.showNotification("reloadUIAfterModifyJS", 2e3);
+      this.showNotification("reloadUIAfterModifyJS", 4e3);
       this.setReloadUIButtonBreathing();
+      if (this.autoReloadUIAfterModifyJS && this.isReloadUIRequired && !document.querySelector(".b3-dialog--open[data-key='jcsm-snippet-dialog']")) {
+        this.postReloadUI();
+      }
     }
     this.console.log("removeAllFileWatchElements: Removed file watch elements:", watchElements.length);
   }
@@ -3105,12 +3344,12 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
     return __async(this, null, function* () {
       try {
         const response = yield new Promise((resolve) => {
-          (0,siyuan__WEBPACK_IMPORTED_MODULE_2__.fetchPost)("/api/file/readDir", { path: folderPath }, (response2) => {
+          (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.fetchPost)("/api/file/readDir", { path: folderPath }, (response2) => {
             resolve(response2);
           });
         });
         if (response.code !== 0) {
-          throw new Error(response.msg || "\\u8BFB\\u53D6\\u6587\\u4EF6\\u5939\\u5931\\u8D25");
+          throw new Error(response.msg || this.i18n.readFolderFailed);
         }
         const files = [];
         if (response.data && Array.isArray(response.data)) {
@@ -3199,12 +3438,22 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
               yield this.applyFileChange(filePath, currentContent);
               this.console.log("checkSingleFileChange: JS file re-added", filePath);
             } else {
-              this.console.log("checkSingleFileChange: JS file modified during runtime, ignoring", filePath);
-              this.fileWatchFileStates.set(filePath, {
-                path: filePath,
-                lastModified: currentModified,
-                content: currentContent
-              });
+              if (this.autoReloadUIAfterModifyJS) {
+                this.console.log("checkSingleFileChange: JS file modified during runtime, reapplying", filePath);
+                this.fileWatchFileStates.set(filePath, {
+                  path: filePath,
+                  lastModified: currentModified,
+                  content: currentContent
+                });
+                yield this.applyFileChange(filePath, currentContent);
+              } else {
+                this.console.log("checkSingleFileChange: JS file modified during runtime, ignoring (autoReloadUIAfterModifyJS disabled)", filePath);
+                this.fileWatchFileStates.set(filePath, {
+                  path: filePath,
+                  lastModified: currentModified,
+                  content: currentContent
+                });
+              }
             }
           } else {
             this.fileWatchFileStates.set(filePath, {
@@ -3300,30 +3549,375 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_2__.Plugin {
    * @param filePath \u6587\u4EF6\u8DEF\u5F84
    */
   removeFileWatchElement(filePath) {
-    var _a;
-    const existingElement = document.querySelector(\`[data-file-path="\${encodeURIComponent(filePath)}"]\`);
-    if (existingElement) {
-      const fileName = filePath.split("/").pop() || "";
-      const fileExtension = (_a = fileName.split(".").pop()) == null ? void 0 : _a.toLowerCase();
-      if (fileExtension === "js" && existingElement.textContent && this.isValidJavaScriptCode(existingElement.textContent)) {
-        this.showNotification("reloadUIAfterModifyJS", 2e3);
-        this.setReloadUIButtonBreathing();
-        this.console.log("removeFileWatchElement: JS file removed, UI reload required", filePath);
-      } else {
-        this.console.log("removeFileWatchElement: Removed file watch element", filePath);
+    return __async(this, null, function* () {
+      var _a;
+      const existingElement = document.querySelector(\`[data-file-path="\${encodeURIComponent(filePath)}"]\`);
+      if (existingElement) {
+        const fileName = filePath.split("/").pop() || "";
+        const fileExtension = (_a = fileName.split(".").pop()) == null ? void 0 : _a.toLowerCase();
+        if (fileExtension === "js" && existingElement.textContent && this.isValidJavaScriptCode(existingElement.textContent)) {
+          this.showNotification("reloadUIAfterModifyJS", 2e3);
+          yield this.setReloadUIButtonBreathing();
+          if (this.autoReloadUIAfterModifyJS && this.isReloadUIRequired && !document.querySelector(".b3-dialog--open[data-key='jcsm-snippet-dialog']")) {
+            this.postReloadUI();
+          }
+          this.console.log("removeFileWatchElement: JS file removed, UI reload required", filePath);
+        } else {
+          this.console.log("removeFileWatchElement: Removed file watch element", filePath);
+        }
+        existingElement.remove();
       }
-      existingElement.remove();
-    }
+    });
   }
   /**
-   * \u5728\u8BBE\u7F6E\u5E94\u7528\u65F6\u542F\u52A8\u6216\u505C\u6B62\u6587\u4EF6\u76D1\u542C
+   * \u5904\u7406\u6587\u4EF6\u76D1\u542C\u6A21\u5F0F\u53D8\u5316
    */
-  handleFileWatchSettingChange() {
+  handleFileWatchModeChange() {
     if (this.fileWatchEnabled === "disabled") {
       this.stopFileWatch();
     } else {
       this.startFileWatch();
     }
+  }
+  /**
+   * \u5904\u7406\u6587\u4EF6\u76D1\u542C\u8DEF\u5F84\u53D8\u5316
+   */
+  handleFileWatchPathChange() {
+    return __async(this, null, function* () {
+      if (this.fileWatchEnabled === "disabled") {
+        return;
+      }
+      this.console.log("handleFileWatchPathChange: Path changed, reloading files");
+      this.removeAllFileWatchElements();
+      this.fileWatchFileStates = /* @__PURE__ */ new Map();
+      yield this.loadExistingFiles();
+    });
+  }
+  /**
+   * \u5904\u7406\u6587\u4EF6\u76D1\u542C\u95F4\u9694\u53D8\u5316
+   */
+  handleFileWatchIntervalChange() {
+    if (this.fileWatchEnabled !== "enabled") {
+      return;
+    }
+    this.console.log("handleFileWatchIntervalChange: Interval changed, updating timer");
+    if (this.fileWatchIntervalId) {
+      window.clearInterval(this.fileWatchIntervalId);
+    }
+    this.fileWatchIntervalId = window.setInterval(() => {
+      this.checkFileChanges();
+    }, this.fileWatchInterval * 1e3);
+  }
+  // ================================ \u5BFC\u51FA\u4E0E\u5BFC\u5165\u529F\u80FD ================================
+  /**
+   * \u5BFC\u51FA\u6240\u6709\u4EE3\u7801\u7247\u6BB5\u4E3A JSON \u6587\u4EF6
+   */
+  exportSnippetsToFile() {
+    return __async(this, null, function* () {
+      try {
+        const snippetsFile = yield this.getFile("data/snippets/conf.json");
+        if (!snippetsFile) {
+          this.showErrorMessage(this.i18n.getSnippetsListFailed);
+          return;
+        }
+        const now = /* @__PURE__ */ new Date();
+        const pad = (n) => n.toString().padStart(2, "0");
+        const year = now.getFullYear();
+        const month = pad(now.getMonth() + 1);
+        const day = pad(now.getDate());
+        const hour = pad(now.getHours());
+        const minute = pad(now.getMinutes());
+        const second = pad(now.getSeconds());
+        const timestamp = \`\${year}-\${month}-\${day} \${hour}-\${minute}-\${second}\`;
+        const fileName = \`\${this.i18n.snippet} \${timestamp}.json\`;
+        const exportResponse = yield new Promise((resolve) => {
+          (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.fetchPost)("/api/export/exportResources", {
+            paths: ["data/snippets/conf.json"],
+            name: fileName
+          }, (response) => {
+            if (response.code !== 0) {
+              this.console.error("exportSnippets: Failed to export resources", response);
+              this.showErrorMessage(\`Export failed: \${response.msg}\`);
+              return;
+            }
+            resolve(response);
+          });
+        });
+        (0,_export__WEBPACK_IMPORTED_MODULE_2__.exportByMobile)(exportResponse.data.path.replace("temp/export/", "export/"));
+        (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.i18n.pluginDisplayName + ": " + this.i18n.exportSnippetsSuccess, 3e3, "info");
+      } catch (error) {
+        this.console.error("exportSnippets: Failed to export snippets: ", error);
+        this.showErrorMessage(this.i18n.exportSnippetsFailed + ": " + error.message);
+      }
+    });
+  }
+  /**
+   * \u5BFC\u5165\u4EE3\u7801\u7247\u6BB5
+   * @param overwrite \u662F\u5426\u8986\u76D6\u73B0\u6709\u4EE3\u7801\u7247\u6BB5
+   */
+  importSnippets(overwrite) {
+    return __async(this, null, function* () {
+      try {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "*";
+        input.style.display = "none";
+        input.addEventListener("change", (event) => __async(this, null, function* () {
+          var _a, _b, _c;
+          const file = (_a = event.target.files) == null ? void 0 : _a[0];
+          if (!file) {
+            return;
+          }
+          const fileName = file.name || "";
+          const ext = (_b = fileName.split(".").pop()) == null ? void 0 : _b.toLowerCase();
+          try {
+            let importText = "";
+            if (ext === "zip") {
+              const uid = ((_c = window.Lute) == null ? void 0 : _c.NewNodeID) ? window.Lute.NewNodeID() : Date.now().toString(36);
+              const basePath = \`\${TEMP_EXPORT_PATH}import-\${uid}\`;
+              const zipPath = \`\${basePath}.zip\`;
+              const unzipDir = \`\${basePath}/\`;
+              const uploadResp = yield this.putBinaryFile(zipPath, file);
+              if (!uploadResp || uploadResp.code !== 0) {
+                throw new Error(\`\${this.i18n.uploadImportFileFailed} [\${uploadResp == null ? void 0 : uploadResp.code}: \${uploadResp == null ? void 0 : uploadResp.msg}]\`);
+              }
+              const unzipResp = yield new Promise((resolve) => {
+                (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.fetchPost)("/api/archive/unzip", { path: unzipDir, zipPath }, (resp) => resolve(resp));
+              });
+              if (!unzipResp || unzipResp.code !== 0) {
+                throw new Error(\`\${this.i18n.unzipFailed} [\${unzipResp == null ? void 0 : unzipResp.code}: \${unzipResp == null ? void 0 : unzipResp.msg}]\`);
+              }
+              const jsonFilePath = yield this.findJsonFilePathInDir(unzipDir);
+              if (!jsonFilePath) {
+                throw new Error(this.i18n.noValidJsonFileFound);
+              }
+              const getResp = yield this.getFile(jsonFilePath);
+              if (getResp && getResp.code) {
+                throw new Error(\`\${this.i18n.readUnzippedJsonFileFailed} [\${getResp.code}: \${getResp.msg}]\`);
+              }
+              if (typeof getResp === "object" && Array.isArray(getResp)) {
+                importText = JSON.stringify(getResp);
+              } else {
+                importText = getResp != null ? getResp : "";
+              }
+            } else {
+              importText = yield this.readFileAsText(file);
+            }
+            if (!importText) {
+              throw new Error(this.i18n.importFileContentEmpty);
+            }
+            let importData;
+            try {
+              importData = JSON.parse(importText);
+            } catch (parseError) {
+              throw new Error(this.i18n.importFileNotValidJson);
+            }
+            if (!this.validateImportData(importData)) {
+              this.showErrorMessage(this.i18n.importSnippetsInvalidFormat);
+              return;
+            }
+            const currentSnippets = yield this.getSnippetsList();
+            if (!currentSnippets) {
+              this.showErrorMessage(this.i18n.getSnippetsListFailed);
+              return;
+            }
+            let newSnippetsList;
+            if (overwrite) {
+              yield this.createBackup(currentSnippets);
+              newSnippetsList = this.processImportedSnippets(importData);
+            } else {
+              const processedImportedSnippets = this.processImportedSnippets(importData);
+              newSnippetsList = [...processedImportedSnippets, ...currentSnippets];
+            }
+            this.saveSnippetsList(newSnippetsList);
+            this.snippetsList = newSnippetsList;
+            if (this.menu) {
+              this.setMenuSnippetCount();
+              this.setMenuSnippetsType(this.snippetsType);
+            }
+            const successMessage = overwrite ? this.i18n.importSnippetsOverwriteSuccess : this.i18n.importSnippetsAppendSuccess;
+            (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.i18n.pluginDisplayName + ": " + successMessage, 3e3, "info");
+          } catch (error) {
+            this.console.error("importSnippets: Failed to import snippets", error);
+            this.showErrorMessage(this.i18n.importSnippetsFailed + ": " + error.message);
+          } finally {
+            document.body.removeChild(input);
+          }
+        }));
+        document.body.appendChild(input);
+        input.click();
+      } catch (error) {
+        this.console.error("importSnippets: Failed to create file input", error);
+        this.showErrorMessage(this.i18n.importSnippetsFailed + ": " + error.message);
+      }
+    });
+  }
+  /**
+   * \u8BFB\u53D6\u6587\u4EF6\u5185\u5BB9\u4E3A\u6587\u672C
+   * @param file \u6587\u4EF6\u5BF9\u8C61
+   * @returns \u6587\u4EF6\u5185\u5BB9
+   */
+  readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        var _a;
+        const result = (_a = event.target) == null ? void 0 : _a.result;
+        if (result) {
+          resolve(result);
+        } else {
+          reject(new Error("Failed to read file"));
+        }
+      };
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsText(file);
+    });
+  }
+  /**
+   * \u9A8C\u8BC1\u5BFC\u5165\u6570\u636E\u683C\u5F0F
+   * @param data \u5BFC\u5165\u7684\u6570\u636E
+   * @returns \u662F\u5426\u4E3A\u6709\u6548\u683C\u5F0F
+   */
+  validateImportData(data) {
+    if (!Array.isArray(data)) {
+      return false;
+    }
+    for (const snippet of data) {
+      if (!this.validateSnippet(snippet)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  /**
+   * \u9A8C\u8BC1\u5355\u4E2A\u4EE3\u7801\u7247\u6BB5\u683C\u5F0F
+   * @param snippet \u4EE3\u7801\u7247\u6BB5
+   * @returns \u662F\u5426\u4E3A\u6709\u6548\u683C\u5F0F
+   */
+  validateSnippet(snippet) {
+    if (!snippet || typeof snippet !== "object") {
+      return false;
+    }
+    if (typeof snippet.name !== "string") {
+      return false;
+    }
+    if (typeof snippet.content !== "string") {
+      return false;
+    }
+    if (snippet.type !== "css" && snippet.type !== "js") {
+      return false;
+    }
+    if (typeof snippet.enabled !== "boolean") {
+      return false;
+    }
+    return true;
+  }
+  /**
+   * \u521B\u5EFA\u5907\u4EFD\u6587\u4EF6
+   * @param snippets \u8981\u5907\u4EFD\u7684\u4EE3\u7801\u7247\u6BB5\u5217\u8868
+   */
+  createBackup(snippets) {
+    return __async(this, null, function* () {
+      try {
+        const now = /* @__PURE__ */ new Date();
+        const pad = (n) => n.toString().padStart(2, "0");
+        const year = now.getFullYear();
+        const month = pad(now.getMonth() + 1);
+        const day = pad(now.getDate());
+        const hour = pad(now.getHours());
+        const minute = pad(now.getMinutes());
+        const second = pad(now.getSeconds());
+        const timestamp = \`\${year}-\${month}-\${day}_\${hour}-\${minute}-\${second}\`;
+        const backupFileName = \`snippets_backup_\${timestamp}.json\`;
+        const backupPath = \`\${TEMP_PLUGIN_PATH}\${backupFileName}\`;
+        const backupContent = JSON.stringify(snippets, null, 2);
+        const response = yield this.putFile(backupPath, backupContent);
+        if (response.code !== 0) {
+          this.console.error("createBackup: Failed to create backup file", response);
+          this.showErrorMessage(\`\${this.i18n.backupCreateFailed}: \${response.msg}\`);
+          return;
+        }
+        this.console.log("createBackup: Backup created successfully", backupPath);
+      } catch (error) {
+        this.console.error("createBackup: Failed to create backup", error);
+        this.showErrorMessage(this.i18n.backupCreateFailed + ": " + error.message);
+      }
+    });
+  }
+  /**
+   * \u5904\u7406\u5BFC\u5165\u7684\u4EE3\u7801\u7247\u6BB5
+   * @param importedSnippets \u5BFC\u5165\u7684\u4EE3\u7801\u7247\u6BB5\u6570\u7EC4
+   * @returns \u5904\u7406\u540E\u7684\u4EE3\u7801\u7247\u6BB5\u6570\u7EC4
+   */
+  processImportedSnippets(importedSnippets) {
+    const currentIds = new Set(this.snippetsList.map((s) => s.id));
+    return importedSnippets.map((snippet) => {
+      if (snippet.id && currentIds.has(snippet.id)) {
+        snippet.id = this.genNewSnippetId();
+      } else if (!snippet.id) {
+        snippet.id = this.genNewSnippetId();
+      }
+      return snippet;
+    });
+  }
+  // \u4E0A\u4F20\u4E8C\u8FDB\u5236\u6587\u4EF6\uFF08\u7528\u4E8E zip\uFF09
+  putBinaryFile(path, file) {
+    if (!path || !file) {
+      return Promise.reject({ code: 400, msg: "path or file is empty" });
+    }
+    const formData = new FormData();
+    formData.append("path", path);
+    formData.append("isDir", "false");
+    formData.append("file", file);
+    return new Promise((resolve) => {
+      (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.fetchPost)("/api/file/putFile", formData, (response) => resolve(response));
+    });
+  }
+  // \u5728\u89E3\u538B\u76EE\u5F55\u4E2D\u67E5\u627E json \u6587\u4EF6\uFF0C\u9012\u5F52\u67E5\u627E\u6240\u6709\u5B50\u6587\u4EF6\u5939
+  findJsonFilePathInDir(dir) {
+    return __async(this, null, function* () {
+      return this.findJsonFileRecursive(dir);
+    });
+  }
+  // \u9012\u5F52\u67E5\u627E JSON \u6587\u4EF6\u7684\u8F85\u52A9\u65B9\u6CD5
+  findJsonFileRecursive(dir) {
+    return __async(this, null, function* () {
+      const listResp = yield new Promise((resolve) => {
+        (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.fetchPost)("/api/file/readDir", { path: dir }, (resp) => resolve(resp));
+      });
+      if (!listResp || listResp.code !== 0) {
+        this.console.error("findJsonFileRecursive: readDir failed", listResp);
+        return null;
+      }
+      const items = Array.isArray(listResp.data) ? listResp.data : [];
+      const files = items.filter((it) => !it.isDir && it.name);
+      for (const file of files) {
+        const filePath = file.path || dir.replace(/\\/$/, "") + "/" + file.name;
+        try {
+          const fileContent = yield this.getFile(filePath);
+          if (fileContent && !fileContent.code) {
+            if (typeof fileContent === "object" && Array.isArray(fileContent)) {
+              return filePath;
+            }
+            if (typeof fileContent === "string") {
+              JSON.parse(fileContent);
+              return filePath;
+            }
+          }
+        } catch (error) {
+          continue;
+        }
+      }
+      const subDirs = items.filter((it) => it.isDir === true);
+      for (const subDir of subDirs) {
+        const subDirPath = subDir.path || dir.replace(/\\/$/, "") + "/" + subDir.name;
+        const result = yield this.findJsonFileRecursive(subDirPath);
+        if (result) {
+          return result;
+        }
+      }
+      return null;
+    });
   }
 }
 
