@@ -196,6 +196,15 @@ export default class PluginSnippets extends Plugin {
         document.querySelectorAll(".b3-dialog--open[data-key^='jcsm-']").forEach((dialogElement: HTMLElement) => {
             this.closeDialogByElement(dialogElement);
         });
+        
+        // 移除 CodeMirror 编辑器样式
+        const styleElements = Array.from(document.head.querySelectorAll("style")) as HTMLStyleElement[];
+        for (const styleElement of styleElements) {
+            if (styleElement.textContent?.includes(".cm-content")) {
+                styleElement.remove();
+                break;
+            }
+        }
 
         // 移除菜单
         this.menu?.close();
@@ -2388,7 +2397,6 @@ export default class PluginSnippets extends Plugin {
                 this.showErrorMessage(this.i18n.realTimePreviewHandlerFunctionError);
                 return;
             }
-            this.console.log("previewHandler: codeMirrorView.state.doc.toString()", codeMirrorView.state.doc.toString());
             const previewSnippet: Snippet = {
                 id: snippet.id,
                 name: "",
@@ -2474,8 +2482,6 @@ export default class PluginSnippets extends Plugin {
         // 代码片段编辑对话框的 .b3-dialog__scrim 元素只在桌面端被移除，移动端还是有的，所以要处理点击
         
         this.addListener(dialog.element, "click", async (event: Event) => {
-            // 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭
-            event.stopPropagation();
             const target = event.target as HTMLElement;
             const tagName = target.tagName.toLowerCase();
             if (tagName === "input" && target === switchInput) {
@@ -2514,6 +2520,11 @@ export default class PluginSnippets extends Plugin {
             }
             return;
         }, {capture: true}); // 点击 .b3-dialog__close 和 .b3-dialog__scrim 时需要在捕获阶段阻止冒泡才行，因为原生在这两个元素上有监听器
+        
+        this.addListener(dialog.element, "click", async (event: Event) => {
+            // 阻止冒泡，否则点击 Dialog 时会导致 menu 关闭
+            event.stopPropagation();
+        });
 
         // 打开对话框时先执行一次预览
         if (snippet.type === "css" && this.realTimePreview) {
@@ -2664,13 +2675,21 @@ export default class PluginSnippets extends Plugin {
             return;
         }
         this.console.log("closeDialogByElement: dialogElement:", dialogElement);
-        // 移除事件监听器
-        this.removeListener(dialogElement);
-
-        // 移除菜单项编辑按钮的背景色
+        
+        // 如果是代码片段编辑对话框
         if (dialogElement.dataset.key === "jcsm-snippet-dialog") {
+            // 销毁 CodeMirror 编辑器
+            const editorElement = dialogElement.querySelector('.jcsm-dialog-content .cm-editor');
+            if (editorElement && (editorElement as any).cmView && (editorElement as any).cmView.destroy) {
+                this.console.log("closeDialogByElement: destroying CodeMirror editor");
+                (editorElement as any).cmView.destroy();
+            }
+            // 移除菜单项编辑按钮的背景色
             this.removeSnippetEditButtonActive(dialogElement.dataset.snippetId);
         }
+        
+        // 移除事件监听器
+        this.removeListener(dialogElement);
 
         // 关闭动画
         dialogElement.classList.remove("b3-dialog--open");

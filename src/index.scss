@@ -284,6 +284,10 @@ div[data-key="jcsm-setting-dialog"] {
       .cm-foldGutter {
         .cm-gutterElement {
           padding: 0 2px;
+
+          span {
+            user-select: none;
+          }
         }
       }
       
