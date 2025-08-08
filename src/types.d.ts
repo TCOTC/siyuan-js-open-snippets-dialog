@@ -47,6 +47,7 @@ declare global {
                 fileWatchInterval?: number;
                 fileWatchIntervalId?: number | null;
                 fileWatchFileStates?: Map<string, FileState>;
+                disableNotification?: (messageI18nKey: string) => void;
             };
         };
         JSAndroid?: {

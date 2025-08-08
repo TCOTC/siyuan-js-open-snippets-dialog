@@ -6,6 +6,7 @@ import { exportByMobile } from "./export";
 // 思源插件 API
 import { Plugin, showMessage, Dialog, Menu, getFrontend, Setting, fetchPost, fetchSyncPost, Constants, openSetting } from "siyuan";
 // 未使用的：Custom、confirm、openTab、adaptHotkey、getBackend、Protyle、openWindow、IOperation、openMobileFileById、lockScreen、ICard、ICardData、exitSiYuan、getModelByDockType、getAllEditor、Files、platformUtils、openAttributePanel、saveLayout
+import { hideMessage } from "./hide-message"; // TODO: 要替换为思源原生实现
 
 // CodeMirror 6
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete' // import { autocompletion, completionKeymap } from '@codemirror/autocomplete'
@@ -128,6 +129,8 @@ export default class PluginSnippets extends Plugin {
 
         // 初始化插件设置
         await this.initSetting();
+        // 暴露 ignoreNotice 方法到全局
+        window.siyuan.jcsm.disableNotification = this.disableNotification.bind(this);
 
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
 
@@ -1855,7 +1858,7 @@ export default class PluginSnippets extends Plugin {
         // 以上合并为：有旧代码 && 旧代码有效 → 本质上是旧 JS 被修改/删除/禁用时无法立即生效
         if (snippet.type === "js" && element && element.innerHTML && this.isValidJavaScriptCode(element.innerHTML)) {
             // JS 代码片段元素更新需要弹出消息提示
-            this.showNotification("reloadUIAfterModifyJS", 2000);
+            this.showNotification("reloadUIAfterModifyJS", 4000);
             // 高亮菜单上的重新加载界面按钮
             this.setReloadUIButtonBreathing();
         }
@@ -2726,10 +2729,48 @@ export default class PluginSnippets extends Plugin {
     private showNotification(messageI18nKey: string, timeout: number | undefined = undefined) {
         if (this.notificationSwitch && (this as any)[messageI18nKey + "Notice"] && this.i18n[messageI18nKey]) {
             // 全局通知开关开启、该通知选项开启、i18n 键存在 → 弹出通知
-            const message = this.i18n.couldCloseNoticeInPluginSettings.replace("${x}", this.i18n[messageI18nKey]);
+            const ignoreNoticeButton = `<button class='jscm-snackbar-ignore-notice-button b3-button ariaLabel' aria-label='${this.i18n.ignoreNoticeButtonAriaLabel}' onclick='event.stopPropagation(); window.siyuan.jcsm.disableNotification(\"${messageI18nKey}\");'>${this.i18n.noLongerShow}</button>`;
+            const message = this.i18n[messageI18nKey].replace("${ignoreNoticeButton}", ignoreNoticeButton);
             // 传入 messageId 参数之后，反复弹出相同的消息时，不会关闭上一个消息再弹出新消息
             showMessage(message, timeout, "info", PLUGIN_NAME + "-" + messageI18nKey);
         }
+    }
+
+    /**
+     * 禁用指定通知
+     * @param messageI18nKey 通知的 i18n 键
+     */
+    public disableNotification(messageI18nKey: string) {
+        // 移除消息提示
+        hideMessage(PLUGIN_NAME + "-" + messageI18nKey);
+
+        // 通知的配置键名
+        const noticeConfigKey = messageI18nKey + "Notice";
+
+        // 检查通知键是否存在于配置项中
+        const configItem = this.configItems.find(item => item.key === noticeConfigKey);
+        if (!configItem) {
+            this.console.warn(`ignoreNotice: Notification config item "${noticeConfigKey}" not found`);
+            return;
+        }
+
+        // 检查是否为布尔类型的通知配置
+        if (configItem.type !== 'boolean') {
+            this.console.warn(`ignoreNotice: Notification config item "${noticeConfigKey}" is not boolean type`);
+            return;
+        }
+
+        // 禁用通知
+        (window.siyuan.jcsm as any)[noticeConfigKey] = false;
+
+        // 保存设置到配置文件
+        const config: any = { version: this.version };
+        this.configItems.forEach(item => {
+            config[item.key] = (window.siyuan.jcsm as any)[item.key];
+        });
+        this.saveData(STORAGE_NAME, config);
+
+        this.console.log(`ignoreNotice: Notification "${noticeConfigKey}" has been disabled and settings saved`);
     }
 
     /**
@@ -3677,7 +3718,7 @@ export default class PluginSnippets extends Plugin {
         
         // 如果有 JS 文件被移除，弹出提示
         if (hasJSRemoved) {
-            this.showNotification("reloadUIAfterModifyJS", 2000);
+            this.showNotification("reloadUIAfterModifyJS", 4000);
             this.setReloadUIButtonBreathing();
         }
         
@@ -4011,7 +4052,7 @@ export default class PluginSnippets extends Plugin {
             
             if (fileExtension === 'js' && existingElement.textContent && this.isValidJavaScriptCode(existingElement.textContent)) {
                 // JS 代码片段元素被移除需要弹出消息提示
-                this.showNotification("reloadUIAfterModifyJS", 2000);
+                this.showNotification("reloadUIAfterModifyJS", 4000);
                 // 高亮菜单上的重新加载界面按钮
                 this.setReloadUIButtonBreathing();
                 this.console.log("removeFileWatchElement: JS file removed, UI reload required", filePath);
