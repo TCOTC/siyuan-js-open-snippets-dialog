@@ -39,7 +39,7 @@ declare global {
                 consoleDebug?: boolean;
                 notificationSwitch?: boolean;
                 reloadUIAfterModifyJS?: boolean;
-                isReloadUIButtonBreathing?: boolean;
+                isReloadUIRequired?: boolean;
                 themeObserver?: MutationObserver;
                 snippetSearchType?: number;
                 fileWatchEnabled?: string;

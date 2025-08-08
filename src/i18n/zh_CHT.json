@@ -129,5 +129,7 @@
   "noValidJsonFileFound": "未在壓縮包中找到可用的 JSON 檔案",
   "readUnzippedJsonFileFailed": "讀取解壓後的 JSON 檔案失敗",
   "importFileContentEmpty": "匯入檔案內容為空",
-  "importFileNotValidJson": "檔案內容不是有效的 JSON 格式，請檢查檔案內容"
+  "importFileNotValidJson": "檔案內容不是有效的 JSON 格式，請檢查檔案內容",
+  "autoReloadUIAfterModifyJS": "自動重新載入介面",
+  "autoReloadUIAfterModifyJSDescription": "JS 片段修改後，如果沒有正在使用的代碼片段編輯器，則自動重新載入介面"
 }

@@ -129,5 +129,7 @@
   "noValidJsonFileFound": "No valid JSON file found in the compressed package",
   "readUnzippedJsonFileFailed": "Failed to read unzipped JSON file",
   "importFileContentEmpty": "Import file content is empty",
-  "importFileNotValidJson": "File content is not valid JSON format, please check the file content"
+  "importFileNotValidJson": "File content is not valid JSON format, please check the file content",
+  "autoReloadUIAfterModifyJS": "Auto reload UI",
+  "autoReloadUIAfterModifyJSDescription": "After JS snippet modification, if there's no active snippet editor, automatically reload the UI"
 }

@@ -129,5 +129,7 @@
   "noValidJsonFileFound": "圧縮パッケージに有効なJSONファイルが見つかりません",
   "readUnzippedJsonFileFailed": "解凍されたJSONファイルの読み込みに失敗しました",
   "importFileContentEmpty": "インポートファイルの内容が空です",
-  "importFileNotValidJson": "ファイルの内容が有効なJSON形式ではありません。ファイルの内容を確認してください"
+  "importFileNotValidJson": "ファイルの内容が有効なJSON形式ではありません。ファイルの内容を確認してください",
+  "autoReloadUIAfterModifyJS": "自動UI再読み込み",
+  "autoReloadUIAfterModifyJSDescription": "JSスニペット変更後、アクティブなスニペットエディターがない場合、自動的にUIを再読み込みします"
 }

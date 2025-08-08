@@ -122,14 +122,13 @@ export default class PluginSnippets extends Plugin {
             },
         });
 
-        // 启动文件监听
+        // 初始化插件设置
+        await this.initSetting();
+        // 插件设置加载之后启动文件监听
         if (this.fileWatchEnabled && this.fileWatchEnabled !== "disabled") {
             this.startFileWatch();
         }
-
-        // 初始化插件设置
-        await this.initSetting();
-        // 暴露 ignoreNotice 方法到全局
+        // 插件设置加载之后暴露 ignoreNotice 方法到全局
         window.siyuan.jcsm.disableNotification = this.disableNotification.bind(this);
 
         console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
@@ -284,6 +283,12 @@ export default class PluginSnippets extends Plugin {
             {
                 key: 'realTimePreview',
                 description: 'realTimePreviewDescription',
+                type: 'boolean',
+                defaultValue: true,
+            },
+            {
+                key: 'autoReloadUIAfterModifyJS',
+                description: 'autoReloadUIAfterModifyJSDescription',
                 type: 'boolean',
                 defaultValue: true,
             },
@@ -670,6 +675,9 @@ export default class PluginSnippets extends Plugin {
                     } else if (item.key === "editorIndentUnit") {
                         // 修改编辑器缩进单位时，更新所有打开的编辑器
                         this.updateAllEditorConfigs("indent unit");
+                    } else if (item.key === "fileWatchEnabled") {
+                        // 处理文件监听模式改变
+                        this.handleFileWatchModeChange();
                     }
                 }
             } else if (item.type === 'string') {
@@ -688,6 +696,14 @@ export default class PluginSnippets extends Plugin {
                 
                 if ((window.siyuan.jcsm as any)[item.key] !== newValue) {
                     (window.siyuan.jcsm as any)[item.key] = newValue;
+                    
+                    if (item.key === "fileWatchPath") {
+                        // 处理文件监听路径改变
+                        if (this.fileWatchEnabled !== "disabled") {
+                            // 如果文件监听已启用，重新加载文件以应用新路径
+                            this.handleFileWatchPathChange();
+                        }
+                    }
                 }
             } else if (item.type === 'number') {
                 const element = dialogElement.querySelector(`input[data-type='${item.key}']`) as HTMLInputElement;
@@ -696,6 +712,11 @@ export default class PluginSnippets extends Plugin {
                 const newValue = parseInt(element.value) || item.defaultValue || 0;
                 if ((window.siyuan.jcsm as any)[item.key] !== newValue) {
                     (window.siyuan.jcsm as any)[item.key] = newValue;
+                    
+                    if (item.key === "fileWatchInterval") {
+                        // 处理文件监听间隔改变
+                        this.handleFileWatchIntervalChange();
+                    }
                 }
             }
         });
@@ -706,9 +727,6 @@ export default class PluginSnippets extends Plugin {
             config[item.key] = (window.siyuan.jcsm as any)[item.key];
         });
         this.saveData(STORAGE_NAME, config);
-
-        // 在应用设置之后处理文件监听设置变化
-        this.handleFileWatchSettingChange();
 
         // 移除设置对话框
         this.closeDialogByElement(dialogElement);
@@ -970,7 +988,7 @@ export default class PluginSnippets extends Plugin {
             <span class="fn__flex-1"></span>
             <button class="block__icon block__icon--show fn__flex-center ariaLabel${this.snippetSearchType === 0 ? " fn__none" : ""}" data-type="search" data-position="north" aria-label="${this.i18n.search}"><svg><use xlink:href="#iconSearch"></use></svg></button>
             <button class="block__icon block__icon--show fn__flex-center ariaLabel" data-type="config" data-position="north"><svg><use xlink:href="#iconSettings"></use></svg></button>
-            <button class="block__icon block__icon--show fn__flex-center ariaLabel${this.isReloadUIButtonBreathing ? " jcsm-breathing" : ""}" data-type="reload" data-position="north"><svg><use xlink:href="#iconRefresh"></use></svg></button>
+            <button class="block__icon block__icon--show fn__flex-center ariaLabel${this.isReloadUIRequired ? " jcsm-breathing" : ""}" data-type="reload" data-position="north"><svg><use xlink:href="#iconRefresh"></use></svg></button>
             <button class="block__icon block__icon--show fn__flex-center ariaLabel" data-type="new" data-position="north"><svg><use xlink:href="#iconAdd"></use></svg></button>
             <span class="fn__space"></span>
             <input class="jcsm-switch jcsm-all-snippets-switch b3-switch fn__flex-center" type="checkbox">
@@ -1062,6 +1080,10 @@ export default class PluginSnippets extends Plugin {
         }
     }
 
+    /**
+     * 是否启用自动重新加载界面功能
+     */
+    declare autoReloadUIAfterModifyJS: boolean;
 
     /**
      * 关闭顶栏菜单回调
@@ -1081,6 +1103,11 @@ export default class PluginSnippets extends Plugin {
         this.removeListener(this.menu.element);
         this.menu = undefined;
         this.destroyGlobalKeyDownHandler();
+
+        // 自动重新加载界面
+        if (this.autoReloadUIAfterModifyJS && this.isReloadUIRequired && !document.querySelector(".b3-dialog--open[data-key='jcsm-snippet-dialog']")) {
+            this.postReloadUI();
+        }
     }
 
     /**
@@ -1496,17 +1523,17 @@ export default class PluginSnippets extends Plugin {
     };
 
     /**
-     * 重新加载界面按钮呼吸动画状态
+     * 是否需要重新加载界面
      */
-    get isReloadUIButtonBreathing() { return window.siyuan.jcsm?.isReloadUIButtonBreathing ?? false; }
-    set isReloadUIButtonBreathing(value: boolean) { window.siyuan.jcsm.isReloadUIButtonBreathing = value; }
+    get isReloadUIRequired() { return window.siyuan.jcsm?.isReloadUIRequired ?? false; }
+    set isReloadUIRequired(value: boolean) { window.siyuan.jcsm.isReloadUIRequired = value; }
     
     /**
      * 设置重新加载界面按钮呼吸动画
      */
-    private setReloadUIButtonBreathing() {
-        if (this.isReloadUIButtonBreathing) return; // 如果已经设置了呼吸动画，则不重复设置
-        this.isReloadUIButtonBreathing = true;
+    private async setReloadUIButtonBreathing() {
+        if (this.isReloadUIRequired) return; // 如果已经设置了呼吸动画，则不重复设置
+        this.isReloadUIRequired = true;
 
         // 如果加载插件时就开启文件监听，this.menuItems 有可能未初始化
         const reloadUIButton = this.menuItems?.querySelector(".jcsm-top-container button[data-type='reload']") as HTMLButtonElement;
@@ -1623,6 +1650,9 @@ export default class PluginSnippets extends Plugin {
             this.snippetsList.splice(this.snippetsList.indexOf(snippet), 0, copySnippet);
             hasChanges = true;
 
+            // 代码片段有可能未启用，所以不传入 enabled === true 的参数
+            await this.updateSnippetElement(copySnippet);
+
             this.console.log("saveSnippet: copySnippet", copySnippet);
         } else {
             // 在 snippetsList 中查找是否存在该代码片段
@@ -1630,13 +1660,25 @@ export default class PluginSnippets extends Plugin {
             if (oldSnippet && !isCopy) {
                 // 如果存在，则更新该代码片段
                 // 比较对象属性值而不是对象引用
-                hasChanges = oldSnippet.name    !== snippet.name    ||
-                            oldSnippet.content !== snippet.content ||
-                            oldSnippet.enabled !== snippet.enabled;
+                const nameChanged = oldSnippet.name !== snippet.name;
+                const contentOrEnabledChanged = oldSnippet.content !== snippet.content || oldSnippet.enabled !== snippet.enabled;
+                hasChanges = nameChanged || contentOrEnabledChanged;
                 if (hasChanges) {
                     this.snippetsList = this.snippetsList.map((s: Snippet) => s.id === snippet.id ? snippet : s);
                 }
+                if (contentOrEnabledChanged) {
+                    // 只有代码片段名称改变的时候不需要更新元素
+                    // 代码片段有可能未启用，所以不传入 enabled === true 的参数
+                    // 问题案例: 先禁用整体状态，再在对话框中启用，然后预览，然后保存。会在整体禁用的情况下启用代码片段，或者说没有移除预览时添加的元素
+                    //  应该始终执行 updateSnippetElement
+                    await this.updateSnippetElement(snippet);
+                }
             } else {
+                if (oldSnippet === false) {
+                    this.showErrorMessage(this.i18n.getSnippetFailed);
+                    return;
+                }
+                // 如果不存在，则添加代码片段
                 if (snippet.type === "css") {
                     // CSS 插入到开头
                     this.snippetsList.unshift(snippet);
@@ -1651,19 +1693,18 @@ export default class PluginSnippets extends Plugin {
                     }
                 }
                 hasChanges = true;
+                // 更新菜单代码片段计数
+                this.setMenuSnippetCount();
+                // 代码片段有可能未启用，所以不传入 enabled === true 的参数
+                await this.updateSnippetElement(snippet);
             }
         }
 
         if (hasChanges) {
             // 代码片段发生变更才推送更新
             this.saveSnippetsList(this.snippetsList);
+            this.applySnippetUIChange(snippet, true, copySnippet);
         }
-        this.setMenuSnippetCount();
-        // 添加的代码片段有可能未启用，所以 updateSnippetElement() 不传入 enabled === true 的参数
-        // 问题案例: 先禁用整体状态，再在对话框中启用，然后预览，然后保存。会在整体禁用的情况下启用代码片段，或者说没有移除预览时添加的元素
-        //  应该始终执行 updateSnippetElement
-        this.updateSnippetElement(copySnippet ?? snippet);
-        this.applySnippetUIChange(snippet, true, copySnippet);
     };
 
     /**
@@ -1690,7 +1731,7 @@ export default class PluginSnippets extends Plugin {
         this.saveSnippetsList(this.snippetsList);
         this.setMenuSnippetCount();
         // 删除的代码片段一定需要移除元素，所以 updateSnippetElement() 传入 enabled === false 的参数
-        this.updateSnippetElement(snippet, false);
+        await this.updateSnippetElement(snippet, false);
         this.applySnippetUIChange(snippet, false);
     };
 
@@ -1797,7 +1838,7 @@ export default class PluginSnippets extends Plugin {
      * @param enabled 是否启用
      * @param previewState 为 true 时是预览操作；为 false 时是退出预览操作，需要恢复原始元素
      */
-    private updateSnippetElement(snippet: Snippet, enabled?: boolean, previewState?: boolean) {
+    private async updateSnippetElement(snippet: Snippet, enabled?: boolean, previewState?: boolean) {
         if (!snippet) {
             this.showErrorMessage(this.i18n.updateSnippetElementParamError);
             return;
@@ -1860,7 +1901,7 @@ export default class PluginSnippets extends Plugin {
             // JS 代码片段元素更新需要弹出消息提示
             this.showNotification("reloadUIAfterModifyJS", 4000);
             // 高亮菜单上的重新加载界面按钮
-            this.setReloadUIButtonBreathing();
+            await this.setReloadUIButtonBreathing();
         }
     };
 
@@ -2411,12 +2452,19 @@ export default class PluginSnippets extends Plugin {
             this.updateSnippetElement(previewSnippet, undefined, true);
         }
         // 新建或更新代码片段
-        const saveHandler = () => {
+        const saveHandler = async () => {
             snippet.name = nameElement.value;
             snippet.content = codeMirrorView.state.doc.toString();
             snippet.enabled = switchInput.checked;
-            this.saveSnippet(snippet);
+
+            // 要先关闭 Dialog，因为通过 saveSnippet 调用的 updateSnippetElement 会根据 Dialog 是否打开来决定是否需要更新代码片段元素
             this.closeDialogByElement(dialog.element);
+            // 需要等待 saveSnippet 完成之后才能确认 this.isReloadUIRequired 的状态
+            await this.saveSnippet(snippet);
+            // 自动重新加载界面
+            if (this.autoReloadUIAfterModifyJS && this.isReloadUIRequired && !document.querySelector(".b3-dialog--open[data-key='jcsm-snippet-dialog']")) {
+                this.postReloadUI();
+            }
         }
 
         const isOnlyCtrl = (event: KeyboardEvent) => event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey;
@@ -2515,6 +2563,8 @@ export default class PluginSnippets extends Plugin {
                         break;
                     case "confirm":
                         // 新建/更新代码片段
+                        // 阻止冒泡，否则点击确认按钮会导致 menu 关闭
+                        event.stopPropagation();
                         saveHandler();
                         break;
                 }
@@ -2964,22 +3014,25 @@ export default class PluginSnippets extends Plugin {
             }
         }
 
-        const reloadUI = () => {
-            fetchPost("/api/ui/reloadUI", (response: any) => {
-                if (response.status !== 200) {
-                    this.showErrorMessage(this.i18n.reloadUIFailed);
-                }
-            });
-        }
-
         if (needConfirm) {
             this.openConfirmDialog(this.i18n.reloadUIConfirm, this.i18n.reloadUIConfirmDescription, "jcsm-reload-ui-confirm", undefined, undefined,  () => {
-                reloadUI();
+                this.postReloadUI();
             });
         } else {
-            reloadUI();
+            this.postReloadUI();
         }
     };
+
+    /**
+     * 发送重新加载界面请求
+     */
+    private postReloadUI() {
+        fetchPost("/api/ui/reloadUI", (response: any) => {
+            if (response.status !== 200) {
+                this.showErrorMessage(this.i18n.reloadUIFailed);
+            }
+        });
+    }
 
     /**
      * 判断是否是 Mac（原生代码 app/src/protyle/util/compatibility.ts ）
@@ -3720,6 +3773,10 @@ export default class PluginSnippets extends Plugin {
         if (hasJSRemoved) {
             this.showNotification("reloadUIAfterModifyJS", 4000);
             this.setReloadUIButtonBreathing();
+            // 自动重新加载界面（与 removeFileWatchElement 方法保持一致）
+            if (this.autoReloadUIAfterModifyJS && this.isReloadUIRequired && !document.querySelector(".b3-dialog--open[data-key='jcsm-snippet-dialog']")) {
+                this.postReloadUI();
+            }
         }
         
         this.console.log("removeAllFileWatchElements: Removed file watch elements:", watchElements.length);
@@ -3902,7 +3959,7 @@ export default class PluginSnippets extends Plugin {
                 const fileExtension = fileName.split('.').pop()?.toLowerCase();
                 
                 if (fileExtension === 'js') {
-                    // 对于 JS 文件，只处理首次添加和移除，不处理中途变更
+                    // 对于 JS 文件，特殊处理变化
                     // 检查是否是文件被删除后重新添加的情况
                     const encodedFilePath = encodeURIComponent(filePath);
                     const existingElement = document.querySelector(`[data-file-path="${encodedFilePath}"]`);
@@ -3917,14 +3974,33 @@ export default class PluginSnippets extends Plugin {
                         await this.applyFileChange(filePath, currentContent);
                         this.console.log("checkSingleFileChange: JS file re-added", filePath);
                     } else {
-                        // 元素存在，说明是中途变更，不处理
-                        this.console.log("checkSingleFileChange: JS file modified during runtime, ignoring", filePath);
-                        // 更新文件状态但不重新应用
-                        this.fileWatchFileStates.set(filePath, {
-                            path: filePath,
-                            lastModified: currentModified,
-                            content: currentContent
-                        });
+                        // 元素存在，说明是中途变更
+                        if (this.autoReloadUIAfterModifyJS) {
+                            // 如果启用了自动重新加载 JS 后修改界面，则处理中途变更
+                            this.console.log("checkSingleFileChange: JS file modified during runtime, reapplying", filePath);
+                            
+                            // // 先移除现有元素，触发 removeFileWatchElement 中的重新加载逻辑
+                            // this.removeFileWatchElement(filePath);
+                            
+                            // 更新文件状态并重新应用
+                            this.fileWatchFileStates.set(filePath, {
+                                path: filePath,
+                                lastModified: currentModified,
+                                content: currentContent
+                            });
+                            
+                            // 应用文件内容
+                            await this.applyFileChange(filePath, currentContent);
+                        } else {
+                            // 如果未启用自动重新加载，则忽略中途变更
+                            this.console.log("checkSingleFileChange: JS file modified during runtime, ignoring (autoReloadUIAfterModifyJS disabled)", filePath);
+                            // 更新文件状态但不重新应用
+                            this.fileWatchFileStates.set(filePath, {
+                                path: filePath,
+                                lastModified: currentModified,
+                                content: currentContent
+                            });
+                        }
                     }
                 } else {
                     // 对于非 JS 文件，保持原有逻辑
@@ -4013,8 +4089,8 @@ export default class PluginSnippets extends Plugin {
      */
     private async applyJSFile(filePath: string, content: string) {
         try {
-            // 验证 JS 代码是否有效
             if (!this.isValidJavaScriptCode(content)) {
+                // 不应用无效的 JS 代码
                 this.console.warn("applyJSFile: Invalid JS code", filePath);
                 return;
             }
@@ -4043,7 +4119,7 @@ export default class PluginSnippets extends Plugin {
      * 移除文件监听元素
      * @param filePath 文件路径
      */
-    private removeFileWatchElement(filePath: string) {
+    private async removeFileWatchElement(filePath: string) {
         const existingElement = document.querySelector(`[data-file-path="${encodeURIComponent(filePath)}"]`);
         if (existingElement) {
             // 检查是否是有效的 JS 文件被移除
@@ -4052,9 +4128,13 @@ export default class PluginSnippets extends Plugin {
             
             if (fileExtension === 'js' && existingElement.textContent && this.isValidJavaScriptCode(existingElement.textContent)) {
                 // JS 代码片段元素被移除需要弹出消息提示
-                this.showNotification("reloadUIAfterModifyJS", 4000);
+                this.showNotification("reloadUIAfterModifyJS", 2000);
                 // 高亮菜单上的重新加载界面按钮
-                this.setReloadUIButtonBreathing();
+                await this.setReloadUIButtonBreathing();
+                // 自动重新加载界面
+                if (this.autoReloadUIAfterModifyJS && this.isReloadUIRequired && !document.querySelector(".b3-dialog--open[data-key='jcsm-snippet-dialog']")) {
+                    this.postReloadUI();
+                }
                 this.console.log("removeFileWatchElement: JS file removed, UI reload required", filePath);
             } else {
                 this.console.log("removeFileWatchElement: Removed file watch element", filePath);
@@ -4065,14 +4145,55 @@ export default class PluginSnippets extends Plugin {
     }
 
     /**
-     * 在设置应用时启动或停止文件监听
+     * 处理文件监听模式变化
      */
-    private handleFileWatchSettingChange() {
+    private handleFileWatchModeChange() {
         if (this.fileWatchEnabled === "disabled") {
             this.stopFileWatch();
         } else {
             this.startFileWatch();
         }
+    }
+
+    /**
+     * 处理文件监听路径变化
+     */
+    private async handleFileWatchPathChange() {
+        if (this.fileWatchEnabled === "disabled") {
+            return;
+        }
+
+        this.console.log("handleFileWatchPathChange: Path changed, reloading files");
+        
+        // 清理所有旧的文件监听元素
+        this.removeAllFileWatchElements();
+        
+        // 重新初始化文件状态
+        this.fileWatchFileStates = new Map();
+        
+        // 重新加载现有文件
+        await this.loadExistingFiles();
+    }
+
+    /**
+     * 处理文件监听间隔变化
+     */
+    private handleFileWatchIntervalChange() {
+        if (this.fileWatchEnabled !== "enabled") {
+            return;
+        }
+
+        this.console.log("handleFileWatchIntervalChange: Interval changed, updating timer");
+        
+        // 清除现有的定时器
+        if (this.fileWatchIntervalId) {
+            window.clearInterval(this.fileWatchIntervalId);
+        }
+        
+        // 重新设置定时器
+        this.fileWatchIntervalId = window.setInterval(() => {
+            this.checkFileChanges();
+        }, this.fileWatchInterval * 1000);
     }
 
     // ================================ 导出与导入功能 ================================
