@@ -2337,7 +2337,6 @@ export default class PluginSnippets extends Plugin {
             height: "80vh",
             hideCloseIcon: this.isMobile,
         });
-        // 备注：dialog.destroy() 方法会导致菜单被关闭，需要时使用重新实现的 removeDialog()
 
         // 设置 Dialog 属性
         dialog.element.setAttribute("data-key", "jcsm-snippet-dialog");
@@ -2391,6 +2390,11 @@ export default class PluginSnippets extends Plugin {
                 this.closeDialogByElement(dialog.element);
             }
 
+            // 获取 Dialog 的焦点元素
+            const focusElement = dialog.element.querySelector(":focus") as HTMLElement || dialog.element.contains(document.activeElement) ? document.activeElement as HTMLElement : undefined;
+            // 点击开关之后要移除焦点，不然弹出确认弹窗之后按 Esc 还是会触发 Dialog 上的 keydown 事件
+            focusElement?.blur();
+
             const currentSnippet = await this.getSnippetById(snippet.id);
             if (currentSnippet === undefined) {
                 // 如果当前代码片段不存在，说明是在“取消新建代码片段”
@@ -2400,9 +2404,10 @@ export default class PluginSnippets extends Plugin {
                     return;
                 } else {
                     // 如果填了内容，则弹窗提示确认
-                    this.openSnippetCancelDialog(snippet, true, undefined, () => {
-                        cancel();
-                    });
+                    this.openSnippetCancelDialog(snippet, true, undefined,
+                        () => { cancel(); }, // 取消
+                        () => { focusElement?.focus(); } // 恢复焦点
+                    );
                     return;
                 }
             } else if (currentSnippet === false) {
@@ -2425,9 +2430,10 @@ export default class PluginSnippets extends Plugin {
 
             if (changes.length > 0) {
                 // 有变更，弹窗提示确认
-                this.openSnippetCancelDialog(snippet, false, changes, () => {
-                    cancel();
-                }); // 取消后无操作
+                this.openSnippetCancelDialog(snippet, false, changes,
+                    () => { cancel(); }, // 取消
+                    () => { focusElement?.focus(); } // 恢复焦点
+                );
                 return;
             } else {
                 // 没有变更
@@ -2466,6 +2472,12 @@ export default class PluginSnippets extends Plugin {
                 this.postReloadUI();
             }
         }
+        
+        // 原生的 dialog.destroy() 方法会导致菜单被关闭，这里覆盖掉，改成调用 cancelHandler()
+        dialog.destroy = () => {
+            this.console.log("snippetEditDialog destroy");
+            cancelHandler();
+        }
 
         const isOnlyCtrl = (event: KeyboardEvent) => event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey;
 
@@ -2478,6 +2490,7 @@ export default class PluginSnippets extends Plugin {
                 if (event.key === "Enter" || event.key === "Tab") {
                     event.preventDefault();
                     codeMirrorView.contentDOM.focus();
+                    return;
                 }
             } else if (target === codeMirrorView.contentDOM) {
                 // 在代码编辑器中按键
@@ -2485,7 +2498,15 @@ export default class PluginSnippets extends Plugin {
                     // 按 Ctrl+Enter 键执行“保存”操作
                     event.preventDefault();
                     saveHandler();
+                    return;
                 }
+            }
+
+            if (event.key === "Escape") {
+                // 按 Esc 键关闭 Dialog
+                event.stopPropagation();
+                cancelHandler();
+                return;
             }
         }, {capture: true}); // 需要在捕获阶段阻止冒泡，否则按 Ctrl+Enter 会先输入一个换行
 
@@ -2532,9 +2553,13 @@ export default class PluginSnippets extends Plugin {
         const scrimElement = dialog.element.querySelector(".b3-dialog__scrim") as HTMLElement;
         // 代码片段编辑对话框的 .b3-dialog__scrim 元素只在桌面端被移除，移动端还是有的，所以要处理点击
         
-        this.addListener(dialog.element, "click", async (event: Event) => {
+        this.addListener(dialog.element, "click", async (event: MouseEvent | CustomEvent) => {
             const target = event.target as HTMLElement;
             const tagName = target.tagName.toLowerCase();
+            if (typeof event.detail === "string") {
+                // 如果有自定义事件，则阻止冒泡
+                event.stopPropagation();
+            }
             if (tagName === "input" && target === switchInput) {
                 // 切换代码片段的开关状态
                 if (this.realTimePreview && snippet.type === "css") {
@@ -2623,8 +2648,9 @@ export default class PluginSnippets extends Plugin {
      * @param isNew 是否是新建代码片段
      * @param changes 变更内容
      * @param confirm 确认回调
+     * @param cancel 取消回调
      */
-    private openSnippetCancelDialog(snippet: Snippet, isNew?: boolean, changes?: string[], confirm?: () => void) {
+    private openSnippetCancelDialog(snippet: Snippet, isNew?: boolean, changes?: string[], confirm?: () => void, cancel?: () => void) {
         const snippetName = snippet.name.trim();
         let text: string;
         if (isNew) {
@@ -2644,10 +2670,8 @@ export default class PluginSnippets extends Plugin {
             "jcsm-snippet-cancel",
             this.i18n.continueEdit,
             this.i18n.giveUpEdit,
-            () => {
-                // 取消编辑代码片段
-                confirm?.();
-            }
+            () => { confirm?.(); }, // 取消编辑代码片段
+            () => { cancel?.(); }
         );
     };
 
@@ -3229,11 +3253,30 @@ export default class PluginSnippets extends Plugin {
             // 1. 触发原生监听器导致实际上会操作菜单选项，因此无法在输入框中使用方向键移动光标
             // 2. 按 Enter 之后默认会关闭整个菜单
             // 打开插件设置时无法按 Alt+P 打开思源设置菜单，只要不是按 Enter 或方向键就放过事件冒泡
-            if (["Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+            if (["Escape", "Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+                this.console.log("globalKeyDownHandler: Escape, Enter, ArrowUp, ArrowDown, ArrowLeft, ArrowRight", event.key);
                 event.stopPropagation();
             }
             // 如果当前在输入框中使用键盘，则不处理菜单按键事件
             if (this.isInputElementActive()) return;
+
+            // 如果按下的是 Esc 键，则根据菜单和其他插件对话框的 zIndex 来判断是否需要关闭菜单
+            if (event.key === "Escape") {
+                let maxZIndex = 0;
+                const snippetDialogElements = document.querySelectorAll("body > .b3-dialog--open[data-key='jcsm-snippet-dialog']");
+                snippetDialogElements.forEach((element: HTMLElement) => {
+                    const zIndex = Number(element.style?.zIndex ?? 0);
+                    if (zIndex > maxZIndex) {
+                        maxZIndex = zIndex;
+                    }
+                })
+                const menuZIndex = Number(this.menu?.element?.style?.zIndex ?? 0);
+                if (menuZIndex < maxZIndex) {
+                    // 菜单的 zIndex 不是最高时就不关闭菜单
+                    return;
+                }
+            }
+
             this.menu.element.dispatchEvent(new CustomEvent("click", {detail: event.key}));
             return;
         }
