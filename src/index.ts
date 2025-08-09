@@ -2556,10 +2556,7 @@ export default class PluginSnippets extends Plugin {
         this.addListener(dialog.element, "click", async (event: MouseEvent | CustomEvent) => {
             const target = event.target as HTMLElement;
             const tagName = target.tagName.toLowerCase();
-            if (typeof event.detail === "string") {
-                // 如果有自定义事件，则阻止冒泡
-                event.stopPropagation();
-            }
+            const isDispatch = typeof event.detail === "string";
             if (tagName === "input" && target === switchInput) {
                 // 切换代码片段的开关状态
                 if (this.realTimePreview && snippet.type === "css") {
@@ -2593,7 +2590,7 @@ export default class PluginSnippets extends Plugin {
                         saveHandler();
                         break;
                 }
-            } else if (target === closeElement || target === scrimElement) {
+            } else if (target === closeElement || target === scrimElement || (isDispatch && event.detail === "Escape")) {
                 // 阻止冒泡，否则点击会导致 menu 关闭
                 event.stopPropagation();
                 cancelHandler();
@@ -3247,8 +3244,37 @@ export default class PluginSnippets extends Plugin {
             return;
         }
 
+        let handleMenu = true; // 是否处理菜单操作
+
+            // 如果按下的是 Esc 键，则根据菜单和其他插件对话框的 zIndex 来判断是否需要关闭菜单
+            if (event.key === "Escape") {
+                let maxZIndex = 0;
+            let maxZIndexElement: HTMLElement | null = null;
+                const snippetDialogElements = document.querySelectorAll("body > .b3-dialog--open[data-key='jcsm-snippet-dialog']");
+                snippetDialogElements.forEach((element: HTMLElement) => {
+                    const zIndex = Number(element.style?.zIndex ?? 0);
+                    if (zIndex > maxZIndex) {
+                        maxZIndex = zIndex;
+                    maxZIndexElement = element;
+                    }
+                })
+
+                const menuZIndex = Number(this.menu?.element?.style?.zIndex ?? 0);
+                if (menuZIndex < maxZIndex) {
+                    // 菜单的 zIndex 不是最高时就不关闭菜单
+                handleMenu = false;
+            }
+
+            // 把事件 dispatchEvent 到最高 zIndex 的 snippetDialogElement 上，让 Dialog 处理 Esc 键
+            if (!this.menu && maxZIndexElement) {
+                event.stopPropagation();
+                this.console.log("globalKeyDownHandler: Esc, dispatchEvent to maxZIndexElement", maxZIndexElement);
+                maxZIndexElement.dispatchEvent(new CustomEvent("click", {detail: event.key}));
+            }
+        }
+
         // 菜单操作
-        if (this.menu && document.activeElement === document.body) {
+        if (this.menu && document.activeElement === document.body && handleMenu) {
             // 阻止冒泡，避免：
             // 1. 触发原生监听器导致实际上会操作菜单选项，因此无法在输入框中使用方向键移动光标
             // 2. 按 Enter 之后默认会关闭整个菜单
@@ -3259,23 +3285,6 @@ export default class PluginSnippets extends Plugin {
             }
             // 如果当前在输入框中使用键盘，则不处理菜单按键事件
             if (this.isInputElementActive()) return;
-
-            // 如果按下的是 Esc 键，则根据菜单和其他插件对话框的 zIndex 来判断是否需要关闭菜单
-            if (event.key === "Escape") {
-                let maxZIndex = 0;
-                const snippetDialogElements = document.querySelectorAll("body > .b3-dialog--open[data-key='jcsm-snippet-dialog']");
-                snippetDialogElements.forEach((element: HTMLElement) => {
-                    const zIndex = Number(element.style?.zIndex ?? 0);
-                    if (zIndex > maxZIndex) {
-                        maxZIndex = zIndex;
-                    }
-                })
-                const menuZIndex = Number(this.menu?.element?.style?.zIndex ?? 0);
-                if (menuZIndex < maxZIndex) {
-                    // 菜单的 zIndex 不是最高时就不关闭菜单
-                    return;
-                }
-            }
 
             this.menu.element.dispatchEvent(new CustomEvent("click", {detail: event.key}));
             return;
