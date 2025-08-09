@@ -1,4 +1,4 @@
-> v1.1.0 主要更新：支持导出导入所有代码片段 [#7](https://github.com/TCOTC/snippets/issues/7)；代码片段未命名时，菜单项标题显示代码片段的前 200 个字符 [#8](https://github.com/TCOTC/snippets/issues/8)；支持自动重新加载界面 [#12](https://github.com/TCOTC/snippets/issues/12)
+> v1.2.0 主要更新：支持禁用“同时打开多个代码片段编辑器” [#15](https://github.com/TCOTC/snippets/issues/15)；支持配置“点击代码片段选项的行为” [#16](https://github.com/TCOTC/snippets/issues/16)
 
 [繁體中文](https://github.com/TCOTC/snippets/blob/main/README_zh_CHT.md) | [English](https://github.com/TCOTC/snippets/blob/main/README.md) | [日本語](https://github.com/TCOTC/snippets/blob/main/README_ja_JP.md)
 
@@ -42,3 +42,18 @@
 
 - 持续监听指定文件夹下的代码片段文件，当文件发生变化时，自动加载到界面
 - 不持续监听，仅在启动时加载一次所有代码片段文件
+
+---
+
+#### 插件更新日志
+
+##### v1.2.0
+
+- 支持禁用“同时打开多个代码片段编辑器” [#15](https://github.com/TCOTC/snippets/issues/15)
+- 支持配置“点击代码片段选项的行为” [#16](https://github.com/TCOTC/snippets/issues/16)
+
+##### v1.1.0
+
+- 支持导出导入所有代码片段 [#7](https://github.com/TCOTC/snippets/issues/7)
+- 代码片段未命名时，菜单项标题显示代码片段的前 200 个字符 [#8](https://github.com/TCOTC/snippets/issues/8)
+- 支持自动重新加载界面 [#12](https://github.com/TCOTC/snippets/issues/12)

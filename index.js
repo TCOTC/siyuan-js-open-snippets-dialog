@@ -607,17 +607,28 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
             this.createSnippet();
           } else {
             const checkBox = snippetMenuItem.querySelector("input");
-            if (target !== checkBox) {
-              checkBox.checked = !checkBox.checked;
-            }
-            const snippet = yield this.getSnippetById(snippetMenuItem.dataset.id);
-            if (snippet) {
-              snippet.enabled = checkBox.checked;
-              this.saveSnippetsList(this.snippetsList);
-              this.updateSnippetElement(snippet);
-            }
-            if (this.isMobile) {
-              this.clearMenuSelection();
+            const isCheckBox = target === checkBox;
+            if (isCheckBox || !isCheckBox && this.snippetOptionClickBehavior === 1) {
+              if (!isCheckBox)
+                checkBox.checked = !checkBox.checked;
+              const snippet = yield this.getSnippetById(snippetMenuItem.dataset.id);
+              if (snippet) {
+                snippet.enabled = checkBox.checked;
+                this.saveSnippetsList(this.snippetsList);
+                this.updateSnippetElement(snippet);
+              }
+              if (this.isMobile) {
+                this.clearMenuSelection();
+              }
+            } else if (this.snippetOptionClickBehavior === 2) {
+              const snippet = yield this.getSnippetById(snippetMenuItem.dataset.id);
+              if (snippet === void 0) {
+                this.showErrorMessage(this.i18n.getSnippetFailed);
+                return;
+              } else if (snippet === false) {
+                return;
+              }
+              this.openSnippetEditDialog(snippet);
             }
           }
         }
@@ -694,6 +705,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
      * @param event \u952E\u76D8\u4E8B\u4EF6
      */
     this.globalKeyDownHandler = (event) => {
+      var _a, _b, _c, _d;
       const dialogElements = this.getAllModalDialogElements();
       const dialogElement = dialogElements[dialogElements.length - 1];
       if (dialogElement) {
@@ -701,8 +713,32 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
         dialogElement.dispatchEvent(new CustomEvent("click", { detail: event.key }));
         return;
       }
-      if (this.menu && document.activeElement === document.body) {
-        if (["Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+      let handleMenu = true;
+      if (event.key === "Escape") {
+        let maxZIndex = 0;
+        let maxZIndexElement = null;
+        const snippetDialogElements = document.querySelectorAll("body > .b3-dialog--open[data-key='jcsm-snippet-dialog']");
+        snippetDialogElements.forEach((element) => {
+          var _a2, _b2;
+          const zIndex = Number((_b2 = (_a2 = element.style) == null ? void 0 : _a2.zIndex) != null ? _b2 : 0);
+          if (zIndex > maxZIndex) {
+            maxZIndex = zIndex;
+            maxZIndexElement = element;
+          }
+        });
+        const menuZIndex = Number((_d = (_c = (_b = (_a = this.menu) == null ? void 0 : _a.element) == null ? void 0 : _b.style) == null ? void 0 : _c.zIndex) != null ? _d : 0);
+        if (menuZIndex < maxZIndex) {
+          handleMenu = false;
+        }
+        if (!this.menu && maxZIndexElement) {
+          event.stopPropagation();
+          this.console.log("globalKeyDownHandler: Esc, dispatchEvent to maxZIndexElement", maxZIndexElement);
+          maxZIndexElement.dispatchEvent(new CustomEvent("click", { detail: event.key }));
+        }
+      }
+      if (this.menu && document.activeElement === document.body && handleMenu) {
+        if (["Escape", "Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+          this.console.log("globalKeyDownHandler: Escape, Enter, ArrowUp, ArrowDown, ArrowLeft, ArrowRight", event.key);
           event.stopPropagation();
         }
         if (this.isInputElementActive())
@@ -870,7 +906,16 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
    * \u914D\u7F6E\u9879\u5B9A\u4E49
    */
   get configItems() {
-    const configItems = [
+    const configItems = [];
+    if (!this.isMobile) {
+      configItems.push({
+        key: "multipleSnippetEditors",
+        description: "multipleSnippetEditorsDescription",
+        type: "boolean",
+        defaultValue: true
+      });
+    }
+    configItems.push(
       {
         key: "realTimePreview",
         description: "realTimePreviewDescription",
@@ -901,21 +946,38 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
         defaultValue: true
       },
       {
-        key: "snippetSearchType",
-        description: "snippetSearchTypeDescription",
-        type: "select",
+        key: "showEditButton",
+        description: "showEditButtonDescription",
+        type: "boolean",
+        defaultValue: true
+      },
+      {
+        key: "snippetOptionClickBehavior",
+        description: "snippetOptionClickBehaviorDescription",
+        type: "selectNumber",
         defaultValue: 1,
         options: [
-          { value: "0", text: "snippetSearchTypeDisabled" },
-          { value: "1", text: "snippetSearchTypeName" },
-          { value: "2", text: "snippetSearchTypeContent" },
-          { value: "3", text: "snippetSearchTypeNameAndContent" }
+          { value: 0, text: "snippetOptionClickBehaviorNone" },
+          { value: 1, text: "snippetOptionClickBehaviorToggle" },
+          { value: 2, text: "snippetOptionClickBehaviorOpenEditor" }
+        ]
+      },
+      {
+        key: "snippetSearchType",
+        description: "snippetSearchTypeDescription",
+        type: "selectNumber",
+        defaultValue: 1,
+        options: [
+          { value: 0, text: "snippetSearchTypeDisabled" },
+          { value: 1, text: "snippetSearchTypeName" },
+          { value: 2, text: "snippetSearchTypeContent" },
+          { value: 3, text: "snippetSearchTypeNameAndContent" }
         ]
       },
       {
         key: "editorIndentUnit",
         description: "editorIndentUnitDescription",
-        type: "select",
+        type: "selectString",
         defaultValue: "followSiyuan",
         options: [
           { value: "followSiyuan", text: "editorIndentUnitFollowSiyuan" },
@@ -934,7 +996,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
       {
         key: "fileWatchEnabled",
         description: "fileWatchEnabledDescription",
-        type: "select",
+        type: "selectString",
         defaultValue: "disabled",
         options: [
           { value: "disabled", text: "fileWatchModeDisabled" },
@@ -954,7 +1016,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
         type: "number",
         defaultValue: 5
       }
-    ];
+    );
     if (!this.isMobile) {
       configItems.push({
         key: "openNativeSnippets",
@@ -1084,10 +1146,10 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
           return this.htmlToElement(
             \`<input class="b3-switch fn__flex-center" type="checkbox" data-type="\${item.key}"\${window.siyuan.jcsm[item.key] ? " checked" : ""}>\`
           );
-        } else if (item.type === "select" && item.options) {
+        } else if ((item.type === "selectString" || item.type === "selectNumber") && item.options) {
           const currentValue = (_a = window.siyuan.jcsm[item.key]) != null ? _a : item.defaultValue;
           const optionsHtml = item.options.map((option) => {
-            const isSelected = typeof currentValue === "number" && typeof option.value === "string" ? currentValue === parseInt(option.value) : currentValue === option.value;
+            const isSelected = String(currentValue) === String(option.value);
             return \`<option value="\${option.value}"\${isSelected ? " selected" : ""}>\${this.i18n[option.text]}</option>\`;
           }).join("");
           return this.htmlToElement(
@@ -1146,7 +1208,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
    */
   applySetting(dialogElement) {
     this.configItems.forEach((item) => {
-      var _a, _b, _c, _d, _e, _f;
+      var _a, _b, _c, _d, _e, _f, _g;
       if (item.type === "boolean") {
         const element = dialogElement.querySelector(\`input[data-type='\${item.key}']\`);
         if (!element)
@@ -1190,33 +1252,42 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
                 deleteButton.classList.add("fn__none");
               }
             });
+          } else if (item.key === "showEditButton") {
+            const editButtons = (_c = this.menuItems) == null ? void 0 : _c.querySelectorAll(".jcsm-snippet-item button[data-type='edit']");
+            editButtons.forEach((editButton) => {
+              if (newValue) {
+                editButton.classList.remove("fn__none");
+              } else {
+                editButton.classList.add("fn__none");
+              }
+            });
           }
         }
-      } else if (item.type === "select") {
+      } else if (item.type === "selectString" || item.type === "selectNumber") {
         const element = dialogElement.querySelector(\`select[data-type='\${item.key}']\`);
         if (!element)
           return;
         let newValue = element.value;
-        if (item.key === "snippetSearchType") {
+        if (item.type === "selectNumber") {
           newValue = parseInt(element.value);
         }
         if (window.siyuan.jcsm[item.key] !== newValue) {
           window.siyuan.jcsm[item.key] = newValue;
           if (item.key === "snippetSearchType") {
             if (newValue === 0) {
-              const searchButton = (_c = this.menuItems) == null ? void 0 : _c.querySelector(".jcsm-top-container button[data-type='search']");
+              const searchButton = (_d = this.menuItems) == null ? void 0 : _d.querySelector(".jcsm-top-container button[data-type='search']");
               if (searchButton) {
                 searchButton.classList.add("fn__none");
                 searchButton.classList.remove("jcsm-active");
               }
-              const searchInput = (_d = this.menuItems) == null ? void 0 : _d.querySelector("input[data-action='search']");
+              const searchInput = (_e = this.menuItems) == null ? void 0 : _e.querySelector("input[data-action='search']");
               if (searchInput) {
                 searchInput.classList.add("fn__none");
                 searchInput.value = "";
                 searchInput.dispatchEvent(new Event("input", { bubbles: true }));
               }
             } else {
-              (_f = (_e = this.menuItems) == null ? void 0 : _e.querySelector(".jcsm-top-container button[data-type='search']")) == null ? void 0 : _f.classList.remove("fn__none");
+              (_g = (_f = this.menuItems) == null ? void 0 : _f.querySelector(".jcsm-top-container button[data-type='search']")) == null ? void 0 : _g.classList.remove("fn__none");
             }
           } else if (item.key === "editorIndentUnit") {
             this.updateAllEditorConfigs("indent unit");
@@ -1281,6 +1352,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
       height: "80vh"
     });
     dialog.element.setAttribute("data-key", "jcsm-setting-dialog");
+    dialog.element.setAttribute("data-modal", "true");
     dialog.element.setAttribute("data-mobile", this.isMobile ? "true" : "false");
     const contentElement = dialog.element.querySelector(".b3-dialog__content");
     this.setting.items.forEach((item) => {
@@ -1614,7 +1686,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
                     <span class="fn__space"></span>
                     <button class="block__icon block__icon--show fn__flex-center\${isTouch ? " jcsm-touch" : ""}\${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
                     <button class="block__icon block__icon--show fn__flex-center\${isTouch ? " jcsm-touch" : ""}\${this.showDuplicateButton ? "" : " fn__none"}" data-type="duplicate"><svg><use xlink:href="#iconCopy"></use></svg></button>
-                    <button class="block__icon block__icon--show fn__flex-center\${isTouch ? " jcsm-touch" : ""}" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center\${isTouch ? " jcsm-touch" : ""}\${this.showEditButton ? "" : " fn__none"}" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
                     <span class="fn__space"></span>
                     <input class="jcsm-switch b3-switch fn__flex-center" type="checkbox"\${snippet.enabled ? " checked" : ""}>
                 </div>
@@ -2348,12 +2420,11 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
       dialog.element.setAttribute("data-key", "jcsm-snippet-dialog");
       dialog.element.setAttribute("data-snippet-id", snippet.id);
       dialog.element.setAttribute("data-snippet-type", snippet.type);
-      dialog.element.setAttribute("data-modal", "false");
       if (!isNew) {
         const deleteButton = dialog.element.querySelector("button[data-action='delete']");
         deleteButton == null ? void 0 : deleteButton.classList.remove("fn__none");
       }
-      if (!this.isMobile) {
+      if (!this.isMobile && this.multipleSnippetEditors) {
         dialog.element.style.zIndex = (++window.siyuan.zIndex).toString();
         (_a = dialog.element.querySelector(".b3-dialog__scrim")) == null ? void 0 : _a.remove();
         const dialogElement = dialog.element.querySelector(".b3-dialog");
@@ -2363,6 +2434,9 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
         dialogElement.style.top = "50vh";
         const dialogContainer = dialogElement.querySelector(".b3-dialog__container");
         dialogContainer.style.position = "fixed";
+        dialog.element.setAttribute("data-modal", "false");
+      } else {
+        dialog.element.setAttribute("data-modal", "true");
       }
       this.checkAndManageThemeWatch(true);
       const nameElement = dialog.element.querySelector(".jcsm-dialog-name");
@@ -2378,15 +2452,27 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
           }
           this.closeDialogByElement(dialog.element);
         };
+        const focusElement = dialog.element.querySelector(":focus") || dialog.element.contains(document.activeElement) ? document.activeElement : void 0;
+        focusElement == null ? void 0 : focusElement.blur();
         const currentSnippet = yield this.getSnippetById(snippet.id);
         if (currentSnippet === void 0) {
           if (nameElement.value.trim() === "" && codeMirrorView.state.doc.toString().trim() === "") {
             cancel();
             return;
           } else {
-            this.openSnippetCancelDialog(snippet, true, void 0, () => {
-              cancel();
-            });
+            this.openSnippetCancelDialog(
+              snippet,
+              true,
+              void 0,
+              () => {
+                cancel();
+              },
+              // \u53D6\u6D88
+              () => {
+                focusElement == null ? void 0 : focusElement.focus();
+              }
+              // \u6062\u590D\u7126\u70B9
+            );
             return;
           }
         } else if (currentSnippet === false) {
@@ -2404,9 +2490,19 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
           changes.push(this.i18n.snippetEnabled);
         }
         if (changes.length > 0) {
-          this.openSnippetCancelDialog(snippet, false, changes, () => {
-            cancel();
-          });
+          this.openSnippetCancelDialog(
+            snippet,
+            false,
+            changes,
+            () => {
+              cancel();
+            },
+            // \u53D6\u6D88
+            () => {
+              focusElement == null ? void 0 : focusElement.focus();
+            }
+            // \u6062\u590D\u7126\u70B9
+          );
           return;
         } else {
           cancel();
@@ -2437,6 +2533,10 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
           this.postReloadUI();
         }
       });
+      dialog.destroy = () => {
+        this.console.log("snippetEditDialog destroy");
+        cancelHandler();
+      };
       const isOnlyCtrl = (event) => event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey;
       this.addListener(dialog.element, "keydown", (event) => {
         this.console.log("snippetEditDialog keydown", event);
@@ -2445,12 +2545,19 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
           if (event.key === "Enter" || event.key === "Tab") {
             event.preventDefault();
             codeMirrorView.contentDOM.focus();
+            return;
           }
         } else if (target === codeMirrorView.contentDOM) {
           if (isOnlyCtrl(event) && event.key === "Enter") {
             event.preventDefault();
             saveHandler();
+            return;
           }
+        }
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          cancelHandler();
+          return;
         }
       }, { capture: true });
       this.addListener(dialog.element, "keydown", (event) => {
@@ -2484,11 +2591,13 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
       this.addListener(dialog.element, "click", (event) => __async(this, null, function* () {
         const target = event.target;
         const tagName = target.tagName.toLowerCase();
+        const isDispatch = typeof event.detail === "string";
         if (tagName === "input" && target === switchInput) {
           if (this.realTimePreview && snippet.type === "css") {
             previewHandler();
           }
         } else if (tagName === "button") {
+          event.stopPropagation();
           target.blur();
           switch (target.dataset.action) {
             case "delete":
@@ -2506,11 +2615,11 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
               }
               break;
             case "confirm":
-              event.stopPropagation();
               saveHandler();
               break;
           }
-        } else if (target === closeElement || target === scrimElement) {
+        } else if (target === closeElement || target === scrimElement || isDispatch && event.detail === "Escape") {
+          event.stopPropagation();
           cancelHandler();
         }
         return;
@@ -2547,8 +2656,9 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
    * @param isNew \u662F\u5426\u662F\u65B0\u5EFA\u4EE3\u7801\u7247\u6BB5
    * @param changes \u53D8\u66F4\u5185\u5BB9
    * @param confirm \u786E\u8BA4\u56DE\u8C03
+   * @param cancel \u53D6\u6D88\u56DE\u8C03
    */
-  openSnippetCancelDialog(snippet, isNew, changes, confirm) {
+  openSnippetCancelDialog(snippet, isNew, changes, confirm, cancel) {
     var _a;
     const snippetName = snippet.name.trim();
     let text;
@@ -2566,6 +2676,10 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
       this.i18n.giveUpEdit,
       () => {
         confirm == null ? void 0 : confirm();
+      },
+      // \u53D6\u6D88\u7F16\u8F91\u4EE3\u7801\u7247\u6BB5
+      () => {
+        cancel == null ? void 0 : cancel();
       }
     );
   }
@@ -2600,6 +2714,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
       width: this.isMobile ? "92vw" : "520px"
     });
     dialog.element.setAttribute("data-key", dataKey != null ? dataKey : "dialog-confirm");
+    dialog.element.setAttribute("data-modal", "true");
     const container = dialog.element.querySelector(".b3-dialog__container");
     if (container)
       container.style.maxHeight = "90vh";
