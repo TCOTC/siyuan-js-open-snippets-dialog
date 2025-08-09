@@ -83,10 +83,12 @@
   "editorIndentUnitSpace8": "8 個空格",
   "duplicate": "副本",
   "duplicateSnippetFailed": "建立副本失敗",
-  "showDuplicateButton": "顯示建立副本按鈕",
-  "showDuplicateButtonDescription": "在代碼片段清單中顯示建立副本按鈕，點擊後會建立一個與目前代碼片段相同內容的副本，並將其插入到目前代碼片段的上方",
-  "showDeleteButton": "顯示刪除按鈕",
-  "showDeleteButtonDescription": "在代碼片段清單中顯示刪除按鈕，點擊後會刪除該代碼片段",
+  "showDuplicateButton": "管理選單顯示建立副本按鈕",
+  "showDuplicateButtonDescription": "在管理選單的代碼片段清單中顯示建立副本按鈕，點擊後會建立一個與目前代碼片段相同內容的副本，並將其插入到目前代碼片段的上方",
+  "showDeleteButton": "管理選單顯示刪除按鈕",
+  "showDeleteButtonDescription": "在管理選單的代碼片段清單中顯示刪除按鈕，點擊後會刪除該代碼片段",
+  "showEditButton": "管理選單顯示編輯按鈕",
+  "showEditButtonDescription": "在管理選單的代碼片段清單中顯示編輯按鈕，點擊後會開啟代碼片段編輯器",
   "openNativeSnippets": "原生代碼片段視窗",
   "openNativeSnippetsDescription": "點擊開啟思源原生的代碼片段管理視窗",
   "openNativeSnippetsWindow": "開啟視窗",
@@ -133,5 +135,10 @@
   "autoReloadUIAfterModifyJS": "自動重新載入介面",
   "autoReloadUIAfterModifyJSDescription": "JS 片段修改後，如果沒有正在使用的代碼片段編輯器，則自動重新載入介面",
   "multipleSnippetEditors": "同時開啟多個代碼片段編輯器",
-  "multipleSnippetEditorsDescription": "啟用時，允許同時開啟多個代碼片段編輯器；停用時，只能開啟一個模態的代碼片段編輯器"
+  "multipleSnippetEditorsDescription": "啟用時，允許同時開啟多個代碼片段編輯器；停用時，只能開啟一個模態的代碼片段編輯器",
+  "snippetOptionClickBehavior": "點擊代碼片段選項的行為",
+  "snippetOptionClickBehaviorDescription": "在管理選單中點擊代碼片段選項時，執行的操作",
+  "snippetOptionClickBehaviorNone": "無操作",
+  "snippetOptionClickBehaviorToggle": "切換代碼片段開關狀態",
+  "snippetOptionClickBehaviorOpenEditor": "開啟代碼片段編輯器"
 }

@@ -83,10 +83,12 @@
   "editorIndentUnitSpace8": "8スペース",
   "duplicate": "複製",
   "duplicateSnippetFailed": "複製スニペットの作成に失敗しました",
-  "showDuplicateButton": "複製ボタンを表示",
-  "showDuplicateButtonDescription": "スニペットリストに複製ボタンを表示します。クリックすると現在のスニペットと同じ内容のコピーが作成され、現在のスニペットの上に挿入されます",
-  "showDeleteButton": "削除ボタンを表示",
-  "showDeleteButtonDescription": "スニペットリストに削除ボタンを表示します。クリックするとスニペットが削除されます",
+  "showDuplicateButton": "管理メニューで複製ボタンを表示",
+  "showDuplicateButtonDescription": "管理メニューのスニペット一覧に複製ボタンを表示します。クリックすると現在のスニペットと同じ内容の複製を作成し、現在のスニペットの上に挿入します",
+  "showDeleteButton": "管理メニューで削除ボタンを表示",
+  "showDeleteButtonDescription": "管理メニューのスニペット一覧に削除ボタンを表示します。クリックするとそのスニペットを削除します",
+  "showEditButton": "管理メニューで編集ボタンを表示",
+  "showEditButtonDescription": "管理メニューのスニペット一覧に編集ボタンを表示します。クリックするとスニペットエディターを開きます",
   "openNativeSnippets": "ネイティブスニペットウィンドウ",
   "openNativeSnippetsDescription": "思源のネイティブスニペット管理ウィンドウを開く",
   "openNativeSnippetsWindow": "ウィンドウを開く",
@@ -133,5 +135,10 @@
   "autoReloadUIAfterModifyJS": "自動UI再読み込み",
   "autoReloadUIAfterModifyJSDescription": "JSスニペット変更後、アクティブなスニペットエディターがない場合、自動的にUIを再読み込みします",
   "multipleSnippetEditors": "複数のスニペットエディターを同時に開く",
-  "multipleSnippetEditorsDescription": "有効にすると、複数のスニペットエディターを同時に開くことができます。無効にすると、モーダルのスニペットエディターを 1 つだけ開けます"
+  "multipleSnippetEditorsDescription": "有効にすると、複数のスニペットエディターを同時に開くことができます。無効にすると、モーダルのスニペットエディターを 1 つだけ開けます",
+  "snippetOptionClickBehavior": "管理メニューでスニペット項目をクリックしたときの動作",
+  "snippetOptionClickBehaviorDescription": "管理メニューでスニペット項目をクリックしたときに実行する操作",
+  "snippetOptionClickBehaviorNone": "操作なし",
+  "snippetOptionClickBehaviorToggle": "スニペットの有効状態を切り替え",
+  "snippetOptionClickBehaviorOpenEditor": "スニペットエディターを開く"
 }

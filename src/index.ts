@@ -266,11 +266,11 @@ export default class PluginSnippets extends Plugin {
         const configItems: Array<{
             key: string;
             description?: string;
-            type?: 'boolean' | 'string' | 'number' | 'select' | 'createActionElement';
+            type?: 'boolean' | 'string' | 'number' | 'selectString' | 'selectNumber' | 'createActionElement';
             defaultValue?: any;
             direction?: 'row' | 'column';
             createActionElement?: () => HTMLElement;
-            options?: Array<{ value: string; text: string }>;
+            options?: Array<{ value: string | number; text: string }>;
         }> = [];
 
         if (!this.isMobile) {
@@ -313,21 +313,38 @@ export default class PluginSnippets extends Plugin {
                 defaultValue: true,
             },
             {
-                key: "snippetSearchType",
-                description: "snippetSearchTypeDescription",
-                type: "select",
+                key: "showEditButton",
+                description: "showEditButtonDescription",
+                type: "boolean",
+                defaultValue: true,
+            },
+            {
+                key: "snippetOptionClickBehavior",
+                description: "snippetOptionClickBehaviorDescription",
+                type: "selectNumber",
                 defaultValue: 1,
                 options: [
-                    { value: "0", text: "snippetSearchTypeDisabled" },
-                    { value: "1", text: "snippetSearchTypeName" },
-                    { value: "2", text: "snippetSearchTypeContent" },
-                    { value: "3", text: "snippetSearchTypeNameAndContent" }
+                    { value: 0, text: "snippetOptionClickBehaviorNone" },
+                    { value: 1, text: "snippetOptionClickBehaviorToggle" },
+                    { value: 2, text: "snippetOptionClickBehaviorOpenEditor" }
+                ],
+            },
+            {
+                key: "snippetSearchType",
+                description: "snippetSearchTypeDescription",
+                type: "selectNumber",
+                defaultValue: 1,
+                options: [
+                    { value: 0, text: "snippetSearchTypeDisabled" },
+                    { value: 1, text: "snippetSearchTypeName" },
+                    { value: 2, text: "snippetSearchTypeContent" },
+                    { value: 3, text: "snippetSearchTypeNameAndContent" }
                 ],
             },
             {
                 key: "editorIndentUnit",
                 description: "editorIndentUnitDescription",
-                type: "select",
+                type: "selectString",
                 defaultValue: "followSiyuan",
                 options: [
                     { value: "followSiyuan", text: "editorIndentUnitFollowSiyuan" },
@@ -346,7 +363,7 @@ export default class PluginSnippets extends Plugin {
             {
                 key: "fileWatchEnabled",
                 description: "fileWatchEnabledDescription",
-                type: "select",
+                type: "selectString",
                 defaultValue: "disabled",
                 options: [
                     { value: "disabled", text: "fileWatchModeDisabled" },
@@ -501,14 +518,12 @@ export default class PluginSnippets extends Plugin {
                     return this.htmlToElement(
                         `<input class="b3-switch fn__flex-center" type="checkbox" data-type="${item.key}"${(window.siyuan.jcsm as any)[item.key] ? " checked" : ""}>`
                     );
-                } else if (item.type === 'select' && item.options) {
+                } else if ((item.type === 'selectString' || item.type === 'selectNumber') && item.options) {
                     // 创建下拉框
                     const currentValue = (window.siyuan.jcsm as any)[item.key] ?? item.defaultValue;
                     const optionsHtml = item.options.map(option => {
-                        // 支持数字和字符串类型的值比较
-                        const isSelected = typeof currentValue === 'number' && typeof option.value === 'string' 
-                            ? currentValue === parseInt(option.value)
-                            : currentValue === option.value;
+                        // 由于 HTML 的 value 属性最终都会被转为字符串，这里直接用字符串比较即可
+                        const isSelected = String(currentValue) === String(option.value);
                         return `<option value="${option.value}"${isSelected ? " selected" : ""}>${(this.i18n as any)[option.text]}</option>`;
                     }).join("");
                     
@@ -643,15 +658,24 @@ export default class PluginSnippets extends Plugin {
                                 deleteButton.classList.add("fn__none");
                             }
                         });
+                    } else if (item.key === "showEditButton") {
+                        // 修改 showEditButton 之后，查询所有菜单项修改编辑按钮的 fn__none
+                        const editButtons = this.menuItems?.querySelectorAll(".jcsm-snippet-item button[data-type='edit']") as NodeListOf<HTMLButtonElement>;
+                        editButtons.forEach(editButton => {
+                            if (newValue) {
+                                editButton.classList.remove("fn__none");
+                            } else {
+                                editButton.classList.add("fn__none");
+                            }
+                        });
                     }
                 }
-            } else if (item.type === 'select') {
+            } else if (item.type === 'selectString' || item.type === 'selectNumber') {
                 const element = dialogElement.querySelector(`select[data-type='${item.key}']`) as HTMLSelectElement;
                 if (!element) return;
 
                 let newValue: any = element.value;
-                // 根据配置项的类型转换值
-                if (item.key === "snippetSearchType") {
+                if (item.type === 'selectNumber') {
                     newValue = parseInt(element.value);
                 }
                 
@@ -756,6 +780,7 @@ export default class PluginSnippets extends Plugin {
         });
         dialog.element.setAttribute("data-key", "jcsm-setting-dialog");
         dialog.element.setAttribute("data-modal", "true");  // 标记为模态对话框
+        dialog.element.setAttribute("data-mobile", this.isMobile ? "true" : "false"); // CSS 样式用到这个属性
         const contentElement = dialog.element.querySelector(".b3-dialog__content");
         this.setting.items.forEach((item) => {
             let html = "";
@@ -1150,6 +1175,14 @@ export default class PluginSnippets extends Plugin {
     }
 
     /**
+     * 点击代码片段选项的行为
+     * 0：无操作
+     * 1：切换代码片段开关状态
+     * 2：打开代码片段编辑器
+     */
+    declare snippetOptionClickBehavior: number;
+
+    /**
      * 菜单点击事件处理
      * @param event 鼠标事件
      */
@@ -1362,20 +1395,33 @@ export default class PluginSnippets extends Plugin {
                 } else {
                     // 点击代码片段的菜单项
                     const checkBox = snippetMenuItem.querySelector("input") as HTMLInputElement;
-                    if (target !== checkBox) {
-                        // 如果点击的不是 checkBox 就手工切换开关状态
-                        checkBox.checked = !checkBox.checked;
-                    }
-                    const snippet = await this.getSnippetById(snippetMenuItem.dataset.id);
-                    if (snippet) {
-                        // 在菜单上切换代码片段的开关状态要实时保存
-                        snippet.enabled = checkBox.checked;
-                        this.saveSnippetsList(this.snippetsList);
-                        this.updateSnippetElement(snippet);
-                    }
-                    if (this.isMobile) {
-                        // 移动端点击之后一直高亮着选项不好看，所以清除选中状态
-                        this.clearMenuSelection()
+                    const isCheckBox = target === checkBox;
+                    if (isCheckBox || (!isCheckBox && this.snippetOptionClickBehavior === 1)) {
+                        // 切换代码片段的开关状态
+                        if (!isCheckBox) checkBox.checked = !checkBox.checked; // 如果点击的不是 checkBox 就手工切换开关状态
+                        const snippet = await this.getSnippetById(snippetMenuItem.dataset.id);
+                        if (snippet) {
+                            // 在菜单上切换代码片段的开关状态要实时保存
+                            snippet.enabled = checkBox.checked;
+                            this.saveSnippetsList(this.snippetsList);
+                            this.updateSnippetElement(snippet);
+                        }
+                        if (this.isMobile) {
+                            // 移动端点击之后一直高亮着选项不好看，所以清除选中状态
+                            this.clearMenuSelection()
+                        }
+                    } else if (this.snippetOptionClickBehavior === 2) {
+                        // 打开代码片段编辑器
+                        const snippet = await this.getSnippetById(snippetMenuItem.dataset.id);
+                        if (snippet === undefined) {
+                            // undefined 是数组中没有
+                            this.showErrorMessage(this.i18n.getSnippetFailed);
+                            return;
+                        } else if (snippet === false) {
+                            // false 是调用 API 返回错误
+                            return;
+                        }
+                        this.openSnippetEditDialog(snippet);
                     }
                 }
             }
@@ -1438,6 +1484,11 @@ export default class PluginSnippets extends Plugin {
     declare showDeleteButton: boolean;
 
     /**
+     * 是否显示编辑按钮
+     */
+    declare showEditButton: boolean;
+
+    /**
      * 生成代码片段列表
      * @param snippetsList 代码片段列表
      * @returns 代码片段列表 HTML 字符串
@@ -1450,9 +1501,9 @@ export default class PluginSnippets extends Plugin {
                 <div class="jcsm-snippet-item b3-menu__item" data-type="${snippet.type}" data-id="${snippet.id}">
                     <span class="jcsm-snippet-name fn__flex-1" placeholder="${this.i18n.emptySnippet}">${ snippet.name || snippet.content.slice(0, 200) }</span>
                     <span class="fn__space"></span>
-                    <button class="block__icon block__icon--show fn__flex-center${ isTouch ? " jcsm-touch" : ""}${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center${ isTouch ? " jcsm-touch" : ""}${this.showDeleteButton    ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
                     <button class="block__icon block__icon--show fn__flex-center${ isTouch ? " jcsm-touch" : ""}${this.showDuplicateButton ? "" : " fn__none"}" data-type="duplicate"><svg><use xlink:href="#iconCopy"></use></svg></button>
-                    <button class="block__icon block__icon--show fn__flex-center${ isTouch ? " jcsm-touch" : ""}" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
+                    <button class="block__icon block__icon--show fn__flex-center${ isTouch ? " jcsm-touch" : ""}${this.showEditButton      ? "" : " fn__none"}" data-type="edit"><svg><use xlink:href="#iconEdit"></use></svg></button>
                     <span class="fn__space"></span>
                     <input class="jcsm-switch b3-switch fn__flex-center" type="checkbox"${snippet.enabled ? " checked" : ""}>
                 </div>

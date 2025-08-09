@@ -83,10 +83,12 @@
   "editorIndentUnitSpace8": "8 个空格",
   "duplicate": "副本",
   "duplicateSnippetFailed": "创建副本失败",
-  "showDuplicateButton": "显示创建副本按钮",
-  "showDuplicateButtonDescription": "在代码片段列表中显示创建副本按钮，点击后会创建一个与当前代码片段相同内容的副本，并将其插入到当前代码片段的上方",
-  "showDeleteButton": "显示删除按钮",
-  "showDeleteButtonDescription": "在代码片段列表中显示删除按钮，点击后会删除该代码片段",
+  "showDuplicateButton": "管理菜单显示创建副本按钮",
+  "showDuplicateButtonDescription": "在管理菜单的代码片段列表中显示创建副本按钮，点击后会创建一个与当前代码片段相同内容的副本，并将其插入到当前代码片段的上方",
+  "showDeleteButton": "管理菜单显示删除按钮",
+  "showDeleteButtonDescription": "在管理菜单的代码片段列表中显示删除按钮，点击后会删除该代码片段",
+  "showEditButton": "管理菜单显示编辑按钮",
+  "showEditButtonDescription": "在管理菜单的代码片段列表中显示编辑按钮，点击后会打开代码片段编辑器",
   "openNativeSnippets": "原生代码片段窗口",
   "openNativeSnippetsDescription": "点击打开思源原生的代码片段管理窗口",
   "openNativeSnippetsWindow": "打开窗口",
@@ -133,5 +135,10 @@
   "autoReloadUIAfterModifyJS": "自动重新加载界面",
   "autoReloadUIAfterModifyJSDescription": "JS 片段修改后，如果没有正在使用的代码片段编辑器，则自动重新加载界面",
   "multipleSnippetEditors": "同时打开多个代码片段编辑器",
-  "multipleSnippetEditorsDescription": "启用时，允许同时打开多个代码片段编辑器；禁用时，只能打开一个模态的代码片段编辑器"
+  "multipleSnippetEditorsDescription": "启用时，允许同时打开多个代码片段编辑器；禁用时，只能打开一个模态的代码片段编辑器",
+  "snippetOptionClickBehavior": "点击代码片段选项的行为",
+  "snippetOptionClickBehaviorDescription": "在管理菜单中点击代码片段选项时，执行的操作",
+  "snippetOptionClickBehaviorNone": "无操作",
+  "snippetOptionClickBehaviorToggle": "切换代码片段开关状态",
+  "snippetOptionClickBehaviorOpenEditor": "打开代码片段编辑器"
 }

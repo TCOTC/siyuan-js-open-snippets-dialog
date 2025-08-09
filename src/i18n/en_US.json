@@ -83,10 +83,12 @@
   "editorIndentUnitSpace8": "8 spaces",
   "duplicate": "Duplicate",
   "duplicateSnippetFailed": "Failed to create duplicate snippet",
-  "showDuplicateButton": "Show duplicate button",
-  "showDuplicateButtonDescription": "Show duplicate button in snippet list, clicking will create a copy of the current snippet and insert it above the current snippet",
-  "showDeleteButton": "Show delete button",
-  "showDeleteButtonDescription": "Show delete button in snippet list, clicking will delete the snippet",
+  "showDuplicateButton": "Show Duplicate button in management menu",
+  "showDuplicateButtonDescription": "Show the Duplicate button in the management menu's snippet list. Clicking it creates a duplicate of the current snippet with the same content and inserts it above the current snippet",
+  "showDeleteButton": "Show Delete button in management menu",
+  "showDeleteButtonDescription": "Show the Delete button in the management menu's snippet list. Clicking it deletes the snippet",
+  "showEditButton": "Show Edit button in management menu",
+  "showEditButtonDescription": "Show the Edit button in the management menu's snippet list. Clicking it opens the snippet editor",
   "openNativeSnippets": "Native Snippets Window",
   "openNativeSnippetsDescription": "Click to open SiYuan's native snippets management window",
   "openNativeSnippetsWindow": "Open Window",
@@ -133,5 +135,10 @@
   "autoReloadUIAfterModifyJS": "Auto reload UI",
   "autoReloadUIAfterModifyJSDescription": "After JS snippet modification, if there's no active snippet editor, automatically reload the UI",
   "multipleSnippetEditors": "Open multiple snippet editors simultaneously",
-  "multipleSnippetEditorsDescription": "When enabled, allows opening multiple snippet editors at the same time; when disabled, only one modal snippet editor can be opened"
+  "multipleSnippetEditorsDescription": "When enabled, allows opening multiple snippet editors at the same time; when disabled, only one modal snippet editor can be opened",
+  "snippetOptionClickBehavior": "Behavior when clicking snippet option",
+  "snippetOptionClickBehaviorDescription": "The action performed when clicking a snippet option in the management menu",
+  "snippetOptionClickBehaviorNone": "Do nothing",
+  "snippetOptionClickBehaviorToggle": "Toggle snippet enabled status",
+  "snippetOptionClickBehaviorOpenEditor": "Open snippet editor"
 }
