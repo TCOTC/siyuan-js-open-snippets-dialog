@@ -2541,6 +2541,8 @@ export default class PluginSnippets extends Plugin {
                     previewHandler();
                 }
             } else if (tagName === "button") {
+                // 阻止冒泡，否则点击确认按钮会导致 menu 关闭
+                event.stopPropagation();
                 // 移除焦点，否则点击按钮后如果不关闭 Dialog 的话会一直显示 :focus 样式
                 target.blur();
                 switch (target.dataset.action) {
@@ -2563,12 +2565,12 @@ export default class PluginSnippets extends Plugin {
                         break;
                     case "confirm":
                         // 新建/更新代码片段
-                        // 阻止冒泡，否则点击确认按钮会导致 menu 关闭
-                        event.stopPropagation();
                         saveHandler();
                         break;
                 }
             } else if (target === closeElement || target === scrimElement) {
+                // 阻止冒泡，否则点击会导致 menu 关闭
+                event.stopPropagation();
                 cancelHandler();
             }
             return;
