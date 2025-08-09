@@ -131,5 +131,7 @@
   "importFileContentEmpty": "Import file content is empty",
   "importFileNotValidJson": "File content is not valid JSON format, please check the file content",
   "autoReloadUIAfterModifyJS": "Auto reload UI",
-  "autoReloadUIAfterModifyJSDescription": "After JS snippet modification, if there's no active snippet editor, automatically reload the UI"
+  "autoReloadUIAfterModifyJSDescription": "After JS snippet modification, if there's no active snippet editor, automatically reload the UI",
+  "multipleSnippetEditors": "Open multiple snippet editors simultaneously",
+  "multipleSnippetEditorsDescription": "When enabled, allows opening multiple snippet editors at the same time; when disabled, only one modal snippet editor can be opened"
 }

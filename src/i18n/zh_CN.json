@@ -131,5 +131,7 @@
   "importFileContentEmpty": "导入文件内容为空",
   "importFileNotValidJson": "文件内容不是有效的 JSON 格式，请检查文件内容",
   "autoReloadUIAfterModifyJS": "自动重新加载界面",
-  "autoReloadUIAfterModifyJSDescription": "JS 片段修改后，如果没有正在使用的代码片段编辑器，则自动重新加载界面"
+  "autoReloadUIAfterModifyJSDescription": "JS 片段修改后，如果没有正在使用的代码片段编辑器，则自动重新加载界面",
+  "multipleSnippetEditors": "同时打开多个代码片段编辑器",
+  "multipleSnippetEditorsDescription": "启用时，允许同时打开多个代码片段编辑器；禁用时，只能打开一个模态的代码片段编辑器"
 }

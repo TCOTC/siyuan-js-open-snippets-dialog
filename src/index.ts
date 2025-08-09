@@ -262,15 +262,7 @@ export default class PluginSnippets extends Plugin {
     /**
      * 配置项定义
      */
-    private get configItems(): Array<{
-        key: string;
-        description?: string;
-        type?: 'boolean' | 'string' | 'number' | 'select' | 'createActionElement';
-        defaultValue?: any;
-        direction?: 'row' | 'column';
-        createActionElement?: () => HTMLElement;
-        options?: Array<{ value: string; text: string }>;
-    }> {
+    private get configItems() {
         const configItems: Array<{
             key: string;
             description?: string;
@@ -279,7 +271,18 @@ export default class PluginSnippets extends Plugin {
             direction?: 'row' | 'column';
             createActionElement?: () => HTMLElement;
             options?: Array<{ value: string; text: string }>;
-        }> = [
+        }> = [];
+
+        if (!this.isMobile) {
+            configItems.push({
+                key: "multipleSnippetEditors",
+                description: "multipleSnippetEditorsDescription",
+                type: "boolean",
+                defaultValue: true,
+            });
+        }
+
+        configItems.push(
             {
                 key: 'realTimePreview',
                 description: 'realTimePreviewDescription',
@@ -363,7 +366,7 @@ export default class PluginSnippets extends Plugin {
                 type: "number",
                 defaultValue: 5,
             }
-        ];
+        );
 
         if (!this.isMobile) {
             configItems.push({
@@ -752,7 +755,7 @@ export default class PluginSnippets extends Plugin {
             height: "80vh",
         });
         dialog.element.setAttribute("data-key", "jcsm-setting-dialog");
-        dialog.element.setAttribute("data-mobile", this.isMobile ? "true" : "false");
+        dialog.element.setAttribute("data-modal", "true");  // 标记为模态对话框
         const contentElement = dialog.element.querySelector(".b3-dialog__content");
         this.setting.items.forEach((item) => {
             let html = "";
@@ -2295,6 +2298,11 @@ export default class PluginSnippets extends Plugin {
     }
 
     /**
+     * 是否允许同时打开多个代码片段编辑器
+     */
+    declare multipleSnippetEditors: boolean;
+
+    /**
      * 打开代码片段编辑对话框
      * @param snippet 代码片段
      * @param isNew 是否为新建代码片段
@@ -2342,7 +2350,6 @@ export default class PluginSnippets extends Plugin {
         dialog.element.setAttribute("data-key", "jcsm-snippet-dialog");
         dialog.element.setAttribute("data-snippet-id", snippet.id);
         dialog.element.setAttribute("data-snippet-type", snippet.type);
-        dialog.element.setAttribute("data-modal", "false"); // 标记为非模态对话框
 
         if (!isNew) {
             // 非新建代码片段时，显示删除按钮
@@ -2350,7 +2357,7 @@ export default class PluginSnippets extends Plugin {
             deleteButton?.classList.remove("fn__none");
         }
 
-        if (!this.isMobile) {
+        if (!this.isMobile && this.multipleSnippetEditors) {
             // 桌面端支持同时打开多个 Dialog，需要设置 Dialog 样式
             dialog.element.style.zIndex = (++window.siyuan.zIndex).toString();
             dialog.element.querySelector(".b3-dialog__scrim")?.remove();
@@ -2361,6 +2368,9 @@ export default class PluginSnippets extends Plugin {
             dialogElement.style.top = "50vh";
             const dialogContainer = dialogElement.querySelector(".b3-dialog__container") as HTMLElement;
             dialogContainer.style.position = "fixed";
+            dialog.element.setAttribute("data-modal", "false"); // 标记为非模态对话框
+        } else {
+            dialog.element.setAttribute("data-modal", "true");  // 标记为模态对话框
         }
 
         // 检查并启动主题模式监听（在第一个编辑器对话框打开时）
@@ -2705,6 +2715,7 @@ export default class PluginSnippets extends Plugin {
             width: this.isMobile ? "92vw" : "520px",
         });
         dialog.element.setAttribute("data-key", dataKey ?? "dialog-confirm"); // Constants.DIALOG_CONFIRM
+        dialog.element.setAttribute("data-modal", "true");  // 标记为模态对话框
         const container = dialog.element.querySelector(".b3-dialog__container") as HTMLElement;
         if (container) container.style.maxHeight = "90vh";
 
@@ -3246,22 +3257,22 @@ export default class PluginSnippets extends Plugin {
 
         let handleMenu = true; // 是否处理菜单操作
 
-            // 如果按下的是 Esc 键，则根据菜单和其他插件对话框的 zIndex 来判断是否需要关闭菜单
-            if (event.key === "Escape") {
-                let maxZIndex = 0;
+        // 如果按下的是 Esc 键，则根据菜单和其他插件对话框的 zIndex 来判断是否需要关闭菜单
+        if (event.key === "Escape") {
+            let maxZIndex = 0;
             let maxZIndexElement: HTMLElement | null = null;
-                const snippetDialogElements = document.querySelectorAll("body > .b3-dialog--open[data-key='jcsm-snippet-dialog']");
-                snippetDialogElements.forEach((element: HTMLElement) => {
-                    const zIndex = Number(element.style?.zIndex ?? 0);
-                    if (zIndex > maxZIndex) {
-                        maxZIndex = zIndex;
+            const snippetDialogElements = document.querySelectorAll("body > .b3-dialog--open[data-key='jcsm-snippet-dialog']");
+            snippetDialogElements.forEach((element: HTMLElement) => {
+                const zIndex = Number(element.style?.zIndex ?? 0);
+                if (zIndex > maxZIndex) {
+                    maxZIndex = zIndex;
                     maxZIndexElement = element;
-                    }
-                })
+                }
+            })
 
-                const menuZIndex = Number(this.menu?.element?.style?.zIndex ?? 0);
-                if (menuZIndex < maxZIndex) {
-                    // 菜单的 zIndex 不是最高时就不关闭菜单
+            const menuZIndex = Number(this.menu?.element?.style?.zIndex ?? 0);
+            if (menuZIndex < maxZIndex) {
+                // 菜单的 zIndex 不是最高时就不关闭菜单
                 handleMenu = false;
             }
 

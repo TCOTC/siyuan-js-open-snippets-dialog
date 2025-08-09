@@ -131,5 +131,7 @@
   "importFileContentEmpty": "インポートファイルの内容が空です",
   "importFileNotValidJson": "ファイルの内容が有効なJSON形式ではありません。ファイルの内容を確認してください",
   "autoReloadUIAfterModifyJS": "自動UI再読み込み",
-  "autoReloadUIAfterModifyJSDescription": "JSスニペット変更後、アクティブなスニペットエディターがない場合、自動的にUIを再読み込みします"
+  "autoReloadUIAfterModifyJSDescription": "JSスニペット変更後、アクティブなスニペットエディターがない場合、自動的にUIを再読み込みします",
+  "multipleSnippetEditors": "複数のスニペットエディターを同時に開く",
+  "multipleSnippetEditorsDescription": "有効にすると、複数のスニペットエディターを同時に開くことができます。無効にすると、モーダルのスニペットエディターを 1 つだけ開けます"
 }
