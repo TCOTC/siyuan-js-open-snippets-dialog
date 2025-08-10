@@ -140,5 +140,7 @@
   "snippetOptionClickBehaviorDescription": "管理メニューでスニペット項目をクリックしたときに実行する操作",
   "snippetOptionClickBehaviorNone": "操作なし",
   "snippetOptionClickBehaviorToggle": "スニペットの有効状態を切り替え",
-  "snippetOptionClickBehaviorOpenEditor": "スニペットエディターを開く"
+  "snippetOptionClickBehaviorOpenEditor": "スニペットエディターを開く",
+  "saveConfigFailed": "設定の保存に失敗しました",
+  "removeConfigFailed": "設定の削除に失敗しました"
 }

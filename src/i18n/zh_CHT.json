@@ -140,5 +140,7 @@
   "snippetOptionClickBehaviorDescription": "在管理選單中點擊代碼片段選項時，執行的操作",
   "snippetOptionClickBehaviorNone": "無操作",
   "snippetOptionClickBehaviorToggle": "切換代碼片段開關狀態",
-  "snippetOptionClickBehaviorOpenEditor": "開啟代碼片段編輯器"
+  "snippetOptionClickBehaviorOpenEditor": "開啟代碼片段編輯器",
+  "saveConfigFailed": "儲存設定失敗",
+  "removeConfigFailed": "刪除設定失敗"
 }

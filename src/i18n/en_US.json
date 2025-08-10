@@ -140,5 +140,7 @@
   "snippetOptionClickBehaviorDescription": "The action performed when clicking a snippet option in the management menu",
   "snippetOptionClickBehaviorNone": "Do nothing",
   "snippetOptionClickBehaviorToggle": "Toggle snippet enabled status",
-  "snippetOptionClickBehaviorOpenEditor": "Open snippet editor"
+  "snippetOptionClickBehaviorOpenEditor": "Open snippet editor",
+  "saveConfigFailed": "Failed to save configuration",
+  "removeConfigFailed": "Failed to remove configuration"
 }

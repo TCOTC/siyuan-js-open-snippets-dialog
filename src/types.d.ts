@@ -115,4 +115,12 @@ declare module "siyuan" {
     }
 }
 
+// 拓展 Dialog 类
+declare module "siyuan" {
+    interface Dialog {
+        id: string;
+        destroyNative: () => void;
+    }
+}
+
 export { Snippet, SettingItem, ListenersArray, ElementListeners, ListenerItem, FileState };

@@ -140,5 +140,7 @@
   "snippetOptionClickBehaviorDescription": "在管理菜单中点击代码片段选项时，执行的操作",
   "snippetOptionClickBehaviorNone": "无操作",
   "snippetOptionClickBehaviorToggle": "切换代码片段开关状态",
-  "snippetOptionClickBehaviorOpenEditor": "打开代码片段编辑器"
+  "snippetOptionClickBehaviorOpenEditor": "打开代码片段编辑器",
+  "saveConfigFailed": "保存配置失败",
+  "removeConfigFailed": "删除配置失败"
 }
