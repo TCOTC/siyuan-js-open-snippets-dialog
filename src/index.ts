@@ -367,6 +367,24 @@ export default class PluginSnippets extends Plugin {
                 ],
             },
             {
+                key: "snippetSortType",
+                description: "snippetSortTypeDescription",
+                type: "selectString",
+                defaultValue: "customSort",
+                options: [
+                    { value: "fixedSort", text: "fixedSort" },             // 固定排序
+                    { value: "customSort", text: "customSort" },           // 自定义排序
+                    { value: "enabledASC", text: "enabledASC" },           // 已开启优先
+                    { value: "enabledDESC", text: "enabledDESC" },         // 未开启优先
+                    { value: "fileNameASC", text: "fileNameASC" },         // 名称字母升序
+                    { value: "fileNameDESC", text: "fileNameDESC" },       // 名称字母降序
+                    { value: "fileNameNatASC", text: "fileNameNatASC" },   // 名称自然升序
+                    { value: "fileNameNatDESC", text: "fileNameNatDESC" }, // 名称自然降序
+                    { value: "createdASC", text: "createdASC" },           // 创建时间升序
+                    { value: "createdDESC", text: "createdDESC" }          // 创建时间降序
+                ],
+            },
+            {
                 key: "snippetSearchType",
                 description: "snippetSearchTypeDescription",
                 type: "selectNumber",
@@ -719,7 +737,7 @@ export default class PluginSnippets extends Plugin {
                     (window.siyuan.jcsm as any)[item.key] = newValue;
 
                     if (item.key === "snippetSearchType") {
-                        // 修改代码片段搜索类型时，隐藏或显示搜索按钮（和搜索输入框）
+                        // 修改代码片段搜索类型后，隐藏或显示搜索按钮（和搜索输入框）
                         if (newValue === 0) {
                             const searchButton = this.menuItems?.querySelector(".jcsm-top-container button[data-type='search']") as HTMLButtonElement;
                             if (searchButton) {
@@ -736,11 +754,23 @@ export default class PluginSnippets extends Plugin {
                             this.menuItems?.querySelector(".jcsm-top-container button[data-type='search']")?.classList.remove("fn__none");
                         }
                     } else if (item.key === "editorIndentUnit") {
-                        // 修改编辑器缩进单位时，更新所有打开的编辑器
+                        // 修改编辑器缩进单位后，更新所有打开的编辑器
                         this.updateAllEditorConfigs("indent unit");
                     } else if (item.key === "fileWatchEnabled") {
                         // 处理文件监听模式改变
                         this.handleFileWatchModeChange();
+                    } else if (item.key === "snippetSortType") {
+                        // 修改代码片段排序方式后，重新生成菜单项
+                        if (this.menu) {
+                            const snippetsContainer = this.menu.element.querySelector(".jcsm-snippets-container");
+                            if (snippetsContainer) {
+                                const snippetsItems = this.genMenuSnippetsItems(this.snippetsList);
+                                snippetsContainer.querySelectorAll(".jcsm-snippet-item:is([data-type='js'], [data-type='css'])").forEach(item => {
+                                    item.remove();
+                                });
+                                snippetsContainer.insertAdjacentHTML("afterbegin", snippetsItems);
+                            }
+                        }
                     }
                 }
             } else if (item.type === "string") {
@@ -1136,9 +1166,17 @@ export default class PluginSnippets extends Plugin {
                 }
             }
         });
-        this.addListener(document.documentElement, "keydown", this.globalKeyDownHandler);
         // 监听按键操作，在选项上按回车时切换开关/特定交互、按 Delete 时删除代码片段、按 Tab 可以在各个可交互的元素上轮流切换
         // 处理太麻烦，先不做了，有其他人需要再说
+        this.addListener(document.documentElement, "keydown", this.globalKeyDownHandler);
+        // 添加鼠标事件监听（用于桌面端拖拽排序）
+        this.addListener(this.menu.element, "mousedown", (event: MouseEvent) => {
+            this.menuMousedownHandler(event);
+        });
+        // 添加触摸事件监听（用于移动端拖拽排序）
+        this.addListener(this.menu.element, "touchstart", (event: TouchEvent) => {
+            this.menuTouchstartHandler(event);
+        });
 
         // 弹出菜单
         if (this.isMobile) {
@@ -1478,6 +1516,408 @@ export default class PluginSnippets extends Plugin {
     };
 
     /**
+     * 代码片段的排序方式
+     */
+    declare snippetSortType: string;
+
+    /**
+     * 创建拖拽幽灵元素
+     * @param item 原始拖拽项
+     * @returns 幽灵元素
+     */
+    private createDragGhost(item: HTMLElement): HTMLElement {
+        const itemRect = item.getBoundingClientRect();
+        const ghostElement = item.cloneNode(true) as HTMLElement;
+        ghostElement.setAttribute("id", "dragGhost");
+        
+        // 移除不需要的子元素，只保留 .jcsm-snippet-name
+        Array.from(ghostElement.children).forEach(child => {
+            if (child instanceof HTMLElement && child.classList.contains("jcsm-snippet-name")) {
+                // 确保 .jcsm-snippet-name 子元素不会出现滚动条
+                child.style.overflow = "hidden";
+                child.style.textOverflow = "ellipsis";
+            } else {
+                // 移除其他子元素
+                child.remove();
+            }
+        });
+        
+        ghostElement.setAttribute("style", `
+            position: fixed;
+            z-index: 999997;
+            overflow: hidden;
+            width: ${itemRect.width}px;
+            height: ${itemRect.height}px;
+            pointer-events: none;
+        `);
+        
+        return ghostElement;
+    }
+
+    /**
+     * 处理拖拽滚动
+     * @param clientY 当前 Y 坐标
+     * @param contentRect 容器矩形
+     * @param dragContainer 拖拽容器
+     */
+    private handleDragScroll(clientY: number, contentRect: DOMRect, dragContainer: HTMLElement): void {
+        if (clientY < contentRect.top + Constants.SIZE_SCROLL_TB || clientY > contentRect.bottom - Constants.SIZE_SCROLL_TB) {
+            dragContainer.scroll({
+                top: dragContainer.scrollTop + (clientY < contentRect.top + Constants.SIZE_SCROLL_TB ? -Constants.SIZE_SCROLL_STEP : Constants.SIZE_SCROLL_STEP),
+                behavior: "smooth"
+            });
+        }
+    }
+
+    /**
+     * 更新拖拽样式
+     * @param moveEvent 移动事件
+     * @param dragContainer 拖拽容器
+     * @param item 原始拖拽项
+     * @param contentRect 容器矩形
+     * @returns 目标拖拽项
+     */
+    private updateDragStyles(moveEvent: MouseEvent | TouchEvent, dragContainer: HTMLElement, item: HTMLElement, contentRect: DOMRect): HTMLElement | null {
+        // 清除所有拖拽样式
+        dragContainer.querySelectorAll(".dragover__top, .dragover__bottom").forEach(item => {
+            item.classList.remove("dragover__top", "dragover__bottom");
+        });
+
+        // 获取当前坐标
+        let clientX: number, clientY: number;
+        if (moveEvent instanceof MouseEvent) {
+            clientX = moveEvent.clientX;
+            clientY = moveEvent.clientY;
+        } else {
+            const touch = moveEvent.touches[0];
+            clientX = touch.clientX;
+            clientY = touch.clientY;
+        }
+
+        // 检查是否在拖拽容器外
+        if (clientY < contentRect.top || clientY > contentRect.bottom || clientX < contentRect.left || clientX > contentRect.right) {
+            return null;
+        }
+
+        // 查找目标拖拽项
+        let targetElement: Element | null;
+        if (moveEvent instanceof MouseEvent) {
+            targetElement = moveEvent.target as Element;
+        } else {
+            // 对于触摸事件，使用 elementFromPoint 查找元素
+            targetElement = document.elementFromPoint(clientX, clientY);
+        }
+
+        const selectItem = targetElement?.closest(".jcsm-snippet-item") as HTMLElement;
+        if (!selectItem || selectItem === item) {
+            return null;
+        }
+
+        // 添加拖拽样式
+        const selectRect = selectItem.getBoundingClientRect();
+        const dragHeight = selectRect.height * 0.5;
+        if (clientY > selectRect.bottom - dragHeight) {
+            selectItem.classList.add("dragover__bottom");
+        } else if (clientY < selectRect.top + dragHeight) {
+            selectItem.classList.add("dragover__top");
+        }
+
+        return selectItem;
+    }
+
+    /**
+     * 执行拖拽排序逻辑
+     * @param item 原始拖拽项
+     * @param selectItem 目标拖拽项
+     * @param isTop 是否拖拽到上方
+     */
+    private async executeDragSort(item: HTMLElement, selectItem: HTMLElement, isTop: boolean): Promise<void> {
+        const itemId = item.dataset.id;
+        const itemType = item.dataset.type;
+        const selectItemId = selectItem.dataset.id;
+        const selectItemType = selectItem.dataset.type;
+
+        if (!itemId || !itemType || !selectItemId || !selectItemType || itemId === selectItemId) {
+            return;
+        }
+
+        // 获取最新代码片段列表
+        const snippetsList = await this.getSnippetsList();
+        if (snippetsList) {
+            this.snippetsList = snippetsList;
+        } else {
+            return;
+        }
+
+        // 获取当前拖拽项的索引
+        const fromIndex = this.snippetsList.findIndex((s: any) => s.id === itemId);
+        // 获取目标项的索引
+        const toIndex = this.snippetsList.findIndex((s: any) => s.id === selectItemId);
+
+        if (fromIndex === -1 || toIndex === -1) {
+            return;
+        }
+
+        // 先移除原有项
+        const [moved] = this.snippetsList.splice(fromIndex, 1);
+        let targetIndex = toIndex;
+
+        // 如果 itemType 是 CSS 而 selectItemType 是 JS，则将 item 排序到最后一个 CSS 后面
+        if (itemType === "css" && selectItemType === "js") {
+            const cssCount = this.snippetsList.filter((s: any) => s.type === "css").length;
+            if (cssCount > 1) {
+                // 找到最后一个 CSS 的位置
+                const lastCssIndex = this.snippetsList.map((s: any) => s.type).lastIndexOf("css");
+                targetIndex = lastCssIndex + 1;
+            } else {
+                // CSS 数量小于等于 1，不进行排序
+                this.snippetsList.splice(fromIndex, 0, moved);
+                return;
+            }
+        }
+        // 如果 itemType 是 JS 而 selectItemType 是 CSS，则将 item 排序到第一个 JS 前面
+        else if (itemType === "js" && selectItemType === "css") {
+            const jsCount = this.snippetsList.filter((s: any) => s.type === "js").length;
+            if (jsCount > 1) {
+                // 找到第一个 JS 的位置
+                const firstJsIndex = this.snippetsList.findIndex((s: any) => s.type === "js");
+                targetIndex = firstJsIndex;
+            } else {
+                // JS 数量小于等于 1，不进行排序
+                this.snippetsList.splice(fromIndex, 0, moved);
+                return;
+            }
+        }
+        // 如果 itemType 和 selectItemType 都是 CSS 或都是 JS，则根据拖拽方向排序
+        else {
+            if (isTop) {
+                // 拖拽到上方
+                if (fromIndex < toIndex) {
+                    targetIndex = toIndex - 1; // 从前面拖拽到后面
+                } else {
+                    targetIndex = toIndex;     // 从后面拖拽到前面
+                }
+            } else {
+                // 拖拽到下方
+                if (fromIndex < toIndex) {
+                    targetIndex = toIndex;     // 从前面拖拽到后面
+                } else {
+                    targetIndex = toIndex + 1; // 从后面拖拽到前面
+                }
+            }
+        }
+
+        // 插入到目标索引位置
+        this.snippetsList.splice(targetIndex, 0, moved);
+
+        // 更新 DOM 顺序
+        if (isTop) {
+            selectItem.before(item);
+        } else {
+            selectItem.after(item);
+        }
+
+        // 保存新的排序顺序
+        this.saveSnippetsList(this.snippetsList);
+    }
+
+    /**
+     * 菜单鼠标按下事件处理（用于拖拽排序）
+     * @param event 鼠标事件
+     */
+    private menuMousedownHandler(event: MouseEvent) {
+        if (this.snippetSortType !== "customSort") {
+            return;
+        }
+
+        const target = event.target as HTMLElement;
+        const item = target.closest(".jcsm-snippet-item") as HTMLElement;
+        if (!item) {
+            return;
+        }
+
+        const documentSelf = document;
+        documentSelf.ondragstart = () => false;
+        let ghostElement: HTMLElement;
+        let selectItem: HTMLElement;
+        
+        // 获取拖拽容器（代码片段列表容器）
+        const dragContainer = this.menuItems.querySelector(".jcsm-snippets-container") as HTMLElement;
+        if (!dragContainer) {
+            return;
+        }
+        
+        const contentRect = dragContainer.getBoundingClientRect();
+        
+        documentSelf.onmousemove = (moveEvent: MouseEvent) => {
+            if (Math.abs(moveEvent.clientY - event.clientY) < 3 && Math.abs(moveEvent.clientX - event.clientX) < 3) {
+                // 移动距离小于 3px 时，不进行拖拽
+                return;
+            }
+            
+            moveEvent.preventDefault();
+            moveEvent.stopPropagation();
+            
+            if (!ghostElement) {
+                item.style.opacity = "0.38";
+                ghostElement = this.createDragGhost(item);
+                document.body.appendChild(ghostElement);
+            }
+            
+            // 更新幽灵元素位置
+            ghostElement.style.top = moveEvent.clientY + "px";
+            ghostElement.style.left = moveEvent.clientX + "px";
+            
+            // 处理拖拽滚动
+            this.handleDragScroll(moveEvent.clientY, contentRect, dragContainer);
+            
+            // 更新拖拽样式并获取目标项
+            selectItem = this.updateDragStyles(moveEvent, dragContainer, item, contentRect);
+        };
+
+        documentSelf.onmouseup = async () => {
+            documentSelf.onmousemove = null;
+            documentSelf.onmouseup = null;
+            documentSelf.ondragstart = null;
+            documentSelf.onselectstart = null;
+            documentSelf.onselect = null;
+            
+            ghostElement?.remove();
+            item.style.opacity = "";
+            
+            if (!selectItem) {
+                selectItem = dragContainer.querySelector(".dragover__top, .dragover__bottom");
+            }
+            
+            if (selectItem) {
+                // 执行拖拽排序
+                if (selectItem.classList.contains("dragover__top")) {
+                    await this.executeDragSort(item, selectItem, true);
+                } else if (selectItem.classList.contains("dragover__bottom")) {
+                    await this.executeDragSort(item, selectItem, false);
+                }
+            }
+            
+            // 清除所有拖拽样式
+            dragContainer.querySelectorAll(".dragover__top, .dragover__bottom").forEach(item => {
+                item.classList.remove("dragover__top", "dragover__bottom");
+            });
+        };
+    }
+
+    /**
+     * 菜单触摸开始事件处理（用于移动端拖拽排序）
+     * @param event 触摸事件
+     */
+    private menuTouchstartHandler(event: TouchEvent) {
+        if (this.snippetSortType !== "customSort") {
+            return;
+        }
+
+        const target = event.target as HTMLElement;
+        const item = target.closest(".jcsm-snippet-item") as HTMLElement;
+        if (!item) {
+            return;
+        }
+
+        // 触摸开始时不阻止默认行为，只有在开始拖拽时才阻止
+        
+        const documentSelf = document;
+        let ghostElement: HTMLElement;
+        let selectItem: HTMLElement;
+        let startTouch: Touch;
+        let isDragging = false;
+        
+        // 获取拖拽容器（代码片段列表容器）
+        const dragContainer = this.menuItems.querySelector(".jcsm-snippets-container") as HTMLElement;
+        if (!dragContainer) {
+            return;
+        }
+        
+        const contentRect = dragContainer.getBoundingClientRect();
+        
+        // 触摸开始
+        if (event.touches.length === 1) {
+            startTouch = event.touches[0];
+        } else {
+            return;
+        }
+
+        // 触摸移动事件
+        const touchmoveHandler = (moveEvent: TouchEvent) => {
+            if (moveEvent.touches.length !== 1) return;
+            
+            const currentTouch = moveEvent.touches[0];
+            const deltaX = Math.abs(currentTouch.clientX - startTouch.clientX);
+            const deltaY = Math.abs(currentTouch.clientY - startTouch.clientY);
+            
+            // 移动距离小于 5px 时，不进行拖拽（触摸设备需要更大的阈值）
+            if (!isDragging && deltaX < 5 && deltaY < 5) {
+                return;
+            }
+            
+            // 开始拖拽时阻止默认行为，防止页面滚动
+            if (!isDragging) {
+                moveEvent.preventDefault();
+            }
+            
+            if (!isDragging) {
+                isDragging = true;
+                ghostElement = this.createDragGhost(item);
+                document.body.appendChild(ghostElement);
+                item.style.opacity = "0.38";
+            }
+            
+            moveEvent.preventDefault();
+            
+            // 更新幽灵元素位置
+            ghostElement.style.top = currentTouch.clientY + "px";
+            ghostElement.style.left = currentTouch.clientX + "px";
+            
+            // 处理拖拽滚动
+            this.handleDragScroll(currentTouch.clientY, contentRect, dragContainer);
+            
+            // 更新拖拽样式并获取目标项
+            selectItem = this.updateDragStyles(moveEvent, dragContainer, item, contentRect);
+        };
+
+        // 触摸结束事件
+        const touchendHandler = async (endEvent: TouchEvent) => {
+            endEvent.preventDefault();
+            
+            // 移除触摸事件监听
+            documentSelf.removeEventListener("touchmove", touchmoveHandler);
+            documentSelf.removeEventListener("touchend", touchendHandler);
+            
+            // 清理拖拽状态
+            ghostElement?.remove();
+            item.style.opacity = "";
+            
+            if (!selectItem) {
+                selectItem = dragContainer.querySelector(".dragover__top, .dragover__bottom");
+            }
+            
+            if (selectItem && isDragging) {
+                // 执行拖拽排序
+                if (selectItem.classList.contains("dragover__top")) {
+                    await this.executeDragSort(item, selectItem, true);
+                } else if (selectItem.classList.contains("dragover__bottom")) {
+                    await this.executeDragSort(item, selectItem, false);
+                }
+            }
+            
+            // 清除所有拖拽样式
+            dragContainer.querySelectorAll(".dragover__top, .dragover__bottom").forEach(item => {
+                item.classList.remove("dragover__top", "dragover__bottom");
+            });
+        };
+
+        // 添加触摸事件监听
+        documentSelf.addEventListener("touchmove", touchmoveHandler, { passive: false });
+        documentSelf.addEventListener("touchend", touchendHandler, { passive: false });
+    }
+
+    /**
      * 代码片段搜索类型
      * 0: 不搜索
      * 1: 按标题搜索
@@ -1543,6 +1983,50 @@ export default class PluginSnippets extends Plugin {
      * @returns 代码片段列表 HTML 字符串
      */
     private genMenuSnippetsItems(snippetsList: Snippet[]): string {
+        // 深拷贝 snippetsList，避免排序影响原数据
+        if (this.snippetSortType !== "fixedSort" && this.snippetSortType !== "customSort") {
+            if (typeof structuredClone === "function") {
+                snippetsList = structuredClone(snippetsList);
+            } else {
+                snippetsList = JSON.parse(JSON.stringify(snippetsList));
+            }
+        }
+
+        // 排序
+        switch (this.snippetSortType) {
+            case "fixedSort":
+                break;
+            case "customSort":
+                break;
+            case "enabledASC":
+                snippetsList.sort((a, b) => a.enabled ? -1 : 1);
+                break;
+            case "enabledDESC":
+                snippetsList.sort((a, b) => b.enabled ? -1 : 1);
+                break;
+            case "fileNameASC":
+                snippetsList.sort((a, b) => a.name.localeCompare(b.name));
+                break;
+            case "fileNameDESC":
+                snippetsList.sort((a, b) => b.name.localeCompare(a.name));
+                break;
+            case "fileNameNatASC":
+                snippetsList.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+                break;
+            case "fileNameNatDESC":
+                snippetsList.sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true }));
+                break;
+            case "createdASC":
+                // 创建时间要从 id 中获取，id 的格式是 "20250813161014-se1mend"，其中 "20250813161014" 是创建时间，"se1mend" 是随机字符串
+                snippetsList.sort((a, b) => a.id.slice(0, 14).localeCompare(b.id.slice(0, 14)));
+                break;
+            case "createdDESC":
+                snippetsList.sort((a, b) => b.id.slice(0, 14).localeCompare(a.id.slice(0, 14)));
+                break;
+            default:
+                break;
+        }
+
         const isTouch = this.isMobile || this.isTouchDevice;
         let snippetsHtml = "";
         snippetsList.forEach((snippet: Snippet) => {

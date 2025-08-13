@@ -12,7 +12,7 @@
     }
 
     .jcsm-snippets-search {
-      margin: 0 10px 4px 0;
+      margin: 5px 10px 0 0;
     }
 
     .jcsm-top-container {
@@ -27,7 +27,7 @@
   // 移动端
   &.b3-menu--fullscreen {
     .jcsm-snippets-search {
-      margin: 0 5px 4px 5px;
+      margin: 5px 5px 0 5px;
     }
   }
 
@@ -44,7 +44,6 @@
   .jcsm-top-container {
     user-select: none;
     padding: 0 6px 0 0;
-    margin-bottom: 5px;
     
     // 代码片段类型切换
     .jcsm-tabs {
@@ -132,6 +131,7 @@
 
   .jcsm-snippets-container {
     overflow: auto;
+    margin-top: 4px;
     
     // 代码片段列表选项
     .jcsm-snippet-item {
@@ -176,6 +176,39 @@
 
       &[data-type="js"] ~ [data-type="new"][data-snippet-type="js"] {
         display: none;
+      }
+
+      // 拖拽指示器样式
+      &.dragover {
+        &__top::after,
+        &__bottom::after {
+          content: '';
+          position: absolute;
+          background-color: var(--b3-theme-primary-lighter);
+          left: 0;
+          right: 0;
+          height: 4px;
+        }
+
+        &__top::after {
+          top: -4px;
+        }
+
+        &__bottom::after {
+          bottom: -1px;
+          top: auto;
+        }
+      }
+
+      // 拖拽到第一项上方时，指示线位置会超出，所以需要特殊处理
+      &:not(.fn__none) {
+        &.dragover__top::after {
+          top: -1px;
+        }
+
+        ~ .dragover__top::after {
+          top: -4px;
+        }
       }
     }
   }
