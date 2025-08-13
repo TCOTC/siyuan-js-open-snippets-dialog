@@ -764,7 +764,7 @@ export default class PluginSnippets extends Plugin {
                         if (this.menu) {
                             const snippetsContainer = this.menu.element.querySelector(".jcsm-snippets-container");
                             if (snippetsContainer) {
-                                const snippetsItems = this.genMenuSnippetsItems(this.snippetsList);
+                                const snippetsItems = this.genMenuSnippetsItems();
                                 snippetsContainer.querySelectorAll(".jcsm-snippet-item:is([data-type='js'], [data-type='css'])").forEach(item => {
                                     item.remove();
                                 });
@@ -1120,7 +1120,7 @@ export default class PluginSnippets extends Plugin {
         // 插入代码片段列表容器
         const snippetsContainer = document.createElement("div");
         snippetsContainer.className = "jcsm-snippets-container";
-        snippetsContainer.insertAdjacentHTML("beforeend", this.genMenuSnippetsItems(this.snippetsList));
+        snippetsContainer.insertAdjacentHTML("beforeend", this.genMenuSnippetsItems());
         this.menuItems.append(snippetsContainer);
         
         // “添加第一个 CSS 代码片段”的菜单项
@@ -1176,7 +1176,7 @@ export default class PluginSnippets extends Plugin {
         // 添加触摸事件监听（用于移动端拖拽排序）
         this.addListener(this.menu.element, "touchstart", (event: TouchEvent) => {
             this.menuTouchstartHandler(event);
-        });
+        }, { passive: true });
 
         // 弹出菜单
         if (this.isMobile) {
@@ -1827,6 +1827,8 @@ export default class PluginSnippets extends Plugin {
         let selectItem: HTMLElement;
         let startTouch: Touch;
         let isDragging = false;
+        let longPressTimer: number;
+        let hasMoved = false;
         
         // 获取拖拽容器（代码片段列表容器）
         const dragContainer = this.menuItems.querySelector(".jcsm-snippets-container") as HTMLElement;
@@ -1843,6 +1845,19 @@ export default class PluginSnippets extends Plugin {
             return;
         }
 
+        // 长按定时器，500ms 后开始拖拽
+        longPressTimer = window.setTimeout(() => {
+            if (!hasMoved) {
+                isDragging = true;
+                ghostElement = this.createDragGhost(item);
+                document.body.appendChild(ghostElement);
+                // 设置幽灵元素初始位置为当前触摸位置
+                ghostElement.style.top = startTouch.clientY + "px";
+                ghostElement.style.left = startTouch.clientX + "px";
+                item.style.opacity = "0.38";
+            }
+        }, 500);
+
         // 触摸移动事件
         const touchmoveHandler = (moveEvent: TouchEvent) => {
             if (moveEvent.touches.length !== 1) return;
@@ -1851,23 +1866,22 @@ export default class PluginSnippets extends Plugin {
             const deltaX = Math.abs(currentTouch.clientX - startTouch.clientX);
             const deltaY = Math.abs(currentTouch.clientY - startTouch.clientY);
             
-            // 移动距离小于 5px 时，不进行拖拽（触摸设备需要更大的阈值）
-            if (!isDragging && deltaX < 5 && deltaY < 5) {
-                return;
+            // 如果已经移动了，标记为已移动状态
+            if (deltaX > 3 || deltaY > 3) {
+                hasMoved = true;
+                // 如果已经移动了，清除长按定时器，不进行拖拽
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = 0;
             }
-            
-            // 开始拖拽时阻止默认行为，防止页面滚动
+                // 如果还没开始拖拽，允许正常滚动
             if (!isDragging) {
-                moveEvent.preventDefault();
+                    return;
+            }
             }
             
-            if (!isDragging) {
-                isDragging = true;
-                ghostElement = this.createDragGhost(item);
-                document.body.appendChild(ghostElement);
-                item.style.opacity = "0.38";
-            }
-            
+            // 只有在拖拽状态下才阻止默认行为
+            if (isDragging) {
             moveEvent.preventDefault();
             
             // 更新幽灵元素位置
@@ -1879,15 +1893,24 @@ export default class PluginSnippets extends Plugin {
             
             // 更新拖拽样式并获取目标项
             selectItem = this.updateDragStyles(moveEvent, dragContainer, item, contentRect);
+            }
         };
 
         // 触摸结束事件
         const touchendHandler = async (endEvent: TouchEvent) => {
-            endEvent.preventDefault();
+            // 清除长按定时器
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = 0;
+            }
             
             // 移除触摸事件监听
             documentSelf.removeEventListener("touchmove", touchmoveHandler);
             documentSelf.removeEventListener("touchend", touchendHandler);
+            
+            // 只有在拖拽状态下才阻止默认行为
+            if (isDragging) {
+                endEvent.preventDefault();
             
             // 清理拖拽状态
             ghostElement?.remove();
@@ -1897,7 +1920,7 @@ export default class PluginSnippets extends Plugin {
                 selectItem = dragContainer.querySelector(".dragover__top, .dragover__bottom");
             }
             
-            if (selectItem && isDragging) {
+                if (selectItem) {
                 // 执行拖拽排序
                 if (selectItem.classList.contains("dragover__top")) {
                     await this.executeDragSort(item, selectItem, true);
@@ -1910,6 +1933,7 @@ export default class PluginSnippets extends Plugin {
             dragContainer.querySelectorAll(".dragover__top, .dragover__bottom").forEach(item => {
                 item.classList.remove("dragover__top", "dragover__bottom");
             });
+            }
         };
 
         // 添加触摸事件监听
@@ -1982,7 +2006,10 @@ export default class PluginSnippets extends Plugin {
      * @param snippetsList 代码片段列表
      * @returns 代码片段列表 HTML 字符串
      */
-    private genMenuSnippetsItems(snippetsList: Snippet[]): string {
+    private genMenuSnippetsItems(snippetsList?: Snippet[]): string {
+        if (!snippetsList) {
+            snippetsList = this.snippetsList;
+
         // 深拷贝 snippetsList，避免排序影响原数据
         if (this.snippetSortType !== "fixedSort" && this.snippetSortType !== "customSort") {
             if (typeof structuredClone === "function") {
@@ -2025,6 +2052,7 @@ export default class PluginSnippets extends Plugin {
                 break;
             default:
                 break;
+            }
         }
 
         const isTouch = this.isMobile || this.isTouchDevice;
