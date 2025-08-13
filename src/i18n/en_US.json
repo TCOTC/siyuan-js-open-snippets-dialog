@@ -154,5 +154,9 @@
   "snippetOptionClickBehaviorToggle": "Toggle snippet enabled status",
   "snippetOptionClickBehaviorOpenEditor": "Open snippet editor",
   "saveConfigFailed": "Failed to save configuration",
-  "removeConfigFailed": "Failed to remove configuration"
+  "removeConfigFailed": "Failed to remove configuration",
+  "topBarPosition": "Top bar button position",
+  "topBarPositionDescription": "The position of the snippet manager button in the top bar, takes effect after reloading the interface",
+  "topBarPositionLeft": "Left",
+  "topBarPositionRight": "Right"
 }

@@ -154,5 +154,9 @@
   "snippetOptionClickBehaviorToggle": "切換代碼片段開關狀態",
   "snippetOptionClickBehaviorOpenEditor": "開啟代碼片段編輯器",
   "saveConfigFailed": "儲存設定失敗",
-  "removeConfigFailed": "刪除設定失敗"
+  "removeConfigFailed": "刪除設定失敗",
+  "topBarPosition": "頂欄按鈕位置",
+  "topBarPositionDescription": "在頂欄中顯示代碼片段管理器按鈕的位置，重新載入介面後生效",
+  "topBarPositionLeft": "左側",
+  "topBarPositionRight": "右側"
 }

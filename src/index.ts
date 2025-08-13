@@ -19,7 +19,7 @@ import {
 // 未使用的：Custom、confirm、openTab、adaptHotkey、getBackend、Protyle、openWindow、IOperation、openMobileFileById、lockScreen、ICard、ICardData、exitSiYuan、getModelByDockType、getAllEditor、Files、platformUtils、openAttributePanel、saveLayout
 
 // 工具函数
-import {hideMessage, isPromiseFulfilled} from "./utils";
+import {hideMessage, isPromiseFulfilled, isVersionReach} from "./utils";
 
 // CodeMirror 6
 import {closeBrackets, closeBracketsKeymap} from "@codemirror/autocomplete"; // autocompletion, completionKeymap
@@ -88,109 +88,195 @@ export default class PluginSnippets extends Plugin {
             return;
         }
 
-        // 初始化 window.siyuan.jcsm
-        if (!window.siyuan.jcsm) window.siyuan.jcsm = {};
+        if (!isVersionReach("3.3.0")) {
+            // 初始化 window.siyuan.jcsm
+            if (!window.siyuan.jcsm) window.siyuan.jcsm = {};
+    
+            const frontEnd = getFrontend();
+            this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
 
-        const frontEnd = getFrontend();
-        this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
-
-        // 优先添加顶栏按钮 https://github.com/TCOTC/snippets/issues/6
-        const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
-        const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
-        const topBarElement = this.addTopBar({
-            icon: "iconJcsm",
-            title: title,
-            position: "right",
-            callback: () => {
-                openSnippetsManager();
-            }
-        });
-
-        this.isTouchDevice = ("ontouchstart" in window) && navigator.maxTouchPoints > 1;
-
-        // 顶栏按钮图标
-        this.addIcons(`
-            <symbol id="iconJcsm" viewBox="0 0 32 32">
-                <path d="M23.498 9.332c-0.256 0.256-0.415 0.611-0.415 1.002s0.159 0.745 0.415 1.002l4.665 4.665-4.665 4.665c-0.256 0.256-0.415 0.61-0.415 1.002s0.159 0.745 0.415 1.002v0c0.256 0.256 0.61 0.415 1.002 0.415s0.745-0.159 1.002-0.415l5.667-5.667c0.256-0.256 0.415-0.611 0.415-1.002s-0.158-0.745-0.415-1.002l-5.667-5.667c-0.256-0.256-0.61-0.415-1.002-0.415s-0.745 0.159-1.002 0.415v0z"></path>
-                <path d="M7.5 8.917c-0.391 0-0.745 0.159-1.002 0.415l-5.667 5.667c-0.256 0.256-0.415 0.611-0.415 1.002s0.158 0.745 0.415 1.002l5.667 5.667c0.256 0.256 0.611 0.415 1.002 0.415s0.745-0.159 1.002-0.415v0c0.256-0.256 0.415-0.61 0.415-1.002s-0.159-0.745-0.415-1.002l-4.665-4.665 4.665-4.665c0.256-0.256 0.415-0.611 0.415-1.002s-0.159-0.745-0.415-1.002v0c-0.256-0.256-0.61-0.415-1.002-0.415v0z"></path>
-                <path d="M19.965 3.314c-0.127-0.041-0.273-0.065-0.424-0.065-0.632 0-1.167 0.413-1.35 0.985l-0.003 0.010-7.083 22.667c-0.041 0.127-0.065 0.273-0.065 0.424 0 0.632 0.413 1.167 0.985 1.35l0.010 0.003c0.127 0.041 0.273 0.065 0.424 0.065 0.632 0 1.167-0.413 1.35-0.985l0.003-0.010 7.083-22.667c0.041-0.127 0.065-0.273 0.065-0.424 0-0.632-0.413-1.167-0.985-1.35l-0.010-0.003z"></path>
-            </symbol>
-        `);
-
-        // 顶栏按钮点击回调：打开代码片段管理器
-        const openSnippetsManager = () => {
-            if (this.getAllModalDialogElements().length > 0) return;
-
-            if (this.isMobile) {
-                this.openMenu();
-            } else {
-                let rect = topBarElement.getBoundingClientRect();
-                // 如果被隐藏，则使用更多按钮
-                if (rect.width === 0) {
-                    rect = document.querySelector("#barMore").getBoundingClientRect();
+            // 优先添加顶栏按钮 https://github.com/TCOTC/snippets/issues/6
+            const topBarElement = this.addTopBar({
+                icon: "iconJcsm",
+                title: this.i18n.pluginDisplayName,
+                position: "right",
+                callback: () => {
+                    openSnippetsManager();
                 }
-                if (rect.width === 0) {
-                    rect = document.querySelector("#barPlugins").getBoundingClientRect();
+            });
+
+            // 顶栏按钮图标
+            this.addIcons(`
+                <symbol id="iconJcsm" viewBox="0 0 32 32">
+                    <path d="M23.498 9.332c-0.256 0.256-0.415 0.611-0.415 1.002s0.159 0.745 0.415 1.002l4.665 4.665-4.665 4.665c-0.256 0.256-0.415 0.61-0.415 1.002s0.159 0.745 0.415 1.002v0c0.256 0.256 0.61 0.415 1.002 0.415s0.745-0.159 1.002-0.415l5.667-5.667c0.256-0.256 0.415-0.611 0.415-1.002s-0.158-0.745-0.415-1.002l-5.667-5.667c-0.256-0.256-0.61-0.415-1.002-0.415s-0.745 0.159-1.002 0.415v0z"></path>
+                    <path d="M7.5 8.917c-0.391 0-0.745 0.159-1.002 0.415l-5.667 5.667c-0.256 0.256-0.415 0.611-0.415 1.002s0.158 0.745 0.415 1.002l5.667 5.667c0.256 0.256 0.611 0.415 1.002 0.415s0.745-0.159 1.002-0.415v0c0.256-0.256 0.415-0.61 0.415-1.002s-0.159-0.745-0.415-1.002l-4.665-4.665 4.665-4.665c0.256-0.256 0.415-0.611 0.415-1.002s-0.159-0.745-0.415-1.002v0c-0.256-0.256-0.61-0.415-1.002-0.415v0z"></path>
+                    <path d="M19.965 3.314c-0.127-0.041-0.273-0.065-0.424-0.065-0.632 0-1.167 0.413-1.35 0.985l-0.003 0.010-7.083 22.667c-0.041 0.127-0.065 0.273-0.065 0.424 0 0.632 0.413 1.167 0.985 1.35l0.010 0.003c0.127 0.041 0.273 0.065 0.424 0.065 0.632 0 1.167-0.413 1.35-0.985l0.003-0.010 7.083-22.667c0.041-0.127 0.065-0.273 0.065-0.424 0-0.632-0.413-1.167-0.985-1.35l-0.010-0.003z"></path>
+                </symbol>
+            `);
+    
+            // 顶栏按钮点击回调：打开代码片段管理器
+            const openSnippetsManager = () => {
+                if (this.getAllModalDialogElements().length > 0) return;
+    
+                if (this.isMobile) {
+                    this.openMenu();
+                } else {
+                    let rect = topBarElement.getBoundingClientRect();
+                    // 如果被隐藏，则使用更多按钮
+                    if (rect.width === 0) {
+                        rect = document.querySelector("#barMore").getBoundingClientRect();
+                    }
+                    if (rect.width === 0) {
+                        rect = document.querySelector("#barPlugins").getBoundingClientRect();
+                    }
+                    this.openMenu(topBarElement, rect);
                 }
-                this.openMenu(topBarElement, rect);
+            };
+
+            // 优化添加顶栏按钮的速度，延后设置顶栏按钮的 aria-label
+            const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
+            const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
+            topBarElement.setAttribute("aria-label", title);
+
+            // 注册快捷键（都默认置空）
+            this.addCommand({
+                langKey: "openSnippetsManager", // 打开代码片段管理器
+                hotkey: "",
+                callback: () => {
+                    // 快捷键唤起菜单时，如果菜单已经打开，要先关闭再重新打开，所以这里直接执行就好，会自动关闭菜单再重开
+                    openSnippetsManager();
+                },
+            });
+            this.addCommand({
+                langKey: "reloadUI", // 重新加载界面
+                hotkey: "",
+                callback: () => {
+                    this.reloadUI();
+                },
+            });
+            
+            this.isTouchDevice = ("ontouchstart" in window) && navigator.maxTouchPoints > 1;
+        
+            // 最后初始化插件设置
+            await this.initSetting();
+            // 插件设置加载之后启动文件监听
+            if (this.fileWatchEnabled && this.fileWatchEnabled !== "disabled") {
+                this.startFileWatch();
             }
-        };
+            // 插件设置加载之后暴露 ignoreNotice 方法到全局
+            window.siyuan.jcsm.disableNotification = this.disableNotification.bind(this);
 
-        // 注册快捷键（都默认置空）
-        this.addCommand({
-            langKey: "openSnippetsManager", // 打开代码片段管理器
-            hotkey: "",
-            callback: () => {
-                // 快捷键唤起菜单时，如果菜单已经打开，要先关闭再重新打开，所以这里直接执行就好，会自动关闭菜单再重开
-                openSnippetsManager();
-            },
-        });
-        this.addCommand({
-            langKey: "reloadUI", // 重新加载界面
-            hotkey: "",
-            callback: () => {
-                this.reloadUI();
-            },
-        });
-
-        // 初始化插件设置
-        await this.initSetting();
-        // 插件设置加载之后启动文件监听
-        if (this.fileWatchEnabled && this.fileWatchEnabled !== "disabled") {
-            this.startFileWatch();
+            console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
         }
-        // 插件设置加载之后暴露 ignoreNotice 方法到全局
-        window.siyuan.jcsm.disableNotification = this.disableNotification.bind(this);
-
-        console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
-
-        // 调试
-        // await new Promise(resolve => setTimeout(resolve, 10000));
-
-        // TODO自定义页签: 添加自定义标签页
-        // this.custom = this.addTab({
-        //     type: TAB_TYPE,
-        //     init() {
-        //         this.element.innerHTML = `<div class="jcsm__custom-tab">${this.data.text}</div>`;
-        //     },
-        //     beforeDestroy() {
-        //         this.console.log("在销毁标签页之前:", TAB_TYPE);
-        //         // TODO自定义页签: 销毁标签页时，需要获取当前页签的数据然后处理（比如保存）
-        //     },
-        //     destroy() {
-        //         this.console.log("销毁标签页:", TAB_TYPE);
-        //     }
-        // });
-        // 获取已打开的所有自定义页签
-        // this.getOpenedTab();
     }
+
+    /**
+     * 顶栏按钮位置
+     */
+    declare topBarPosition: "left" | "right";
 
     /**
      * 布局加载完成
      */
-    public onLayoutReady() {
+    public async onLayoutReady() {
         // 发布服务不启用插件
         if (window.siyuan.isPublish) return;
+
+        if (isVersionReach("3.3.0")) {
+            // 初始化 window.siyuan.jcsm
+            if (!window.siyuan.jcsm) window.siyuan.jcsm = {};
+    
+            const frontEnd = getFrontend();
+            this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
+            this.isTouchDevice = ("ontouchstart" in window) && navigator.maxTouchPoints > 1;
+        
+            // 优先初始化插件设置，因为顶栏按钮位置需要根据插件设置来决定
+            await this.initSetting();
+            // 插件设置加载之后启动文件监听
+            if (this.fileWatchEnabled && this.fileWatchEnabled !== "disabled") {
+                this.startFileWatch();
+            }
+            // 插件设置加载之后暴露 ignoreNotice 方法到全局
+            window.siyuan.jcsm.disableNotification = this.disableNotification.bind(this);
+    
+            // 顶栏按钮图标
+            this.addIcons(`
+                <symbol id="iconJcsm" viewBox="0 0 32 32">
+                    <path d="M23.498 9.332c-0.256 0.256-0.415 0.611-0.415 1.002s0.159 0.745 0.415 1.002l4.665 4.665-4.665 4.665c-0.256 0.256-0.415 0.61-0.415 1.002s0.159 0.745 0.415 1.002v0c0.256 0.256 0.61 0.415 1.002 0.415s0.745-0.159 1.002-0.415l5.667-5.667c0.256-0.256 0.415-0.611 0.415-1.002s-0.158-0.745-0.415-1.002l-5.667-5.667c-0.256-0.256-0.61-0.415-1.002-0.415s-0.745 0.159-1.002 0.415v0z"></path>
+                    <path d="M7.5 8.917c-0.391 0-0.745 0.159-1.002 0.415l-5.667 5.667c-0.256 0.256-0.415 0.611-0.415 1.002s0.158 0.745 0.415 1.002l5.667 5.667c0.256 0.256 0.611 0.415 1.002 0.415s0.745-0.159 1.002-0.415v0c0.256-0.256 0.415-0.61 0.415-1.002s-0.159-0.745-0.415-1.002l-4.665-4.665 4.665-4.665c0.256-0.256 0.415-0.611 0.415-1.002s-0.159-0.745-0.415-1.002v0c-0.256-0.256-0.61-0.415-1.002-0.415v0z"></path>
+                    <path d="M19.965 3.314c-0.127-0.041-0.273-0.065-0.424-0.065-0.632 0-1.167 0.413-1.35 0.985l-0.003 0.010-7.083 22.667c-0.041 0.127-0.065 0.273-0.065 0.424 0 0.632 0.413 1.167 0.985 1.35l0.010 0.003c0.127 0.041 0.273 0.065 0.424 0.065 0.632 0 1.167-0.413 1.35-0.985l0.003-0.010 7.083-22.667c0.041-0.127 0.065-0.273 0.065-0.424 0-0.632-0.413-1.167-0.985-1.35l-0.010-0.003z"></path>
+                </symbol>
+            `);
+    
+            const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
+            const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
+            const topBarElement = this.addTopBar({
+                icon: "iconJcsm",
+                title: title,
+                position: this.topBarPosition || "right",
+                callback: () => {
+                    openSnippetsManager();
+                }
+            });
+    
+            // 顶栏按钮点击回调：打开代码片段管理器
+            const openSnippetsManager = () => {
+                if (this.getAllModalDialogElements().length > 0) return;
+    
+                if (this.isMobile) {
+                    this.openMenu();
+                } else {
+                    let rect = topBarElement.getBoundingClientRect();
+                    // 如果被隐藏，则使用更多按钮
+                    if (rect.width === 0) {
+                        rect = document.querySelector("#barMore").getBoundingClientRect();
+                    }
+                    if (rect.width === 0) {
+                        rect = document.querySelector("#barPlugins").getBoundingClientRect();
+                    }
+                    this.openMenu(topBarElement, rect);
+                }
+            };
+
+            // 注册快捷键（都默认置空）
+            this.addCommand({
+                langKey: "openSnippetsManager", // 打开代码片段管理器
+                hotkey: "",
+                callback: () => {
+                    // 快捷键唤起菜单时，如果菜单已经打开，要先关闭再重新打开，所以这里直接执行就好，会自动关闭菜单再重开
+                    openSnippetsManager();
+                },
+            });
+            this.addCommand({
+                langKey: "reloadUI", // 重新加载界面
+                hotkey: "",
+                callback: () => {
+                    this.reloadUI();
+                },
+            });
+
+            console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
+
+            // 调试
+            // await new Promise(resolve => setTimeout(resolve, 10000));
+    
+            // TODO自定义页签: 添加自定义标签页
+            // this.custom = this.addTab({
+            //     type: TAB_TYPE,
+            //     init() {
+            //         this.element.innerHTML = `<div class="jcsm__custom-tab">${this.data.text}</div>`;
+            //     },
+            //     beforeDestroy() {
+            //         this.console.log("在销毁标签页之前:", TAB_TYPE);
+            //         // TODO自定义页签: 销毁标签页时，需要获取当前页签的数据然后处理（比如保存）
+            //     },
+            //     destroy() {
+            //         this.console.log("销毁标签页:", TAB_TYPE);
+            //     }
+            // });
+            // 获取已打开的所有自定义页签
+            // this.getOpenedTab();
+        }
     }
 
     /**
@@ -440,17 +526,34 @@ export default class PluginSnippets extends Plugin {
             }
         );
 
+        if (!this.isMobile && isVersionReach("3.3.0")) {
+            configItems.push(
+                {
+                    key: "topBarPosition",
+                    description: "topBarPositionDescription",
+                    type: "selectString",
+                    defaultValue: "right",
+                    options: [
+                        { value: "left", text: "topBarPositionLeft" },
+                        { value: "right", text: "topBarPositionRight" }
+                    ],
+                }
+            );
+        }
+
         if (!this.isMobile) {
-            configItems.push({
-                key: "openNativeSnippets",
-                description: "openNativeSnippetsDescription",
-                type: "createActionElement",
-                createActionElement: () => {
-                    return this.htmlToElement(
-                        `<span class="b3-button b3-button--outline fn__flex-center fn__size200" data-action="settingsSnippets"><svg><use xlink:href="#iconJcsm"></use></svg>${this.i18n.openNativeSnippetsWindow}</span>`
-                    );
-                },
-            });
+            configItems.push(
+                {
+                    key: "openNativeSnippets",
+                    description: "openNativeSnippetsDescription",
+                    type: "createActionElement",
+                    createActionElement: () => {
+                        return this.htmlToElement(
+                            `<span class="b3-button b3-button--outline fn__flex-center fn__size200" data-action="settingsSnippets"><svg><use xlink:href="#iconJcsm"></use></svg>${this.i18n.openNativeSnippetsWindow}</span>`
+                        );
+                    },
+                }
+            );
         }
 
         if (!this.isMobile && !this.isTouchDevice) {
@@ -1182,7 +1285,10 @@ export default class PluginSnippets extends Plugin {
         if (this.isMobile) {
             this.menu.fullscreen();
         } else {
-            const dockRight = document.querySelector("#dockRight").getBoundingClientRect();
+            // this.topBarPosition 不存在的时候就默认为 right
+            const dock = this.topBarPosition === "left" ? document.querySelector("#dockLeft") : document.querySelector("#dockRight");
+            const dockRect = dock?.getBoundingClientRect();
+            const dockWidth = ((dockRect?.width || 0) + 1).toString() + "px";
             this.menu.open({
                 x: rect.right,
                 y: rect.bottom + 1,
@@ -1190,8 +1296,13 @@ export default class PluginSnippets extends Plugin {
             });
             // 不要用鼠标位置、菜单要固定宽度，否则切换 CSS 和 JS 时，菜单可能会大幅抖动或者超出窗口边界
             this.menu.element.style.width = "min(400px, 90vw)";
-            this.menu.element.style.right = ((dockRight?.width || 0) + 1).toString() + "px";
-            this.menu.element.style.left = "";
+            if (this.topBarPosition === "left") {
+                this.menu.element.style.right = "";
+                this.menu.element.style.left = dockWidth;
+            } else {
+                this.menu.element.style.right = dockWidth;
+                this.menu.element.style.left = "";
+            }
         }
     }
 
@@ -1873,26 +1984,26 @@ export default class PluginSnippets extends Plugin {
                 if (longPressTimer) {
                     clearTimeout(longPressTimer);
                     longPressTimer = 0;
-            }
+                }
                 // 如果还没开始拖拽，允许正常滚动
-            if (!isDragging) {
+                if (!isDragging) {
                     return;
-            }
+                }
             }
             
             // 只有在拖拽状态下才阻止默认行为
             if (isDragging) {
-            moveEvent.preventDefault();
-            
-            // 更新幽灵元素位置
-            ghostElement.style.top = currentTouch.clientY + "px";
-            ghostElement.style.left = currentTouch.clientX + "px";
-            
-            // 处理拖拽滚动
-            this.handleDragScroll(currentTouch.clientY, contentRect, dragContainer);
-            
-            // 更新拖拽样式并获取目标项
-            selectItem = this.updateDragStyles(moveEvent, dragContainer, item, contentRect);
+                moveEvent.preventDefault();
+                
+                // 更新幽灵元素位置
+                ghostElement.style.top = currentTouch.clientY + "px";
+                ghostElement.style.left = currentTouch.clientX + "px";
+                
+                // 处理拖拽滚动
+                this.handleDragScroll(currentTouch.clientY, contentRect, dragContainer);
+                
+                // 更新拖拽样式并获取目标项
+                selectItem = this.updateDragStyles(moveEvent, dragContainer, item, contentRect);
             }
         };
 
@@ -1911,28 +2022,28 @@ export default class PluginSnippets extends Plugin {
             // 只有在拖拽状态下才阻止默认行为
             if (isDragging) {
                 endEvent.preventDefault();
-            
-            // 清理拖拽状态
-            ghostElement?.remove();
-            item.style.opacity = "";
-            
-            if (!selectItem) {
-                selectItem = dragContainer.querySelector(".dragover__top, .dragover__bottom");
-            }
-            
-                if (selectItem) {
-                // 执行拖拽排序
-                if (selectItem.classList.contains("dragover__top")) {
-                    await this.executeDragSort(item, selectItem, true);
-                } else if (selectItem.classList.contains("dragover__bottom")) {
-                    await this.executeDragSort(item, selectItem, false);
+                
+                // 清理拖拽状态
+                ghostElement?.remove();
+                item.style.opacity = "";
+                
+                if (!selectItem) {
+                    selectItem = dragContainer.querySelector(".dragover__top, .dragover__bottom");
                 }
-            }
-            
-            // 清除所有拖拽样式
-            dragContainer.querySelectorAll(".dragover__top, .dragover__bottom").forEach(item => {
-                item.classList.remove("dragover__top", "dragover__bottom");
-            });
+                
+                if (selectItem) {
+                    // 执行拖拽排序
+                    if (selectItem.classList.contains("dragover__top")) {
+                        await this.executeDragSort(item, selectItem, true);
+                    } else if (selectItem.classList.contains("dragover__bottom")) {
+                        await this.executeDragSort(item, selectItem, false);
+                    }
+                }
+                
+                // 清除所有拖拽样式
+                dragContainer.querySelectorAll(".dragover__top, .dragover__bottom").forEach(item => {
+                    item.classList.remove("dragover__top", "dragover__bottom");
+                });
             }
         };
 
@@ -2010,48 +2121,48 @@ export default class PluginSnippets extends Plugin {
         if (!snippetsList) {
             snippetsList = this.snippetsList;
 
-        // 深拷贝 snippetsList，避免排序影响原数据
-        if (this.snippetSortType !== "fixedSort" && this.snippetSortType !== "customSort") {
-            if (typeof structuredClone === "function") {
-                snippetsList = structuredClone(snippetsList);
-            } else {
-                snippetsList = JSON.parse(JSON.stringify(snippetsList));
+            // 深拷贝 snippetsList，避免排序影响原数据
+            if (this.snippetSortType !== "fixedSort" && this.snippetSortType !== "customSort") {
+                if (typeof structuredClone === "function") {
+                    snippetsList = structuredClone(snippetsList);
+                } else {
+                    snippetsList = JSON.parse(JSON.stringify(snippetsList));
+                }
             }
-        }
-
-        // 排序
-        switch (this.snippetSortType) {
-            case "fixedSort":
-                break;
-            case "customSort":
-                break;
-            case "enabledASC":
-                snippetsList.sort((a, b) => a.enabled ? -1 : 1);
-                break;
-            case "enabledDESC":
-                snippetsList.sort((a, b) => b.enabled ? -1 : 1);
-                break;
-            case "fileNameASC":
-                snippetsList.sort((a, b) => a.name.localeCompare(b.name));
-                break;
-            case "fileNameDESC":
-                snippetsList.sort((a, b) => b.name.localeCompare(a.name));
-                break;
-            case "fileNameNatASC":
-                snippetsList.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-                break;
-            case "fileNameNatDESC":
-                snippetsList.sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true }));
-                break;
-            case "createdASC":
-                // 创建时间要从 id 中获取，id 的格式是 "20250813161014-se1mend"，其中 "20250813161014" 是创建时间，"se1mend" 是随机字符串
-                snippetsList.sort((a, b) => a.id.slice(0, 14).localeCompare(b.id.slice(0, 14)));
-                break;
-            case "createdDESC":
-                snippetsList.sort((a, b) => b.id.slice(0, 14).localeCompare(a.id.slice(0, 14)));
-                break;
-            default:
-                break;
+    
+            // 排序
+            switch (this.snippetSortType) {
+                case "fixedSort":
+                    break;
+                case "customSort":
+                    break;
+                case "enabledASC":
+                    snippetsList.sort((a, b) => a.enabled ? -1 : 1);
+                    break;
+                case "enabledDESC":
+                    snippetsList.sort((a, b) => b.enabled ? -1 : 1);
+                    break;
+                case "fileNameASC":
+                    snippetsList.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+                case "fileNameDESC":
+                    snippetsList.sort((a, b) => b.name.localeCompare(a.name));
+                    break;
+                case "fileNameNatASC":
+                    snippetsList.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+                    break;
+                case "fileNameNatDESC":
+                    snippetsList.sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true }));
+                    break;
+                case "createdASC":
+                    // 创建时间要从 id 中获取，id 的格式是 "20250813161014-se1mend"，其中 "20250813161014" 是创建时间，"se1mend" 是随机字符串
+                    snippetsList.sort((a, b) => a.id.slice(0, 14).localeCompare(b.id.slice(0, 14)));
+                    break;
+                case "createdDESC":
+                    snippetsList.sort((a, b) => b.id.slice(0, 14).localeCompare(a.id.slice(0, 14)));
+                    break;
+                default:
+                    break;
             }
         }
 

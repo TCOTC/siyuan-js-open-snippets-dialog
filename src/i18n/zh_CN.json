@@ -154,5 +154,9 @@
   "snippetOptionClickBehaviorToggle": "切换代码片段开关状态",
   "snippetOptionClickBehaviorOpenEditor": "打开代码片段编辑器",
   "saveConfigFailed": "保存配置失败",
-  "removeConfigFailed": "删除配置失败"
+  "removeConfigFailed": "删除配置失败",
+  "topBarPosition": "顶栏按钮位置",
+  "topBarPositionDescription": "在顶栏中显示代码片段管理器按钮的位置，重新加载界面后生效",
+  "topBarPositionLeft": "左侧",
+  "topBarPositionRight": "右侧"
 }

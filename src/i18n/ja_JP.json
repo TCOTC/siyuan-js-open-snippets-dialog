@@ -154,5 +154,9 @@
   "snippetOptionClickBehaviorToggle": "スニペットの有効状態を切り替え",
   "snippetOptionClickBehaviorOpenEditor": "スニペットエディターを開く",
   "saveConfigFailed": "設定の保存に失敗しました",
-  "removeConfigFailed": "設定の削除に失敗しました"
+  "removeConfigFailed": "設定の削除に失敗しました",
+  "topBarPosition": "トップバーボタンの位置",
+  "topBarPositionDescription": "トップバーに表示されるスニペットマネージャーボタンの位置。インターフェースを再読み込みした後に有効になります",
+  "topBarPositionLeft": "左側",
+  "topBarPositionRight": "右側"
 }
