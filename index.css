@@ -9,7 +9,7 @@
   padding: 0 0 0 10px;
 }
 #commonMenu[data-name=PluginSnippets]:not(.b3-menu--fullscreen) .jcsm-snippets-search {
-  margin: 0 10px 4px 0;
+  margin: 5px 10px 0 0;
 }
 #commonMenu[data-name=PluginSnippets]:not(.b3-menu--fullscreen) .jcsm-top-container {
   padding: 0 16px 0 0;
@@ -18,7 +18,7 @@
   scrollbar-gutter: stable;
 }
 #commonMenu[data-name=PluginSnippets].b3-menu--fullscreen .jcsm-snippets-search {
-  margin: 0 5px 4px 5px;
+  margin: 5px 5px 0 5px;
 }
 #commonMenu[data-name=PluginSnippets] button {
   margin: 0 1px;
@@ -29,7 +29,6 @@
 #commonMenu[data-name=PluginSnippets] .jcsm-top-container {
   user-select: none;
   padding: 0 6px 0 0;
-  margin-bottom: 5px;
 }
 #commonMenu[data-name=PluginSnippets] .jcsm-top-container .jcsm-tabs {
   display: flex;
@@ -99,6 +98,7 @@
 }
 #commonMenu[data-name=PluginSnippets] .jcsm-snippets-container {
   overflow: auto;
+  margin-top: 4px;
 }
 #commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item {
   padding: 0 6px;
@@ -130,6 +130,27 @@
 }
 #commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item[data-type=js] ~ [data-type=new][data-snippet-type=js] {
   display: none;
+}
+#commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item.dragover__top::after, #commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item.dragover__bottom::after {
+  content: "";
+  position: absolute;
+  background-color: var(--b3-theme-primary-lighter);
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+#commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item.dragover__top::after {
+  top: -4px;
+}
+#commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item.dragover__bottom::after {
+  bottom: -1px;
+  top: auto;
+}
+#commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item:not(.fn__none).dragover__top::after {
+  top: -1px;
+}
+#commonMenu[data-name=PluginSnippets] .jcsm-snippets-container .jcsm-snippet-item:not(.fn__none) ~ .dragover__top::after {
+  top: -4px;
 }
 
 .jcsm-dialog {
