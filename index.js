@@ -837,6 +837,9 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
         this.menu.element.dispatchEvent(new CustomEvent("click", { detail: event.key }));
         return;
       }
+      if (document.activeElement.closest(".b3-dialog--open[data-key='jcsm-snippet-dialog']")) {
+        event.stopPropagation();
+      }
     };
     /**
      * \u79FB\u9664\u5168\u5C40\u952E\u76D8\u6309\u4E0B\u4E8B\u4EF6\u76D1\u542C
