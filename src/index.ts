@@ -4092,6 +4092,11 @@ export default class PluginSnippets extends Plugin {
             this.menu.element.dispatchEvent(new CustomEvent("click", {detail: event.key}));
             return;
         }
+
+        // 如果是在代码编辑器里使用快捷键，则阻止冒泡 https://github.com/TCOTC/snippets/issues/19
+        if (document.activeElement.closest(".b3-dialog--open[data-key='jcsm-snippet-dialog']")) {
+            event.stopPropagation();
+        }
     };
 
     /**
