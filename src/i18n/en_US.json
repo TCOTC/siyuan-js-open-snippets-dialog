@@ -158,5 +158,6 @@
   "topBarPosition": "Top bar button position",
   "topBarPositionDescription": "The position of the snippet manager button in the top bar, takes effect after reloading the interface",
   "topBarPositionLeft": "Left",
-  "topBarPositionRight": "Right"
+  "topBarPositionRight": "Right",
+  "invalidJavaScriptCode": "Invalid JavaScript code"
 }

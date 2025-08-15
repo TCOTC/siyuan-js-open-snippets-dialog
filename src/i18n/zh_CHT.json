@@ -158,5 +158,6 @@
   "topBarPosition": "頂欄按鈕位置",
   "topBarPositionDescription": "在頂欄中顯示代碼片段管理器按鈕的位置，重新載入介面後生效",
   "topBarPositionLeft": "左側",
-  "topBarPositionRight": "右側"
+  "topBarPositionRight": "右側",
+  "invalidJavaScriptCode": "無效的 JavaScript 代碼"
 }

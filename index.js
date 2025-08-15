@@ -2271,9 +2271,11 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
     const isTouch = this.isMobile || this.isTouchDevice;
     let snippetsHtml = "";
     snippetsList.forEach((snippet) => {
+      const safeSnippetName = document.createElement("span");
+      safeSnippetName.textContent = snippet.name || snippet.content.slice(0, 200);
       snippetsHtml += \`
                 <div class="jcsm-snippet-item b3-menu__item" data-type="\${snippet.type}" data-id="\${snippet.id}">
-                    <span class="jcsm-snippet-name fn__flex-1" placeholder="\${this.i18n.emptySnippet}">\${snippet.name || snippet.content.slice(0, 200)}</span>
+                    <span class="jcsm-snippet-name fn__flex-1" placeholder="\${this.i18n.emptySnippet}">\${safeSnippetName.innerHTML}</span>
                     <span class="fn__space"></span>
                     <button class="block__icon block__icon--show fn__flex-center\${isTouch ? " jcsm-touch" : ""}\${this.showDeleteButton ? "" : " fn__none"}" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
                     <button class="block__icon block__icon--show fn__flex-center\${isTouch ? " jcsm-touch" : ""}\${this.showDuplicateButton ? "" : " fn__none"}" data-type="duplicate"><svg><use xlink:href="#iconCopy"></use></svg></button>
@@ -2648,6 +2650,9 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
             newElement.textContent = snippet.content;
             document.head.appendChild(newElement);
           } else if (snippet.type === "js") {
+            if (!this.isValidJavaScriptCode(snippet.content)) {
+              this.showErrorMessage(this.i18n.invalidJavaScriptCode);
+            }
             newElement = document.createElement("script");
             newElement.id = elementId;
             newElement.type = "text/javascript";

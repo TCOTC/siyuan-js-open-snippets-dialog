@@ -51,6 +51,7 @@
 
 - 管理菜单支持调整代码片段排序 [#17](https://github.com/TCOTC/snippets/issues/17)
 - 在代码编辑器中使用任何快捷键都不再触发思源原生操作 [#19](https://github.com/TCOTC/snippets/issues/19)
+- 保存无效的 JS 时弹出提示、避免代码中的 HTML 标签破坏 DOM 结构 [#21](https://github.com/TCOTC/snippets/issues/21)
 
 ##### v1.2.0
 

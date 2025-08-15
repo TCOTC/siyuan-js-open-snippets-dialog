@@ -158,5 +158,6 @@
   "topBarPosition": "トップバーボタンの位置",
   "topBarPositionDescription": "トップバーに表示されるスニペットマネージャーボタンの位置。インターフェースを再読み込みした後に有効になります",
   "topBarPositionLeft": "左側",
-  "topBarPositionRight": "右側"
+  "topBarPositionRight": "右側",
+  "invalidJavaScriptCode": "無効な JavaScript コード"
 }
