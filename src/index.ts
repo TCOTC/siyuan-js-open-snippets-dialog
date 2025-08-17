@@ -90,7 +90,7 @@ export default class PluginSnippets extends Plugin {
 
         if (!isVersionReach("3.3.0")) {
             // 初始化 window.siyuan.jcsm
-            if (!window.siyuan.jcsm) window.siyuan.jcsm = {};
+            window.siyuan.jcsm ??= {}; // ??= 逻辑空赋值运算符 https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_assignment
     
             const frontEnd = getFrontend();
             this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
@@ -184,7 +184,7 @@ export default class PluginSnippets extends Plugin {
 
         if (isVersionReach("3.3.0")) {
             // 初始化 window.siyuan.jcsm
-            if (!window.siyuan.jcsm) window.siyuan.jcsm = {};
+            window.siyuan.jcsm ??= {}; // ??= 逻辑空赋值运算符 https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_assignment
     
             const frontEnd = getFrontend();
             this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
@@ -1050,7 +1050,7 @@ export default class PluginSnippets extends Plugin {
                     requestAnimationFrame(() => {
                         // 点击代码片段设置按钮，打开窗口
                         settingDialogElement.querySelector("button#codeSnippet").dispatchEvent(new CustomEvent("click"));
-                        this.closeDialogByElement(dialog.element);
+                        settingDialog.destroy();
                         setTimeout(() => {
                             // destroy 有个关闭动画，需要等待动画结束才能移除样式（参考原生代码 app/src/dialog/index.ts Dialog.destroy 方法）
                             document.head.removeChild(styleSheet);
