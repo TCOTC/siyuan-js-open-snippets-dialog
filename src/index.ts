@@ -60,7 +60,7 @@ const TEMP_EXPORT_PATH = "/temp/export/";          // 导入导出临时文件�
 
 export default class PluginSnippets extends Plugin {
     // private custom: () => Custom; // 自定义标签页
-    
+
     // ================================ 生命周期方法 ================================
 
     // 使用 window.siyuan.jcsm 存储变量
@@ -84,7 +84,7 @@ export default class PluginSnippets extends Plugin {
     public async onload() {
         // 发布服务不启用插件
         if (window.siyuan.isPublish) {
-            console.log(this.i18n.pluginDisplayName + this.i18n.pluginNotSupportedInPublish);
+            console.log(this.displayName + this.i18n.pluginNotSupportedInPublish);
             return;
         }
 
@@ -98,7 +98,7 @@ export default class PluginSnippets extends Plugin {
             // 优先添加顶栏按钮 https://github.com/TCOTC/snippets/issues/6
             const topBarElement = this.addTopBar({
                 icon: "iconJcsm",
-                title: this.i18n.pluginDisplayName,
+                title: this.displayName,
                 position: "right",
                 callback: () => {
                     openSnippetsManager();
@@ -135,7 +135,7 @@ export default class PluginSnippets extends Plugin {
 
             // 优化添加顶栏按钮的速度，延后设置顶栏按钮的 aria-label
             const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
-            const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
+            const title = !this.isMobile && topBarKeymap ? this.displayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.displayName;
             topBarElement.setAttribute("aria-label", title);
 
             // 注册快捷键（都默认置空）
@@ -166,7 +166,7 @@ export default class PluginSnippets extends Plugin {
             // 插件设置加载之后暴露 ignoreNotice 方法到全局
             window.siyuan.jcsm.disableNotification = this.disableNotification.bind(this);
 
-            console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
+            console.log(this.displayName + this.i18n.pluginOnload);
         }
     }
 
@@ -209,7 +209,7 @@ export default class PluginSnippets extends Plugin {
             `);
     
             const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
-            const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
+            const title = !this.isMobile && topBarKeymap ? this.displayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.displayName;
             const topBarElement = this.addTopBar({
                 icon: "iconJcsm",
                 title: title,
@@ -255,7 +255,7 @@ export default class PluginSnippets extends Plugin {
                 },
             });
 
-            console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
+            console.log(this.displayName + this.i18n.pluginOnload);
 
             // 调试
             // await new Promise(resolve => setTimeout(resolve, 10000));
@@ -299,7 +299,7 @@ export default class PluginSnippets extends Plugin {
         // 停止文件监听
         this.stopFileWatch();
 
-        console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnunload);
+        console.log(this.displayName + this.i18n.pluginOnunload);
     }
 
     /**
@@ -351,7 +351,7 @@ export default class PluginSnippets extends Plugin {
         // 最后移除全局变量
         delete window.siyuan.jcsm;
 
-        console.log(this.i18n.pluginDisplayName + this.i18n.pluginUninstall);
+        console.log(this.displayName + this.i18n.pluginUninstall);
     }
 
 
@@ -940,7 +940,7 @@ export default class PluginSnippets extends Plugin {
     public openSetting() {
         // 生成设置对话框元素
         const dialog = new Dialog({
-            title: this.i18n.pluginDisplayName,
+            title: this.displayName,
             content: `
                 <div class="b3-dialog__content"></div>
                 <div class="b3-dialog__action">
@@ -1080,7 +1080,7 @@ export default class PluginSnippets extends Plugin {
                     };
 
                     // 先点击插件名，再点击 reloadUI 快捷键选项
-                    const pluginItem = clickListItemByText(settingDialogElement, this.i18n.pluginDisplayName);
+                    const pluginItem = clickListItemByText(settingDialogElement, this.displayName);
                     if (pluginItem?.parentElement?.nextElementSibling) {
                         clickListItemByText(pluginItem.parentElement.nextElementSibling, this.i18n.reloadUI);
                     }
@@ -1321,7 +1321,7 @@ export default class PluginSnippets extends Plugin {
             topBarElement.classList.remove("toolbar__item--active");
             // topBarCommand 有可能变，所以每次都重新获取
             const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
-            const title = topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
+            const title = topBarKeymap ? this.displayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.displayName;
             topBarElement.setAttribute("aria-label", title);
         }
 
@@ -2445,6 +2445,7 @@ export default class PluginSnippets extends Plugin {
      * @param snippetType 代码片段类型
      */
     private async deleteSnippet(id: string, snippetType: string) {
+        // TODO: 有个 "/api/snippet/removeSnippet" 看看能不能用上
         this.console.log("deleteSnippet", id, snippetType);
 
         if (!id || !snippetType) {
@@ -3645,7 +3646,7 @@ export default class PluginSnippets extends Plugin {
      * @param id 消息的 ID
      */
     private showErrorMessage(message: string, timeout: number | undefined = undefined, id?: string) {
-        showMessage(this.i18n.pluginDisplayName + ": " + message, timeout, "error", id);
+        showMessage(this.displayName + ": " + message, timeout, "error", id);
         // 将日志写入任务添加到队列
         this.addLogWriteTask(message);
     }
@@ -3679,7 +3680,7 @@ export default class PluginSnippets extends Plugin {
                     const response = await this.putFile(TEMP_PLUGIN_PATH + LOG_NAME, newLog);
                     if (!response || (response as any).code !== 0) {
                         // 写入失败
-                        showMessage(this.i18n.pluginDisplayName + ": " + this.i18n.writePluginLogFailed + " [" + response?.code + ": " + response?.msg + "]", 20000, "error");
+                        showMessage(this.displayName + ": " + this.i18n.writePluginLogFailed + " [" + response?.code + ": " + response?.msg + "]", 20000, "error");
                     }
                 };
 
@@ -3692,7 +3693,7 @@ export default class PluginSnippets extends Plugin {
                     await writeLog(response as string);
                 } else {
                     // 其他错误（具体错误详情见原生 API 文档）
-                    showMessage(this.i18n.pluginDisplayName + ": " + this.i18n.getPluginLogFailed + " [" + response?.code + ": " + response?.msg + "]", 20000, "error");
+                    showMessage(this.displayName + ": " + this.i18n.getPluginLogFailed + " [" + response?.code + ": " + response?.msg + "]", 20000, "error");
                 }
             } catch (error) {
                 this.console.error("Failed to write log:", error);
@@ -5114,7 +5115,7 @@ export default class PluginSnippets extends Plugin {
             exportByMobile(exportResponse.data.path.replace("temp/export/", "export/"));
 
             // 显示成功消息
-            showMessage(this.i18n.pluginDisplayName + ": " + this.i18n.exportSnippetsSuccess, 3000, "info");
+            showMessage(this.displayName + ": " + this.i18n.exportSnippetsSuccess, 3000, "info");
         } catch (error) {
             this.console.error("exportSnippets: Failed to export snippets: ", error);
             this.showErrorMessage(this.i18n.exportSnippetsFailed + ": " + error.message);
@@ -5243,7 +5244,7 @@ export default class PluginSnippets extends Plugin {
                     const successMessage = overwrite 
                         ? this.i18n.importSnippetsOverwriteSuccess 
                         : this.i18n.importSnippetsAppendSuccess;
-                    showMessage(this.i18n.pluginDisplayName + ": " + successMessage, 3000, "info");
+                    showMessage(this.displayName + ": " + successMessage, 3000, "info");
 
                 } catch (error) {
                     this.console.error("importSnippets: Failed to import snippets", error);

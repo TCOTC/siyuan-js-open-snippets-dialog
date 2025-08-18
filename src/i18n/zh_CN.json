@@ -1,5 +1,4 @@
 {
-  "pluginDisplayName": "代码片段管理器",
   "pluginNotSupportedInPublish": " 插件不支持在发布服务下使用",
   "loadConfigError": "配置文件异常，已移除配置文件",
   "loadConfigIncompatible": "当前的插件配置文件是更高版本的，请升级插件，或者保存一次插件设置以覆盖当前配置",
