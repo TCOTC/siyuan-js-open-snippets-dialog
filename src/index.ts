@@ -79,6 +79,11 @@ export default class PluginSnippets extends Plugin {
     set isTouchDevice(value: boolean) { window.siyuan.jcsm.isTouchDevice = value; }
 
     /**
+     * 顶栏按钮元素
+     */
+    private topBarElement: HTMLElement;
+
+    /**
      * 启用插件（进行各种初始化）
      */
     public async onload() {
@@ -96,12 +101,12 @@ export default class PluginSnippets extends Plugin {
             this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
 
             // 优先添加顶栏按钮 https://github.com/TCOTC/snippets/issues/6
-            const topBarElement = this.addTopBar({
+            this.topBarElement = this.addTopBar({
                 icon: "iconJcsm",
                 title: this.displayName,
                 position: "right",
                 callback: () => {
-                    openSnippetsManager();
+                    this.openSnippetsManager();
                 }
             });
 
@@ -113,30 +118,11 @@ export default class PluginSnippets extends Plugin {
                     <path d="M19.965 3.314c-0.127-0.041-0.273-0.065-0.424-0.065-0.632 0-1.167 0.413-1.35 0.985l-0.003 0.010-7.083 22.667c-0.041 0.127-0.065 0.273-0.065 0.424 0 0.632 0.413 1.167 0.985 1.35l0.010 0.003c0.127 0.041 0.273 0.065 0.424 0.065 0.632 0 1.167-0.413 1.35-0.985l0.003-0.010 7.083-22.667c0.041-0.127 0.065-0.273 0.065-0.424 0-0.632-0.413-1.167-0.985-1.35l-0.010-0.003z"></path>
                 </symbol>
             `);
-    
-            // 顶栏按钮点击回调：打开代码片段管理器
-            const openSnippetsManager = () => {
-                if (this.getAllModalDialogElements().length > 0) return;
-    
-                if (this.isMobile) {
-                    this.openMenu();
-                } else {
-                    let rect = topBarElement.getBoundingClientRect();
-                    // 如果被隐藏，则使用更多按钮
-                    if (rect.width === 0) {
-                        rect = document.querySelector("#barMore").getBoundingClientRect();
-                    }
-                    if (rect.width === 0) {
-                        rect = document.querySelector("#barPlugins").getBoundingClientRect();
-                    }
-                    this.openMenu(topBarElement, rect);
-                }
-            };
 
             // 优化添加顶栏按钮的速度，延后设置顶栏按钮的 aria-label
             const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
             const title = !this.isMobile && topBarKeymap ? this.displayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.displayName;
-            topBarElement.setAttribute("aria-label", title);
+            this.topBarElement.setAttribute("aria-label", title);
 
             // 注册快捷键（都默认置空）
             this.addCommand({
@@ -144,7 +130,7 @@ export default class PluginSnippets extends Plugin {
                 hotkey: "",
                 callback: () => {
                     // 快捷键唤起菜单时，如果菜单已经打开，要先关闭再重新打开，所以这里直接执行就好，会自动关闭菜单再重开
-                    openSnippetsManager();
+                    this.openSnippetsManager();
                 },
             });
             this.addCommand({
@@ -174,6 +160,28 @@ export default class PluginSnippets extends Plugin {
      * 顶栏按钮位置
      */
     declare topBarPosition: "left" | "right";
+
+    /**
+     * 初始化顶栏按钮
+     */
+    private async topBarInit() {
+        const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
+        const title = !this.isMobile && topBarKeymap ? this.displayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.displayName;
+        this.topBarElement = this.addTopBar({
+            icon: "iconJcsm",
+            title: title,
+            position: this.topBarPosition || "right",
+            callback: () => {
+                this.openSnippetsManager();
+            }
+        });
+    }
+
+    // 顶栏按钮点击回调：打开代码片段管理器
+    private openSnippetsManager = () => {
+        if (this.getAllModalDialogElements().length > 0) return;
+        this.openMenu();
+    };
 
     /**
      * 布局加载完成
@@ -207,36 +215,8 @@ export default class PluginSnippets extends Plugin {
                     <path d="M19.965 3.314c-0.127-0.041-0.273-0.065-0.424-0.065-0.632 0-1.167 0.413-1.35 0.985l-0.003 0.010-7.083 22.667c-0.041 0.127-0.065 0.273-0.065 0.424 0 0.632 0.413 1.167 0.985 1.35l0.010 0.003c0.127 0.041 0.273 0.065 0.424 0.065 0.632 0 1.167-0.413 1.35-0.985l0.003-0.010 7.083-22.667c0.041-0.127 0.065-0.273 0.065-0.424 0-0.632-0.413-1.167-0.985-1.35l-0.010-0.003z"></path>
                 </symbol>
             `);
-    
-            const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
-            const title = !this.isMobile && topBarKeymap ? this.displayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.displayName;
-            const topBarElement = this.addTopBar({
-                icon: "iconJcsm",
-                title: title,
-                position: this.topBarPosition || "right",
-                callback: () => {
-                    openSnippetsManager();
-                }
-            });
-    
-            // 顶栏按钮点击回调：打开代码片段管理器
-            const openSnippetsManager = () => {
-                if (this.getAllModalDialogElements().length > 0) return;
-    
-                if (this.isMobile) {
-                    this.openMenu();
-                } else {
-                    let rect = topBarElement.getBoundingClientRect();
-                    // 如果被隐藏，则使用更多按钮
-                    if (rect.width === 0) {
-                        rect = document.querySelector("#barMore").getBoundingClientRect();
-                    }
-                    if (rect.width === 0) {
-                        rect = document.querySelector("#barPlugins").getBoundingClientRect();
-                    }
-                    this.openMenu(topBarElement, rect);
-                }
-            };
+
+            this.topBarInit();
 
             // 注册快捷键（都默认置空）
             this.addCommand({
@@ -244,7 +224,7 @@ export default class PluginSnippets extends Plugin {
                 hotkey: "",
                 callback: () => {
                     // 快捷键唤起菜单时，如果菜单已经打开，要先关闭再重新打开，所以这里直接执行就好，会自动关闭菜单再重开
-                    openSnippetsManager();
+                    this.openSnippetsManager();
                 },
             });
             this.addCommand({
@@ -765,7 +745,7 @@ export default class PluginSnippets extends Plugin {
      */
     private applySetting(dialogElement: HTMLElement) {
         // 应用设置
-        this.configItems.forEach(item => {
+        this.configItems.forEach(async item => {
             if (item.type === "boolean") {
                 const element = dialogElement.querySelector(`input[data-type='${item.key}']`) as HTMLInputElement;
                 if (!element) return;
@@ -874,6 +854,11 @@ export default class PluginSnippets extends Plugin {
                                 snippetsContainer.insertAdjacentHTML("afterbegin", snippetsItems);
                             }
                         }
+                    } else if (item.key === "topBarPosition" && isVersionReach("3.3.0")) {
+                        // 修改顶栏按钮位置后，移除并重新添加顶栏按钮、重新设置菜单位置
+                        this.topBarElement?.remove();
+                        await this.topBarInit();
+                        this.setMenuPosition(true);
                     }
                 }
             } else if (item.type === "string") {
@@ -1139,30 +1124,28 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 打开顶栏菜单
-     * @param topBarElement 顶栏按钮元素
-     * @param rect 菜单位置
      */
-    private async openMenu(topBarElement?: HTMLElement, rect?: DOMRect) {
+    private async openMenu() {
         this.menu = new Menu("PluginSnippets", () => {
             // 此处会在菜单被关闭（this.menu.close();）时执行
-            this.closeMenuCallback(topBarElement);
+            this.closeMenuCallback();
         });
 
         // 如果菜单已存在，再次点击按钮就会移除菜单，此时直接返回
         if (this.menu.isOpen) {
             this.menu = undefined;
-            if (topBarElement && topBarElement.matches(":hover")) {
+            if (!this.isMobile && this.topBarElement && this.topBarElement.matches(":hover")) {
                 // 只有当鼠标悬停在顶栏按钮上时才显示 tooltip
-                this.showElementTooltip(topBarElement);
+                this.showElementTooltip(this.topBarElement);
             }
             return;
         }
 
         // 顶栏按钮样式
-        if (!this.isMobile && topBarElement) {
-            topBarElement.classList.add("toolbar__item--active");
+        if (!this.isMobile && this.topBarElement) {
+            this.topBarElement.classList.add("toolbar__item--active");
             // 移除 aria-label 属性，在菜单打开时不显示 tooltip
-            topBarElement.removeAttribute("aria-label");
+            this.topBarElement.removeAttribute("aria-label");
             this.hideTooltip();
         }
 
@@ -1285,24 +1268,46 @@ export default class PluginSnippets extends Plugin {
         if (this.isMobile) {
             this.menu.fullscreen();
         } else {
-            // this.topBarPosition 不存在的时候就默认为 right
-            const dock = this.topBarPosition === "left" ? document.querySelector("#dockLeft") : document.querySelector("#dockRight");
-            const dockRect = dock?.getBoundingClientRect();
-            const dockWidth = ((dockRect?.width || 0) + 1).toString() + "px";
+            this.setMenuPosition();
+        }
+    }
+
+    /**
+     * 设置菜单位置
+     * @param isUpdate 是否仅更新菜单位置
+     */
+    private setMenuPosition(isUpdate: boolean = false) {
+        let rect = this.topBarElement.getBoundingClientRect();
+        // 如果被隐藏，则使用更多按钮
+        if (rect.width === 0) {
+            rect = document.querySelector("#barMore").getBoundingClientRect();
+        }
+        if (rect.width === 0) {
+            rect = document.querySelector("#barPlugins").getBoundingClientRect();
+        }
+
+        // this.topBarPosition 不存在的时候就默认为 right
+        const dock = this.topBarPosition === "left" ? document.querySelector("#dockLeft") : document.querySelector("#dockRight");
+        const dockRect = dock?.getBoundingClientRect();
+        const dockWidth = ((dockRect?.width || 0) + 1).toString() + "px";
+
+        if (!this.menu) return;
+
+        if (!isUpdate) {
             this.menu.open({
                 x: rect.right,
                 y: rect.bottom + 1,
                 isLeft: false,
             });
-            // 不要用鼠标位置、菜单要固定宽度，否则切换 CSS 和 JS 时，菜单可能会大幅抖动或者超出窗口边界
-            this.menu.element.style.width = "min(400px, 90vw)";
-            if (this.topBarPosition === "left") {
-                this.menu.element.style.right = "";
-                this.menu.element.style.left = dockWidth;
-            } else {
-                this.menu.element.style.right = dockWidth;
-                this.menu.element.style.left = "";
-            }
+        }
+        // 不要用鼠标位置、菜单要固定宽度，否则切换 CSS 和 JS 时，菜单可能会大幅抖动或者超出窗口边界
+        this.menu.element.style.width = "min(400px, 90vw)";
+        if (this.topBarPosition === "left") {
+            this.menu.element.style.right = "";
+            this.menu.element.style.left = dockWidth;
+        } else {
+            this.menu.element.style.right = dockWidth;
+            this.menu.element.style.left = "";
         }
     }
 
@@ -1313,16 +1318,15 @@ export default class PluginSnippets extends Plugin {
 
     /**
      * 关闭顶栏菜单回调
-     * @param topBarElement 顶栏按钮元素
      */
-    private closeMenuCallback(topBarElement?: HTMLElement) {
-        if (topBarElement) {
+    private closeMenuCallback() {
+        if (this.topBarElement) {
             // topBarElement 不存在时说明 this.isMobile 为 true，此时不需要修改顶栏按钮样式
-            topBarElement.classList.remove("toolbar__item--active");
+            this.topBarElement.classList.remove("toolbar__item--active");
             // topBarCommand 有可能变，所以每次都重新获取
             const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
             const title = topBarKeymap ? this.displayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.displayName;
-            topBarElement.setAttribute("aria-label", title);
+            this.topBarElement.setAttribute("aria-label", title);
         }
 
         // 移除事件监听
