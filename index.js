@@ -541,6 +541,12 @@ const TEMP_EXPORT_PATH = "/temp/export/";
 class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
   constructor() {
     super(...arguments);
+    // \u9876\u680F\u6309\u94AE\u70B9\u51FB\u56DE\u8C03\uFF1A\u6253\u5F00\u4EE3\u7801\u7247\u6BB5\u7BA1\u7406\u5668
+    this.openSnippetsManager = () => {
+      if (this.getAllModalDialogElements().length > 0)
+        return;
+      this.openMenu();
+    };
     /**
      * \u914D\u7F6E\u6587\u4EF6\u7248\u672C\uFF08\u914D\u7F6E\u7ED3\u6784\u6709\u53D8\u5316\u65F6\u5347\u7EA7\uFF09
      */
@@ -879,21 +885,21 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
    */
   onload() {
     return __async(this, null, function* () {
+      var _a, _b;
       if (window.siyuan.isPublish) {
-        console.log(this.i18n.pluginDisplayName + this.i18n.pluginNotSupportedInPublish);
+        console.log(this.displayName + this.i18n.pluginNotSupportedInPublish);
         return;
       }
       if (!(0,_utils__WEBPACK_IMPORTED_MODULE_4__.isVersionReach)("3.3.0")) {
-        if (!window.siyuan.jcsm)
-          window.siyuan.jcsm = {};
+        (_b = (_a = window.siyuan).jcsm) != null ? _b : _a.jcsm = {};
         const frontEnd = (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.getFrontend)();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
-        const topBarElement = this.addTopBar({
+        this.topBarElement = this.addTopBar({
           icon: "iconJcsm",
-          title: this.i18n.pluginDisplayName,
+          title: this.displayName,
           position: "right",
           callback: () => {
-            openSnippetsManager();
+            this.openSnippetsManager();
           }
         });
         this.addIcons(\`
@@ -903,31 +909,15 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
                     <path d="M19.965 3.314c-0.127-0.041-0.273-0.065-0.424-0.065-0.632 0-1.167 0.413-1.35 0.985l-0.003 0.010-7.083 22.667c-0.041 0.127-0.065 0.273-0.065 0.424 0 0.632 0.413 1.167 0.985 1.35l0.010 0.003c0.127 0.041 0.273 0.065 0.424 0.065 0.632 0 1.167-0.413 1.35-0.985l0.003-0.010 7.083-22.667c0.041-0.127 0.065-0.273 0.065-0.424 0-0.632-0.413-1.167-0.985-1.35l-0.010-0.003z"></path>
                 </symbol>
             \`);
-        const openSnippetsManager = () => {
-          if (this.getAllModalDialogElements().length > 0)
-            return;
-          if (this.isMobile) {
-            this.openMenu();
-          } else {
-            let rect = topBarElement.getBoundingClientRect();
-            if (rect.width === 0) {
-              rect = document.querySelector("#barMore").getBoundingClientRect();
-            }
-            if (rect.width === 0) {
-              rect = document.querySelector("#barPlugins").getBoundingClientRect();
-            }
-            this.openMenu(topBarElement, rect);
-          }
-        };
         const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
-        const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
-        topBarElement.setAttribute("aria-label", title);
+        const title = !this.isMobile && topBarKeymap ? this.displayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.displayName;
+        this.topBarElement.setAttribute("aria-label", title);
         this.addCommand({
           langKey: "openSnippetsManager",
           // \u6253\u5F00\u4EE3\u7801\u7247\u6BB5\u7BA1\u7406\u5668
           hotkey: "",
           callback: () => {
-            openSnippetsManager();
+            this.openSnippetsManager();
           }
         });
         this.addCommand({
@@ -944,8 +934,25 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
           this.startFileWatch();
         }
         window.siyuan.jcsm.disableNotification = this.disableNotification.bind(this);
-        console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
+        console.log(this.displayName + this.i18n.pluginOnload);
       }
+    });
+  }
+  /**
+   * \u521D\u59CB\u5316\u9876\u680F\u6309\u94AE
+   */
+  topBarInit() {
+    return __async(this, null, function* () {
+      const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
+      const title = !this.isMobile && topBarKeymap ? this.displayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.displayName;
+      this.topBarElement = this.addTopBar({
+        icon: "iconJcsm",
+        title,
+        position: this.topBarPosition || "right",
+        callback: () => {
+          this.openSnippetsManager();
+        }
+      });
     });
   }
   /**
@@ -953,11 +960,11 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
    */
   onLayoutReady() {
     return __async(this, null, function* () {
+      var _a, _b;
       if (window.siyuan.isPublish)
         return;
       if ((0,_utils__WEBPACK_IMPORTED_MODULE_4__.isVersionReach)("3.3.0")) {
-        if (!window.siyuan.jcsm)
-          window.siyuan.jcsm = {};
+        (_b = (_a = window.siyuan).jcsm) != null ? _b : _a.jcsm = {};
         const frontEnd = (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.getFrontend)();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
         this.isTouchDevice = "ontouchstart" in window && navigator.maxTouchPoints > 1;
@@ -973,38 +980,13 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
                     <path d="M19.965 3.314c-0.127-0.041-0.273-0.065-0.424-0.065-0.632 0-1.167 0.413-1.35 0.985l-0.003 0.010-7.083 22.667c-0.041 0.127-0.065 0.273-0.065 0.424 0 0.632 0.413 1.167 0.985 1.35l0.010 0.003c0.127 0.041 0.273 0.065 0.424 0.065 0.632 0 1.167-0.413 1.35-0.985l0.003-0.010 7.083-22.667c0.041-0.127 0.065-0.273 0.065-0.424 0-0.632-0.413-1.167-0.985-1.35l-0.010-0.003z"></path>
                 </symbol>
             \`);
-        const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
-        const title = !this.isMobile && topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
-        const topBarElement = this.addTopBar({
-          icon: "iconJcsm",
-          title,
-          position: this.topBarPosition || "right",
-          callback: () => {
-            openSnippetsManager();
-          }
-        });
-        const openSnippetsManager = () => {
-          if (this.getAllModalDialogElements().length > 0)
-            return;
-          if (this.isMobile) {
-            this.openMenu();
-          } else {
-            let rect = topBarElement.getBoundingClientRect();
-            if (rect.width === 0) {
-              rect = document.querySelector("#barMore").getBoundingClientRect();
-            }
-            if (rect.width === 0) {
-              rect = document.querySelector("#barPlugins").getBoundingClientRect();
-            }
-            this.openMenu(topBarElement, rect);
-          }
-        };
+        this.topBarInit();
         this.addCommand({
           langKey: "openSnippetsManager",
           // \u6253\u5F00\u4EE3\u7801\u7247\u6BB5\u7BA1\u7406\u5668
           hotkey: "",
           callback: () => {
-            openSnippetsManager();
+            this.openSnippetsManager();
           }
         });
         this.addCommand({
@@ -1015,7 +997,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
             this.reloadUI();
           }
         });
-        console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnload);
+        console.log(this.displayName + this.i18n.pluginOnload);
       }
     });
   }
@@ -1033,7 +1015,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
     }
     (_b = this.menu) == null ? void 0 : _b.close();
     this.stopFileWatch();
-    console.log(this.i18n.pluginDisplayName + this.i18n.pluginOnunload);
+    console.log(this.displayName + this.i18n.pluginOnunload);
   }
   /**
    * \u5378\u8F7D\u63D2\u4EF6
@@ -1065,7 +1047,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
     }
     this.destroyListeners();
     delete window.siyuan.jcsm;
-    console.log(this.i18n.pluginDisplayName + this.i18n.pluginUninstall);
+    console.log(this.displayName + this.i18n.pluginUninstall);
   }
   /**
    * \u914D\u7F6E\u9879\u5B9A\u4E49
@@ -1415,8 +1397,8 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
    * @param dialogElement \u5BF9\u8BDD\u6846\u5143\u7D20
    */
   applySetting(dialogElement) {
-    this.configItems.forEach((item) => {
-      var _a, _b, _c, _d, _e, _f, _g;
+    this.configItems.forEach((item) => __async(this, null, function* () {
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       if (item.type === "boolean") {
         const element = dialogElement.querySelector(\`input[data-type='\${item.key}']\`);
         if (!element)
@@ -1512,6 +1494,10 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
                 snippetsContainer.insertAdjacentHTML("afterbegin", snippetsItems);
               }
             }
+          } else if (item.key === "topBarPosition" && (0,_utils__WEBPACK_IMPORTED_MODULE_4__.isVersionReach)("3.3.0")) {
+            (_h = this.topBarElement) == null ? void 0 : _h.remove();
+            yield this.topBarInit();
+            this.setMenuPosition(true);
           }
         }
       } else if (item.type === "string") {
@@ -1544,7 +1530,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
           }
         }
       }
-    });
+    }));
     const config = { version: this.version };
     this.configItems.forEach((item) => {
       config[item.key] = window.siyuan.jcsm[item.key];
@@ -1562,7 +1548,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
    */
   openSetting() {
     const dialog = new siyuan__WEBPACK_IMPORTED_MODULE_3__.Dialog({
-      title: this.i18n.pluginDisplayName,
+      title: this.displayName,
       content: \`
                 <div class="b3-dialog__content"></div>
                 <div class="b3-dialog__action">
@@ -1660,7 +1646,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
           settingDialogElement.querySelector('.b3-tab-bar [data-name="appearance"]').dispatchEvent(new CustomEvent("click"));
           requestAnimationFrame(() => {
             settingDialogElement.querySelector("button#codeSnippet").dispatchEvent(new CustomEvent("click"));
-            this.closeDialogByElement(dialog.element);
+            settingDialog.destroy();
             setTimeout(() => {
               document.head.removeChild(styleSheet);
             }, siyuan__WEBPACK_IMPORTED_MODULE_3__.Constants.TIMEOUT_DBLCLICK);
@@ -1682,7 +1668,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
             }
             return null;
           };
-          const pluginItem = clickListItemByText(settingDialogElement, this.i18n.pluginDisplayName);
+          const pluginItem = clickListItemByText(settingDialogElement, this.displayName);
           if ((_d = pluginItem == null ? void 0 : pluginItem.parentElement) == null ? void 0 : _d.nextElementSibling) {
             clickListItemByText(pluginItem.parentElement.nextElementSibling, this.i18n.reloadUI);
           }
@@ -1716,24 +1702,22 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
   // - [ ] \u4F18\u5148\u6392\u5E8F\u65B9\u5F0F\u4E0B\u4EC5\u5728\u751F\u6210\u83DC\u5355\u7684\u65F6\u5019\u6392\u5E8F\uFF0C\u4F7F\u7528\u83DC\u5355\u7684\u8FC7\u7A0B\u4E2D\u4E0D\u4F1A\u518D\u6B21\u6392\u5E8F
   /**
    * \u6253\u5F00\u9876\u680F\u83DC\u5355
-   * @param topBarElement \u9876\u680F\u6309\u94AE\u5143\u7D20
-   * @param rect \u83DC\u5355\u4F4D\u7F6E
    */
-  openMenu(topBarElement, rect) {
+  openMenu() {
     return __async(this, null, function* () {
       this.menu = new siyuan__WEBPACK_IMPORTED_MODULE_3__.Menu("PluginSnippets", () => {
-        this.closeMenuCallback(topBarElement);
+        this.closeMenuCallback();
       });
       if (this.menu.isOpen) {
         this.menu = void 0;
-        if (topBarElement && topBarElement.matches(":hover")) {
-          this.showElementTooltip(topBarElement);
+        if (!this.isMobile && this.topBarElement && this.topBarElement.matches(":hover")) {
+          this.showElementTooltip(this.topBarElement);
         }
         return;
       }
-      if (!this.isMobile && topBarElement) {
-        topBarElement.classList.add("toolbar__item--active");
-        topBarElement.removeAttribute("aria-label");
+      if (!this.isMobile && this.topBarElement) {
+        this.topBarElement.classList.add("toolbar__item--active");
+        this.topBarElement.removeAttribute("aria-label");
         this.hideTooltip();
       }
       const snippetsList = yield this.getSnippetsList();
@@ -1828,35 +1812,52 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
       if (this.isMobile) {
         this.menu.fullscreen();
       } else {
-        const dock = this.topBarPosition === "left" ? document.querySelector("#dockLeft") : document.querySelector("#dockRight");
-        const dockRect = dock == null ? void 0 : dock.getBoundingClientRect();
-        const dockWidth = (((dockRect == null ? void 0 : dockRect.width) || 0) + 1).toString() + "px";
-        this.menu.open({
-          x: rect.right,
-          y: rect.bottom + 1,
-          isLeft: false
-        });
-        this.menu.element.style.width = "min(400px, 90vw)";
-        if (this.topBarPosition === "left") {
-          this.menu.element.style.right = "";
-          this.menu.element.style.left = dockWidth;
-        } else {
-          this.menu.element.style.right = dockWidth;
-          this.menu.element.style.left = "";
-        }
+        this.setMenuPosition();
       }
     });
   }
   /**
-   * \u5173\u95ED\u9876\u680F\u83DC\u5355\u56DE\u8C03
-   * @param topBarElement \u9876\u680F\u6309\u94AE\u5143\u7D20
+   * \u8BBE\u7F6E\u83DC\u5355\u4F4D\u7F6E
+   * @param isUpdate \u662F\u5426\u4EC5\u66F4\u65B0\u83DC\u5355\u4F4D\u7F6E
    */
-  closeMenuCallback(topBarElement) {
-    if (topBarElement) {
-      topBarElement.classList.remove("toolbar__item--active");
+  setMenuPosition(isUpdate = false) {
+    let rect = this.topBarElement.getBoundingClientRect();
+    if (rect.width === 0) {
+      rect = document.querySelector("#barMore").getBoundingClientRect();
+    }
+    if (rect.width === 0) {
+      rect = document.querySelector("#barPlugins").getBoundingClientRect();
+    }
+    const dock = this.topBarPosition === "left" ? document.querySelector("#dockLeft") : document.querySelector("#dockRight");
+    const dockRect = dock == null ? void 0 : dock.getBoundingClientRect();
+    const dockWidth = (((dockRect == null ? void 0 : dockRect.width) || 0) + 1).toString() + "px";
+    if (!this.menu)
+      return;
+    if (!isUpdate) {
+      this.menu.open({
+        x: rect.right,
+        y: rect.bottom + 1,
+        isLeft: false
+      });
+    }
+    this.menu.element.style.width = "min(400px, 90vw)";
+    if (this.topBarPosition === "left") {
+      this.menu.element.style.right = "";
+      this.menu.element.style.left = dockWidth;
+    } else {
+      this.menu.element.style.right = dockWidth;
+      this.menu.element.style.left = "";
+    }
+  }
+  /**
+   * \u5173\u95ED\u9876\u680F\u83DC\u5355\u56DE\u8C03
+   */
+  closeMenuCallback() {
+    if (this.topBarElement) {
+      this.topBarElement.classList.remove("toolbar__item--active");
       const topBarKeymap = this.getCustomKeymapByCommand("openSnippetsManager");
-      const title = topBarKeymap ? this.i18n.pluginDisplayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.i18n.pluginDisplayName;
-      topBarElement.setAttribute("aria-label", title);
+      const title = topBarKeymap ? this.displayName + " " + this.getHotkeyDisplayText(topBarKeymap) : this.displayName;
+      this.topBarElement.setAttribute("aria-label", title);
     }
     this.removeListener(this.menu.element);
     this.menu = void 0;
@@ -3460,7 +3461,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
    * @param id \u6D88\u606F\u7684 ID
    */
   showErrorMessage(message, timeout = void 0, id) {
-    (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.i18n.pluginDisplayName + ": " + message, timeout, "error", id);
+    (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.displayName + ": " + message, timeout, "error", id);
     this.addLogWriteTask(message);
   }
   /**
@@ -3478,7 +3479,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
           const newLog = oldLog + "E " + (/* @__PURE__ */ new Date()).toLocaleString() + " " + message + "\\n";
           const response2 = yield this.putFile(TEMP_PLUGIN_PATH + LOG_NAME, newLog);
           if (!response2 || response2.code !== 0) {
-            (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.i18n.pluginDisplayName + ": " + this.i18n.writePluginLogFailed + " [" + (response2 == null ? void 0 : response2.code) + ": " + (response2 == null ? void 0 : response2.msg) + "]", 2e4, "error");
+            (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.displayName + ": " + this.i18n.writePluginLogFailed + " [" + (response2 == null ? void 0 : response2.code) + ": " + (response2 == null ? void 0 : response2.msg) + "]", 2e4, "error");
           }
         });
         const response = yield this.getFile(TEMP_PLUGIN_PATH + LOG_NAME);
@@ -3487,7 +3488,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
         } else if ((response || response === "") && !response.code) {
           yield writeLog(response);
         } else {
-          (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.i18n.pluginDisplayName + ": " + this.i18n.getPluginLogFailed + " [" + (response == null ? void 0 : response.code) + ": " + (response == null ? void 0 : response.msg) + "]", 2e4, "error");
+          (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.displayName + ": " + this.i18n.getPluginLogFailed + " [" + (response == null ? void 0 : response.code) + ": " + (response == null ? void 0 : response.msg) + "]", 2e4, "error");
         }
       } catch (error) {
         this.console.error("Failed to write log:", error);
@@ -4394,7 +4395,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
           });
         });
         (0,_export__WEBPACK_IMPORTED_MODULE_2__.exportByMobile)(exportResponse.data.path.replace("temp/export/", "export/"));
-        (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.i18n.pluginDisplayName + ": " + this.i18n.exportSnippetsSuccess, 3e3, "info");
+        (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.displayName + ": " + this.i18n.exportSnippetsSuccess, 3e3, "info");
       } catch (error) {
         this.console.error("exportSnippets: Failed to export snippets: ", error);
         this.showErrorMessage(this.i18n.exportSnippetsFailed + ": " + error.message);
@@ -4486,7 +4487,7 @@ class PluginSnippets extends siyuan__WEBPACK_IMPORTED_MODULE_3__.Plugin {
               this.setMenuSnippetsType(this.snippetsType);
             }
             const successMessage = overwrite ? this.i18n.importSnippetsOverwriteSuccess : this.i18n.importSnippetsAppendSuccess;
-            (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.i18n.pluginDisplayName + ": " + successMessage, 3e3, "info");
+            (0,siyuan__WEBPACK_IMPORTED_MODULE_3__.showMessage)(this.displayName + ": " + successMessage, 3e3, "info");
           } catch (error) {
             this.console.error("importSnippets: Failed to import snippets", error);
             this.showErrorMessage(this.i18n.importSnippetsFailed + ": " + error.message);
